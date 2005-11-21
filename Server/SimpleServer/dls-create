@@ -1,0 +1,204 @@
+#!/usr/bin/python
+import MySQLdb
+import sys
+import pdb
+import getopt
+
+
+
+def usage():
+   print "dls-create prototype 0 Giovanni Ciraolo 2005"
+   print "usage: dls-create <options>"
+   print "use dls-create --help for more help"
+def help():
+   print "dls-create prototype 0 Giovanni Ciraolo 2005"
+   print "usage: dls-create <options>"
+   print "--help \t\t\t Show this help"
+   print "--verbose \t\t Verbose output"
+   print "--host \t\t\t Full qualified Host name of MySQL server default:'localhost'"
+   print "--user \t\t\t Administration Username of SQL database default:'root'"
+   print "--passwd \t\t Administration Password of SQL database default:''"
+   print "--dlsuser \t\t set the username of MySQL DLS Database default:'dls'"
+   print "--dlspasswd \t\t set the passwd of MySQL DLS Database default:'dls'"
+   print "--database \t\t DLS Database name defaulut:'dls'"
+
+
+if __name__ == "__main__":
+   
+   long_options=["help","verbose","host=","user=","passwd=","database=","dlsuser=","dlspasswd="]
+   short_options=""
+   try:
+      opts, args = getopt.getopt(sys.argv[1:],short_options,long_options)
+   except getopt.GetoptError:
+      usage()
+      sys.exit(2)
+
+   if len(opts)<1:
+      usage()
+      sys.exit(2)
+   
+   
+   host = None
+   host_db = None
+   port = None
+   verbose = False
+   user=None
+   passwd=None
+   database=None
+   host_db=None
+   user_dls=None
+   passwd_dls=None
+   for o, a in opts:
+      if o =="--verbose":
+         verbose = True
+      if o =="--help":
+         help()
+         sys.exit(2)
+      if o=="--host":
+         host=a
+      if o=="--dlsuser":
+         host_dls=a
+      if o=="--database":
+         database=a
+      if o=="--passwd":
+         passwd=a
+      if o=="--user":
+         user=a    
+      if o=="--dlspasswd":
+         passwd_dls=a    
+         
+
+
+   if host==None:
+      host="localhost"
+
+
+
+   if user==None:
+      user="root"
+   if passwd==None:
+      passwd=""
+   if database==None:
+      database="dls"
+   if user_dls==None:
+      user_dls="dls"
+   if passwd_dls==None:
+      passwd_dls="dls"   
+   
+   
+
+   try:
+       conn = MySQLdb.connect (host,user,passwd)
+       cursor = conn.cursor()
+   except MySQLdb.Error, e:
+         print  ("DLS_db Connection error: %s  %s"%(e.args[0], e.args[1]))
+         sys.exit(2)
+
+
+
+   query="show databases"
+   if verbose:
+       print query
+   try:
+       cursor.execute(query)
+   except MySQLdb.Error, e:
+       print ("DLS_db Query:'%s' error:%s"%(query,e.args[0], e.args[1]))
+       conn.close()
+
+   rows=cursor.fetchall()
+   str=[]
+   for row in rows:
+       str.append(row[0])
+   
+   if database in str:
+       query="drop database %s"%(database)
+       if verbose:
+           print query
+       try:
+           cursor.execute(query)
+       except MySQLdb.Error, e:
+           print    ("DLS_db Query:'%s' error:%s"%(query,e.args[0], e.args[1]))
+           conn.close()
+           sys.exit(2)
+
+   query="create database %s"%(database)
+   if verbose:
+      print query
+   try:
+      cursor.execute(query)
+   except MySQLdb.Error, e:
+      print    ("DLS_db Query:'%s' error:%s"%(query,e.args[0], e.args[1]))
+      conn.close()
+      sys.exit(2)
+
+   #cursor.close()
+   #conn.close
+
+   #try:
+    #  conn = MySQLdb.connect (host,user,passwd,database)
+     # cursor = conn.cursor()
+   #except MySQLdb.Error, e:
+   #   print  ("DLS_db Connection error: %s  %s"%(e.args[0], e.args[1]))
+   #   sys.exit(2)
+
+   query="use %s"%(database)
+   if verbose:
+      print query
+   try:
+      cursor.execute(query)
+   except MySQLdb.Error, e:
+      print    "DLS_db Query:'%s' error:%s"%(query,e.args[0], e.args[1])
+      conn.close()
+      sys.exit(2)
+
+
+
+         
+   query="CREATE TABLE `db` (`db_id` bigint(20) unsigned NOT NULL auto_increment,`db` varchar(255) NOT NULL default '',PRIMARY KEY  (`db_id`),UNIQUE KEY `datablock` (`db`),UNIQUE KEY `datablock_id` (`db_id`)) TYPE=InnoDB"
+
+   if verbose:
+      print query
+   try:
+      cursor.execute(query)
+   except MySQLdb.Error, e:
+      print    ("DLS_db Query:'%s' error:%s"%(query,e.args[0], e.args[1]))
+      conn.close()
+      sys.exit(2)
+
+   query="CREATE TABLE `se` (`se_id` bigint(20) unsigned NOT NULL auto_increment,`se` varchar(255) NOT NULL default '',PRIMARY KEY  (`se_id`),UNIQUE KEY `se_id` (`se_id`),UNIQUE KEY `se` (`se`)) TYPE=InnoDB"
+   if verbose:
+      print query
+   try:
+      cursor.execute(query)
+   except MySQLdb.Error, e:
+      print    ("DLS_db Query:'%s' error:%s"%(query,e.args[0], e.args[1]))
+      conn.close()
+      sys.exit(2)
+
+
+   query="CREATE TABLE `db_se` (`db_id` bigint(20) unsigned NOT NULL default '0',`se_id` bigint(20) unsigned NOT NULL default '0',UNIQUE KEY `db_id` (`db_id`,`se_id`)) TYPE=InnoDB ROW_FORMAT=FIXED"
+   if verbose:
+      print query
+   try:
+      cursor.execute(query)
+   except MySQLdb.Error, e:
+      print    ("DLS_db Query:'%s' error:%s"%(query,e.args[0], e.args[1]))
+      conn.close()
+      sys.exit(2)    
+
+
+   query="GRANT ALL PRIVILEGES ON %s.* TO '%s'@'%s' IDENTIFIED BY '%s' WITH GRANT OPTION"%(database,user_dls,host,passwd_dls)
+   if verbose:
+      print query
+   try:
+      cursor.execute(query)
+   except MySQLdb.Error, e:
+      print    ("DLS_db Query:'%s' error:%s"%(query,e.args[0], e.args[1]))
+      conn.close()
+      sys.exit(2)
+
+   conn.close()
+   print "DLS Database Create with Database=%s username=%s passord=%s granted to host:%s"%(database,user_dls,passwd_dls,host)
+
+   sys.exit(2)
+       
