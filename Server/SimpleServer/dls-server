@@ -259,7 +259,7 @@ class DLS_db:
          return self.__cursor.fetchall()
 
    def begin_transaction(self):
-      self.__conn.begin()
+      #self.__conn.begin()
       self.__in_transaction_begined=True
       
    def commit_transaction(self):
@@ -270,8 +270,16 @@ class DLS_db:
       self.__conn.rollback()   
       self.__in_transaction_begined=False
 
-   def last_insert_id(self):
-         return self.__cursor.insert_id()
+   def last_insert_id(self,table):
+     self.execute_query("SELECT LAST_INSERT_ID() FROM %s"%(table))
+     row=self.__cursor.fetchone()
+     if row:
+          return row[0]
+     else:
+          return None
+         
+#   def last_insert_id(self):
+#         return self.__cursor.insert_id()
    
    def execute_query(self,query):
       if self.__verbose:
@@ -304,7 +312,7 @@ class DLS_db:
       id=self.select_id(table,field_id,field,value)
       if id==None:
          self.execute_query("INSERT INTO %s (%s) VALUES ('%s')"%(table,field,value))
-         id=self.last_insert_id()
+         id=self.last_insert_id(table)
       return id
       
    def insert_relation(self,table,id1,id1value,id2,id2value):
