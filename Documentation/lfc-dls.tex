@@ -1,0 +1,387 @@
+%  $Id:  $
+
+\documentclass[pdftex]{cmspaper}
+\usepackage[bookmarksnumbered,bookmarksopen,bookmarksopenlevel=1,colorlinks,link
+color=magenta,citecolor=blue,urlcolor=red,plainpages=false,pdfpagelabels]{hyperr
+ef}
+
+%
+%
+
+\begin{document}
+
+%==============================================================================
+% title page for few authors
+
+\begin{titlepage}
+
+% select one of the following and type in the proper number:
+%   \cmsnote{2005/TBD}
+%  \internalnote{2005/000}
+%  \conferencereport{2005/000}
+   \date{\today}
+
+  \title{LFC evaluation as CMS Data Location Service}
+
+%  \note{Draft Version \today...}
+  \note{Draft Version 0.5}
+
+  \begin{Authlist}
+    ??? ???
+       \Instfoot{wherever}{???? University, ???}
+    Alessandra Fanfani
+       \Instfoot{bologna}{Universit\`{a} di Bologna e Sezione dell' INFN, Bologna, ITALY}
+    Stefano Belforte
+       \Instfoot{trieste}{Sezione dell' INFN, Trieste, ITALY}
+    Antonio Delgado, Flavia Donno, Andrea Sciaba' 
+       \Instfoot{cern}{EIS, CERN}
+
+  \end{Authlist}
+
+%\collaboration{for the CMS collaboration}
+
+  \begin{abstract}
+
+    This note describes the evaluation of the LCG Local File catalog LFC as Data Location Service (DLS) component
+    of the CMS Data Management (DM) project. 
+\end{abstract} 
+
+  
+\end{titlepage}
+
+\setcounter{page}{2}%JPP
+\tableofcontents
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+
+
+\section{The DLS prototype based on LFC}
+\label{sec:proto0}
+
+ The Data Location Service (DLS) is part of the CMS Data Management system and allows to discover
+ where replicas of the data may be located in the distributed computing system, as described in \cite{DLS}.  
+
+ A first prototype implementing the basic DLS functionalities using LFC was developed.  
+
+\subsection{CMS replica data structure in DLS}
+
+The mapping of CMS index ({\em block-replica}) data structure into LFC fileds is: 
+\begin{itemize}
+\item block identifier, blockID  (string) $<-->$ LFCs' LFN
+\item location, SE (string)  $<-->$ LFC's replica table (SURL or rather host field)
+\item creation timestamp  (high precision time) $<-->$ there is no correspondance
+\item last update timestamp (high precision time) $<-->$ LFC's replica last access and pin time
+\item ``custodial'' attribute $<-->$ f\_type field of the LFC's replica (``P'' permanent, ``V'' volatile, etc..) 
+\item other attributes  $<-->$ ?? ( user defined metadata, one field of 255chars, are associated to the LFN and not to the replica)
+\end{itemize}
+
+
+\subsection{DLS server}
+ The DLS server is a global LFC instance. 
+ \begin{itemize}
+ \item The host is specified with environment variable \$LFC\_HOST. 
+ \item The complete path ``/grid/cms/basedir'' must be included. \$LFC\_HOME should be also usable to allow relative paths { FIXME: but does not work yet; it has to be investigated}.
+
+ \end{itemize}
+
+\subsection{DLS client}
+
+ There is a client command-line interface, based on LFC python API, to perform the basic operations: 
+ \begin{itemize}
+   \item Add a Replica: 
+\begin{flushleft}
+  $\mbox{ dlslfc-add-replica $<$fileblock1$>$  $<$SEname$>$ }$
+\end{flushleft}
+
+   \item Remove a Replica:
+\begin{flushleft}
+ $\mbox{ dlslfc-delete-replica $<$fileblock1$>$ $<$SEname$>$ }$
+\end{flushleft}
+
+  \item Get location (SEs) hosting a file-block:
+\begin{flushleft}
+$\mbox{ dlslfc-get-se --datablock $<$fileblock1$>$ }$
+\end{flushleft}
+  \item Get file-block on a SE:
+\begin{flushleft}
+$\mbox{ dlslfc-get-datablock $<$SEname$>$}$
+\end{flushleft}
+   \end{itemize}
+
+
+To run the LFC client, you need :
+\begin{itemize}
+\item Globus security, i.e. the vdt\_globus\_essentials RPM
+\item the lcg-dm-common RPM
+\item the LFC-client RPM
+\item the LFC-interfaces RPM, if you are using the Python or Perl interface
+\end{itemize}
+You need to create a valid proxy.
+                                                                                                        
+The libraries contained in the LFC and lcg-dm-common RPMs are:
+                                                                                                        
+/opt/lcg/lib/liblfc.so
+
+/opt/lcg/lib/perl/lfc.so
+
+/opt/lcg/lib/python/\_lfc.so
+
+/opt/lcg/lib/libCsec\_plugin\_GSI.so
+
+/opt/lcg/lib/libCsec\_plugin\_GSI\_thread.so
+
+/opt/lcg/lib/libCsec\_plugin\_ID.so
+
+
+\subsection{attributes}
+ \begin{itemize}
+  \item custodial
+
+The ``custodial'' attribute of a replica can be specified using the
+f\_type field of the LFC's replica (``P'' permanent, ``V'' volatile, etc..).
+
+The replica permanent/volatile attribute is set at creation time now,
+and cannot be modified afterwards. There is currently no way to update that
+attribute.
+The work around is to delete the existing replica an create a new one with 
+the attribute modified. 
+A new method to modify this attribute could be also added, if it is a CMS requirement.
+
+[ Not a requirement for the time being]
+
+{\bf FIXME:} Is it possible to retrieve the value of this attribute?
+
+%% 4.bis could other types be defined, up to this beeing an N-Byte
+%% code that we use as we like ? Or is there a standard e.g. in SRM ?
+%%????
+
+  \item timestamps
+
+The replica last update timestamp is described by the LFC's replica last access.
+
+The replica creation timestamp doesn't exist. It could be added to the catalog if 
+it is a CMS requirement.
+
+[Not a requirement for the time being]
+% Not a requirement for the time being
+
+  \item additional attributes
+
+The addition of new replica attributes is not foreseen, since LFC is not a metadata catalog. 
+Other solutions can be found for that.                                                     
+
+ \end{itemize}
+
+
+\section{Testing of perfomances}
+
+
+\subsection {Get data locations}
+
+The typical use cases will be to get locations of one fileblock or N fileblocks (with N up to 1000??).
+[The query based on a single fileblock will be particularly important for data location
+performed by the Resource Broker via DLI, where fileblocks will be queries one
+by one (as far as it is now).]
+
+For a single query, most of the time is probably lost in the connection 
+establishment and the authentication. 
+The time spent to list the locations of a single fileblock ("time dlslfc-get-se 1fileblock") 
+as a function of the N locations the fileblock is hosted at is reported in Tab.~\ref{get-se-1fileblock}.
+
+\begin{table}[!htbp]
+\begin{center}
+ \begin{tabular}{|l|c|}         \hline
+   N  & time \\ \hline
+   1  & 0.77 s \\ \hline
+   5  & 0.82 s  \\ \hline
+   10 & 0.90 s \\ \hline
+   20 & 1.02 s \\ \hline
+  100 & 2.10 s \\ \hline
+\end{tabular}
+\caption {Time for listing locations of a signle fileblock, when there are N locations of that fileblock. }\label{get-se-1fileblock}
+\end{center}
+\end{table}
+
+Performance improvements are foreseen by the LFC developers, introducing
+the new API method (lfc\_getreplicas), for the single fileblock (1-lfn) query
+with  almost constant response time for any number of replicas and even more improvements 
+for the bulk N-fileblock query.
+
+
+The times reported in Tab.~\ref{get-se-1fileblock} were obtained from the command line tools. 
+Although they involve little else than querying the LFC, the times are slightly better 
+running the interesting part from within the python interpreter (avoid of loading python within 
+the time measurement), as reported in Tab.~\ref{get-se-1fileblock-test}.
+
+\begin{table}[!htbp]
+\begin{center}
+ \begin{tabular}{|l|c|}         \hline
+   N  & time \\ \hline
+   1  & 0.58 s \\ \hline
+   5  & 0.61 s  \\ \hline
+   10 & 0.70 s \\ \hline
+   20 & 0.83 s \\ \hline
+  100 & 1.90 s \\ \hline
+\end{tabular}
+\caption {Time for listing locations of a signle fileblock, when N locations of that fileblock are available. Times excluding python loading}\label{get-se-1fileblock-test}
+\end{center}
+\end{table}
+
+%   Deletion of an entry (and its 3 replicas): 1.3 s
+%  
+%   Retrieve SEs where datablock is located (3 SEs): 0.6 s
+%
+
+
+\subsection {Timing tests for impact of sessions/transactions in the operations}
+
+In this section preliminary timing tests including all the LFC calls within a session (i.e. single authentication with the LFC) or a transaction, are reported.
+
+Although these tests are not completely rigorous, they show that using sessions reduces times in 
+a factor of 10 in addition (Tab.~\ref{dlslfc-add}), a factor of 3 in deletion (Tab.~\ref{dlslfc-del}) and has almost of no effect in listing replicas (Tab.~\ref{dlslfc-get-se}, Tab.~\ref{dlslfc-get-db}).
+LFC listing operations are not performed within a session so the obtained results are expected. There is LFC development going on in this area and it will be corrected in future LFC versions (timescale:1/2 weeks away?).
+
+
+\begin{table}[!htbp]
+\begin{center}
+ \begin{tabular}{|l|c|c|}         \hline
+   {\bf dlslfc-add}  & N=100 entries & N=1000 entries \\ \hline
+ No session          & 108 s       & 1165 s \\ \hline
+ session             & 9.56 s      & 90 s \\ \hline
+ transaction         & 8.5 s      & 80 s \\ \hline        
+\end{tabular}
+\caption {Timing for adding N replicas.(N is the number of items in the query)}\label{dlslfc-add}
+\end{center}
+\end{table}
+
+\begin{table}[!htbp]
+\begin{center}
+ \begin{tabular}{|l|c|c|}         \hline
+   {\bf dlslfc-delete}  & N=100 entries & N=1000 entries \\ \hline
+ No session          & 111 s     & 1159 s \\ \hline
+ session             & 34 s      & 344 s \\ \hline
+ transaction         & 35 s      & 337 s \\ \hline        
+\end{tabular}
+\caption {Timing for deleting N replicas. }\label{dlslfc-del}
+\end{center}
+\end{table}
+
+
+\begin{table}[!htbp]
+\begin{center}
+ \begin{tabular}{|l|c|c|}         \hline
+   {\bf dlslfc-get-se}  & N=100 entries & N=1000 entries \\ \hline
+ No session          & 30.18 s     & 288 s \\ \hline
+ session             & 30 s      & 257 s \\ \hline
+\end{tabular}
+\caption {Timing for getting data location for N fileblocks .}\label{dlslfc-get-se}
+\end{center}
+\end{table}
+
+\begin{table}[!htbp]
+\begin{center}
+ \begin{tabular}{|l|c|c|}         \hline
+   {\bf dlslfc-get-datablock}  & N=113 replicas & N=2705 replicas \\ \hline
+ No session          & 43.8 s     & 717 s \\ \hline
+ session             & 41 s      & 691 s \\ \hline
+\end{tabular}
+\caption {Timing for listing fileblocks present at a given location. The time is reported for location having N fileblocks stored there. }\label{dlslfc-get-db}
+\end{center}
+\end{table}
+
+Note that the population in the database during the testing is at least several thousands, 
+altough the exact population is not know (no permissions to query all the directories).
+How the overall population of the database affect the performances?
+
+
+\subsection{secure versus in-secure LFC}
+
+Running an in-secure version of LFC on a different port for read-only accesses
+and sharing the same Database of the secure one seems to be technically possible.
+However the LFC do not reccomend nor support having in-secure LFC catalog,
+even if it is read-only. It would be experiment responsability to do that, and it 
+should work against a dedicated back-end database (so no other experiments are exposed).
+
+{\bf FIXME: } are the experiment supposed to share the same back-end database?
+
+
+\subsection {Other tests}
+
+\begin{itemize}
+
+ \item investigate what makes adding a new replica slower wrt to the bare MySQL CMS prototype. 
+      
+       It took about 1h 20min to insert into LFC about 2900 entries, one at the time (with old command-line).
+       It took about 7min with the DLS python/MySQL prototype.
+       The difference seems to be due to the authentication, because when using sessions the 
+       inserting time reduces by a factor of 10. 
+
+ \item investigate the slowness of dlslfc-get-datablock 
+       Retrieving list of fileblocks in one SE will be used not often and is outside the main workflow, so perormance of that is not very important at the moment.
+       
+ \item test the load and timing for concurrent query
+ \item test the load and timing for concurrent insertion 
+                                                                                                  
+  \end{itemize} 
+
+\subsection{ Naive model for expected DLS performance}
+
+\begin{itemize}
+
+\item number of {\em block-replica} in a year
+
+  The total disk and space storage divided by the average fileblock size.
+
+  The overall storage at Tier-0 and all Tier-1/2s foreseen in 2008 (\cite{CTDR})  is about 33PB. Assuming an average file-block size of 1TB, the
+  total number of {\em block-replica} is of order $10^{4}$-$10^{5}$.
+
+\item number of file-blocks in a year
+
+  The total size of events divided by the average fileblock size.
+
+  Assuming the most relevant data in term of size are RAW (1.5MB/evt),
+  RECO (0.25MB/evt) and MC (~4MB/evt?) data and $1.5 \times 10^{9}$ events,
+  with 2 reprocessing phases, the total size is about 10 PB.
+  Assuming an average file-block size of 1TB, the
+  total number of file-blocks in a year is of the order $10^{4}$.
+
+%%% RAW event has 1.5MB , RECO event has 0.25MB
+%%% Sim event has 2MB , (SimDigi?? has 1.5MB), RecSim has 0.4MB
+%% $1.5 \times 10^{9}$ events $\times 2.25MB$ (RAW+3RECO) = about 3PB
+%% $1.5 \times 10^{9}$ events $\times 3.9MB$ (MC) = about 6PB
+%
+\item number of queries for analysis
+
+ Assuming:
+ \begin{itemize}
+  \item the whole data sample ($\sim 10K$ file-blocks) is analysed
+        with 5 different analyses every 20 days (as mentioned for AOD in \cite{CM})
+  \item each file-block ($\sim 1TB$) is analysed by 1000 jobs, i.e. each job
+        analyse 1GB of data
+  \item each job does a query to DLS to find the location of the file-block it needs
+ \end{itemize}
+
+ \mbox{5 analysis $\times 10K$ fileblocks $\times 1000$ queries} = \mbox{ $5 \times 10^{7}$ }
+
+ \mbox{ 20 days } = \mbox{ $1.7 \times 10^{6}$ sec}
+
+ the rate is about 30Hz ( order of 10-100Hz )
+
+\end{itemize}
+
+  
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{thebibliography}{9}
+  \bibitem{DLS} {\bf ????}, , {\bf The CMS Data Location Service} 
+  
+  \bibitem{CTDR} {\bf CERN/LHCC 2005-023}, , {\bf CMS Computing Technical Design Report}
+  \bibitem{CM} {\bf CMS Note 2004/031}, C. Grandi, D. Stickland,
+               L. Taylor, {\bf The CMS Computing Model}
+
+\end{thebibliography}
+ 
+%------------------------------------------------------------------------------
+\pagebreak
+
+\end{document}
