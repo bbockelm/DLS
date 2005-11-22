@@ -1,0 +1,411 @@
+%  $Id: dm-dls-tech-design.tex,v 1.3 2005/10/31 10:01:16 afanfani Exp $
+
+\documentclass[pdftex]{cmspaper}
+\usepackage[bookmarksnumbered,bookmarksopen,bookmarksopenlevel=1,colorlinks,link
+color=magenta,citecolor=blue,urlcolor=red,plainpages=false,pdfpagelabels]{hyperr
+ef}
+
+%
+%
+
+\begin{document}
+
+%==============================================================================
+% title page for few authors
+
+\begin{titlepage}
+
+% select one of the following and type in the proper number:
+%   \cmsnote{2005/TBD}
+%  \internalnote{2005/000}
+%  \conferencereport{2005/000}
+   \date{\today}
+
+  \title{The CMS Data Location Service}
+
+%  \note{Draft Version \today...}
+  \note{Draft Version 0.5}
+
+  \begin{Authlist}
+    ??? ???
+       \Instfoot{wherever}{???? University, ???}
+    Alessandra Fanfani, Claudio Grandi
+       \Instfoot{bologna}{Universit\`{a} di Bologna e Sezione dell' INFN, Bologna, ITALY}
+    Giovanni Ciraolo
+       \Instfoot{firenze}{Universit\`{a} di Firenze e Sezione dell' INFN, Firenze, ITALY}
+    Lassi Tuura
+       \Instfoot{ne}{Northeastern University, Boston, MA, USA}
+    Peter Elmer
+       \Instfoot{prince}{Princeton University, Princeton, NJ, USA}
+
+  \end{Authlist}
+
+\collaboration{for the CMS collaboration}
+
+  \begin{abstract}
+
+    This note describes the Data Location Service (DLS) component
+    of the CMS Data Management (DM) project. 
+    The DLS will allow users to discover where replicas of the 
+    data may be located in the distributed computing system.
+    The role of the DLS as well as the first-pass API are described.
+    The DLS proptotype is also presented.
+\end{abstract} 
+
+  
+\end{titlepage}
+
+\setcounter{page}{2}%JPP
+\tableofcontents
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+\section{The role of the DLS}
+\label{sec:intro}
+
+%%%% DLS design note version 0.5 should have:
+%%    * First version of design note for discussion
+%%    * Includes first-pass API
+%%    * Includes proposed testing plan for using Grid Catalogs for DLS 
+%%%%
+
+The Data Location Service (DLS) is part of the CMS Data Management system
+and provides a means to locate replicas of data in the distributed computing
+system, as described in the Computing TDR~\cite{CTDR}.
+
+%%% intro
+%The CMS Data Management system will provide the infrastructure
+%and the tools to manage large amounts of events that will be
+%available when the detector will start collecting data.
+%%% DBS
+The data discovery functionality will be provided by the 
+Dataset Bookkeeping System (DBS)~\cite{DBS}.
+The DBS will allow to determine which data exists (regardless
+of their location) and how they are organized in 
+term of ``file-blocks''.
+A ``file-block'' is a set of files that are likely to be 
+accessed together. The files are grouped together into file-blocks 
+since data replication/management will be done by file-block rather than 
+for individual files.
+The information available from queries to DBS will be site-independent.
+
+A separate DLS is used to track the location of the data.
+The DLS is indexed by file-block and it maps file-blocks
+to storage elements (SE's) where they are located.
+The DLS provide only names of sites hosting the data and not the
+physical location of constituent files at the sites, or the composition
+of file-blocks.
+
+Information is entered into DLS, for sites where the data is located, 
+either by the production system after creating a file-block or by 
+the data transfer system after transfer. In both cases only 
+complete file-blocks are registered.
+Site manager operations may also result in modification to
+the DLS, for instance in case of data loss or deletion.
+
+Queries placed to the DLS result in a list of sites that have
+a given file-block. 
+In order to steer jobs where data are, the DLS is contacted to 
+select the sites hosting the needed data.
+This translate into an explicit requirement to the Grid Workload 
+Management System (WMS) for a possible set of sites. Alternatively, 
+the query to the DLS may be performed by the Grid WMS itself if 
+the DLS provides a compatible interface (DLI) to the Grid WMS. 
+
+
+  The DLS will also provide some means for expressing the concept that
+certain replicas of data are considered {\em custodial}, i.e. that the
+experiment considers that copy of the data at that site to be permanent.
+Sites take custodial responsibility for copies of the data, that cannot 
+be removed without insuring with the experiment that either the data 
+is no longer needed or that some other site takes on the custodial 
+responsibilities for the data.
+
+  In addition, in case the underlying SE system provides data access cost
+estimation (e.g. whether the file-block is normally on disk or on tape),
+the general policies for blocks of data may be exposed through the DLS. 
+
+  The DLS may be provided by suitable modification or evolution of existing
+general Grid components.
+
+\subsection{DLS interactions with other DM components}
+
+This section (try to) describe the use of file-blocks in the 
+overall context of data management, reporting/outlining the 
+interactions between the DLS, the Dataset Bookeeping System (DBS) 
+and the data placement and data transfer system (PHEDEX).
+
+%Three phases are identified/reported:
+%
+\begin{itemize}
+
+\item Harvesting files phase
+ 
+ Produced files are being harvested and the file-blocks are being 
+ built ("open" file-blocks). The following operations are performed:
+ \begin{itemize}
+  \item The file-block construction is tracked in the DBS (DBS local scope first 
+ or DBS global scope) {\bf FIXME: how? who is going to do that? Circle with No Name?}.
+  \item The individual files are transferred into a given location. The status
+        of the files transfer has to be tracked. {\bf FIXME: files transfer tracked by PHEDEX? How can PHEDEX know what to transfer if the file-block is not defined yet ?}
+  \item "open" file-blocks are not known to DLS. A file-block is registered
+        into the DLS when the file-block is closed and all files stored 
+        in the final location.
+ \end{itemize}
+
+{\bf FIXME: Need to clarify how the production system is supposed to interact witn DLS.}
+
+\item Data transfer phase
+
+ File-blocks are being transferred. The composition of each file-block 
+ in term of files it contains is fixed ("closed" file-blocks).
+
+ \begin{itemize}
+  \item  The file-blocks composition is already defined in the DBS and 
+         it's immutable.
+  \item  Progress in transfering the single files within the file-blocks
+         to the desired destination has to be tracked by PHEDEX.
+  \item  A file-block is not registered into the DLS until the whole 
+         file-block has been copied to the destination. {\bf FIXME: which are the PHEDEX agents that will write into DLS? the Tier-1s/2s transfer agents?}
+ \end{itemize}
+
+\item Consistency check at a site
+
+ A file-block is defined in the DBS ("closed" file-block) and it is 
+ registered into the DLS to be at a site. 
+ It should be possible to trigger (at any time) a procedure to check 
+ the completeness of the file-block at the site (i.e. after partial data loss).
+ This check procedure requires to have a database with the file-block 
+ definition (DBS?) and the list of files availables at the sites (local catalog, 
+ trivial ls?).
+ If the check fails it means that the file-block is nolonger complete at the site
+ and the corresponding entry in the DLS need to be removed.
+
+\end{itemize}
+
+In this system only complete file-blocks are transferred and 
+registered in the DLS. 
+
+{\bf FIXME: Is there a need to handle ``open'' file-blocks in DLS? In the current system the DLS keep track of mapping between file-blocks and their location, it has no means to handle/distinguish open file-blocks.}
+
+
+
+%%%%%%%%%%%%%%%%%%% rough estimate.....
+%\subsection{DLS in numbers...}
+%
+%\begin{itemize}
+%
+%\item number of {\em block-replica} in a year
+%
+%  The total disk and space storage divided by the average fileblock size.
+% 
+%  The overall storage at Tier-0 and all Tier-1/2s foreseen in 2008 (\cite{CTDR})
+%  is about 33PB. Assuming an average file-block size of 1TB, the
+%  total number of {\em block-replica} is of order $10^{4}$-$10^{5}$.
+%
+%\item number of file-blocks in a year
+%
+%  The total size of events divided by the average fileblock size.
+% 
+%  Assuming the most relevant data in term of size are RAW (1.5MB/evt), 
+%  RECO (0.25MB/evt) and MC (~4MB/evt?) data and $1.5 \times 10^{9}$ events,
+%  with 2 reprocessing phases, the total size is about 10 PB.
+%  Assuming an average file-block size of 1TB, the
+%  total number of file-blocks is of the order $10^{4}$.
+% 
+%%% RAW event has 1.5MB , RECO event has 0.25MB
+%%% Sim event has 2MB , (SimDigi?? has 1.5MB), RecSim has 0.4MB  
+%% $1.5 \times 10^{9}$ events $\times 2.25MB$ (RAW+3RECO) = about 3PB 
+%% $1.5 \times 10^{9}$ events $\times 3.9MB$ (MC) = about 6PB
+%
+%\item number of queries for analysis
+%
+% Assuming:
+% \begin{itemize}
+%  \item the whole data sample ($\sim 10K$ file-blocks) is analysed
+%        with 5 different analyses every 20 days (as mentioned for AOD in \cite{CM})
+%  \item each file-block ($\sim 1TB$) is analysed by 1000 jobs, i.e. each job
+%        analyse 1GB of data
+%  \item each job does a query to DLS to find the location of the file-block it needs
+% \end{itemize}
+%
+% \mbox{5 analysis $\times 10K$ fileblocks $\times 1000$ queries} = \mbox{ $5 \times 10^{7}$ }
+%
+% \mbox{ 20 days } = \mbox{ $1.7 \times 10^{6}$ sec} 
+%
+% the rate is about 30Hz ( order of 10-100Hz )
+%
+%\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+\section{The DLS API}
+\label{sec:dlsapi}
+
+The Data Location Service consists of a centralized index 
+server plus a set of client libraries tools at each site hosting data. 
+All the operations about replica management are left to production
+and data transfer system.
+
+The index ({\em block-replica}) will be a structure containing 
+information like: 
+\begin{itemize}
+\item block identifier, blockID  (string)
+\item location, SE (string)
+\item creation timestamp  (high precision time)  {\bf FIXME: how is the creation timestamp supposed to be used?}
+\item last update timestamp (high precision time)
+\item few state attributes, e.g. ``custodial'', ``accessibility'' (in general strings)
+%\item last query timestamp. The last query timestamp could implement a caching algorithm: if a file-block is not custodial and it is not queried since longtime it could be deleted. {\bf FIMXE: do we want that or not?}
+\end{itemize}
+
+For example a data structure like:
+\begin{flushleft}
+\mbox{block-replica} = \{
+     \mbox{blockID: fileblock1 } ,
+     \mbox{location: cmsbose.bo.infn.it} ,
+     \mbox{creation time:   Thu Oct 6 09:00:00} ,
+     \mbox{lastupdate time: Thu Oct 6 09:00:00} ,
+     \mbox{custodial:       yes} ,
+     \mbox{accessibility:   disk}
+ \}
+\end{flushleft}
+
+
+
+The client libraries will implement a simple API like:
+\begin{itemize}
+\item Begin/Commit/Rollback transactions:
+
+       begin-transaction(read$|$write)
+
+       commit-transaction()
+
+       rollback-transaction()
+
+\item Add a Replica:  
+
+    add-replica(array$[${\em block-replica}$]$)
+    
+     Information are entered in the DLS by the production system at 
+     the end of production, by data transfer agents or by the local 
+     site manager. A file-block is registered into DLS only when complete.
+
+\item Remove a Replica:
+  
+      remove-replica(array$[${\em block-replica}$]$)
+
+      This allow to remove a {\em block-replica}, for instance by site 
+      manager in case of data deletion of block loss.
+
+\item Update Replica attributes:
+
+      update-replica(array$[$blockID,location,array$[$key,value$]$$]$)
+
+      where key is one of the attributes and the values of the attributes are updated
+      with this API. This API can be replaced by an intelligent add query.
+
+\item Get location (SEs) hosting a file-block:  
+
+      array$[$location$]$ = get-location(array$[$blockID$]$)
+
+%      return array$[$blockID$]$ or array$[${\em block-replica}$]$ ??
+      This allows the Workload Management system to perform data location
+      and submit jobs where the data are.
+
+\item Get file-blocks on a given location (SE):
+
+      array$[$blockID$]$ = get-block(array$[$location$]$)
+
+%      return array$[$blockID$]$ or array$[${\em block-replica}$]$ ??
+
+\item {\bf FIXME: Add query on attribute:}  array$[${\em block-replica}$]$ = query(array$[$key attribute$]$)
+ 
+
+\end{itemize}
+
+\subsection{DLS attributes}
+ Which are the specification for the replica attributes?
+\begin{itemize}
+\item custodial
+\item access cost : how the SE are exposing this information? How it is supposed to be used?
+\item others?? 
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+\section{The DLS prototype 0 description}
+\label{sec:proto0}
+
+ A first prototype implementing the basic DLS functionalities was developed.  
+% There is a prototype 0 implementing the basic DLS functionalities. 
+ The prototype is a basic system written in python based on MySQL. 
+ It consists of a central server with a MySQL database as backend and 
+ a set of client libraries tools. No authentication/authorization mechanisms
+ are implemented.
+
+ The DLS server :
+% DLS support up to 120 threads, support for transaction 
+ \begin{flushleft}
+  $\mbox{ dls-server --host $<$serverhost$>$ --host\_db $<$serverhost$>$ --user $<$dbuser$>$ --passwd $<$dbpasswd$>$ --database $<$dbname$>$ --num\_thread 2}$
+ \end{flushleft}
+  This start a DLS server with 2 client thread on default port 18080.
+
+ There is a client command-line interface to perform the basic operations: 
+ \begin{itemize}
+   \item Add a Replica: 
+\begin{flushleft}
+  $\mbox{ dls-add-replica --host $<$serverhost$>$ --datablock $<$fileblock1$>$ --se $<$SEname$>$ }$
+\end{flushleft}
+
+   \item Remove a Replica:
+\begin{flushleft}
+ $\mbox{ dls-remove-replica --host $<$serverhost$>$ --datablock $<$fileblock1$>$ --se $<$SEname$>$ }$
+\end{flushleft}
+
+  \item Get location (SEs) hosting a file-block:
+\begin{flushleft}
+$\mbox{ dls-get-se --datablock $<$fileblock1$>$ --host $<$serverhost$>$}$
+\end{flushleft}
+  \item Get file-block on a SE:
+\begin{flushleft}
+$\mbox{ dls-get-datablock --se $<$SEname$>$ --host $<$serverhost$>$}$
+\end{flushleft}
+   \end{itemize}
+
+   
+   The prototype is intended for use in testing with the CMS workload 
+   management tool for analysis (CRAB~\cite{CRAB}) versions supporting 
+   configuration from DBS/DLS for data discovery and location.
+   The data discovery will be performed querying the DBS, that
+   should give back the file-blocks that correspond to these data.
+   The file-blocks location will be done querying the DLS.
+%% a detail:
+%   In the context of the ``old EDM'' all the files of a 
+%   given dataset-owner will be in a single file-block.
+
+   The development of this prototype allow to gain experience on 
+   how to evolve from current system based on RefDB/PubDBs
+   to DBS/DLS.
+
+   The protoptype is a placeholder for evaluation of Grid catalogues,
+   such as the Local File Catalog (LFC),.... 
+ 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{thebibliography}{9}
+  \bibitem{CTDR} {\bf ????}, , {\bf CMS Computing Technical Design Report}
+  \bibitem{DBS} {\bf DBS design note }, M. A. Afaq et al., 
+    {\bf The CMS Dataset Bookkeeping System}
+
+  \bibitem{CM} {\bf CMS Note 2004/031}, C. Grandi, D. Stickland,
+               L. Taylor, {\bf The CMS Computing Model}
+
+  \bibitem{CRAB} {\bf CRAB - CMS Remote Analysis Builder}, project homepage
+               http://cmsoc.cern.ch/cms/ccs/wm/www/Crab
+
+  \bibitem {NOTE000} {\bf CMS Note 2005/000},
+    X.Somebody et al.,
+    {\em ``CMS Note Template''}.
+\end{thebibliography}
+ 
+%------------------------------------------------------------------------------
+\pagebreak
+
+\end{document}
