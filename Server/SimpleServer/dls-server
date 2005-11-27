@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# $Id: dls-server,v 1.2 2005/08/16 00:42:09 elmer Exp $
+# $Id: dls-server,v 1.2 2005/11/21 20:38:41 afanfani Exp $
 
 import Queue
 import socket
@@ -237,6 +237,8 @@ class DLS_db:
       #pdb.set_trace()
       try:
          self.__conn = MySQLdb.connect (self.__host,self.__user,self.__passwd,self.__database)
+         ## enable autocommit (by default it is disabled)
+         self.__conn.autocommit(1)
          self.__cursor = self.__conn.cursor()
       except MySQLdb.Error, e:
          raise DLS_db.Error("DLS_db Connection error: %s  %s"%(e.args[0], e.args[1]))
