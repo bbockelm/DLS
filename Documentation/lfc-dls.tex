@@ -1,4 +1,4 @@
-%  $Id:  $
+%  $Id: lfc-dls.tex,v 1.1 2005/11/22 17:51:55 afanfani Exp $
 
 \documentclass[pdftex]{cmspaper}
 \usepackage[bookmarksnumbered,bookmarksopen,bookmarksopenlevel=1,colorlinks,link
@@ -70,7 +70,7 @@ The mapping of CMS index ({\em block-replica}) data structure into LFC fileds is
 \item block identifier, blockID  (string) $<-->$ LFCs' LFN
 \item location, SE (string)  $<-->$ LFC's replica table (SURL or rather host field)
 \item creation timestamp  (high precision time) $<-->$ there is no correspondance
-\item last update timestamp (high precision time) $<-->$ LFC's replica last access and pin time
+\item last update timestamp (high precision time) $<-->$ LFC's replica last access
 \item ``custodial'' attribute $<-->$ f\_type field of the LFC's replica (``P'' permanent, ``V'' volatile, etc..) 
 \item other attributes  $<-->$ ?? ( user defined metadata, one field of 255chars, are associated to the LFN and not to the replica)
 \end{itemize}
@@ -79,45 +79,67 @@ The mapping of CMS index ({\em block-replica}) data structure into LFC fileds is
 \subsection{DLS server}
  The DLS server is a global LFC instance. 
  \begin{itemize}
- \item The host is specified with environment variable \$LFC\_HOST. 
- \item The complete path ``/grid/cms/basedir'' must be included. \$LFC\_HOME should be also usable to allow relative paths { FIXME: but does not work yet; it has to be investigated}.
+ \item The host is specified with the environment variable \$LFC\_HOST. 
+ \item The path is specified with the environment variable \$LFC\_HOME .
 
  \end{itemize}
 
 \subsection{DLS client}
 
- There is a client command-line interface, based on LFC python API, to perform the basic operations: 
+\subsubsection{ CLI and API}
+ There is a client command-line interface, that wrap python modules based on LFC python API, to perform the basic operations: 
  \begin{itemize}
    \item Add a Replica: 
 \begin{flushleft}
-  $\mbox{ dlslfc-add-replica $<$fileblock1$>$  $<$SEname$>$ }$
+  $\mbox{ dlslfc-add $<$fileblock1$>$  $<$SEnameA$>$ }$
 \end{flushleft}
+ 
+   Transactions are used if specified with option -t , otherwise sessions are used. Attributes can optionallu be specified (the specific syntax to use is under definition).
 
    \item Remove a Replica:
 \begin{flushleft}
- $\mbox{ dlslfc-delete-replica $<$fileblock1$>$ $<$SEname$>$ }$
+ $\mbox{ dlslfc-delete $<$fileblock1$>$ $<$SEnameA$>$ $<$SEnameB$>$ }$
 \end{flushleft}
+
+ Several options are provided to drive the deletion behaviour, for example
+ to remove akk the replicas of a fileblock, to force the deletion of a custodial replica. However the deletion behaviour is under definition.
 
   \item Get location (SEs) hosting a file-block:
 \begin{flushleft}
-$\mbox{ dlslfc-get-se --datablock $<$fileblock1$>$ }$
+$\mbox{ dlslfc-get-se $<$fileblock1$>$ }$
 \end{flushleft}
+
+ Attributes can be optionally listed.
+
   \item Get file-block on a SE:
 \begin{flushleft}
 $\mbox{ dlslfc-get-datablock $<$SEname$>$}$
 \end{flushleft}
+
+  \item Update attributes:
+\begin{flushleft}
+$\mbox{ dlslfc-update  $<$fileblock1$>$ [attr1$=$val1 ...] $<$SEname$>$ [attr1$=$val1 ...]}$
+\end{flushleft}
    \end{itemize}
 
+The specification of API is under definition.
 
-To run the LFC client, you need :
+\subsubsection{ Installation requirements }
+
+In addition to the DLS client tools, the LFC client is needed.
+The LFC client is installed by default in an LCG UI. 
+To install the LFC client the following RPMs are required :
 \begin{itemize}
 \item Globus security, i.e. the vdt\_globus\_essentials RPM
 \item the lcg-dm-common RPM
 \item the LFC-client RPM
 \item the LFC-interfaces RPM, if you are using the Python or Perl interface
 \end{itemize}
-You need to create a valid proxy.
-                                                                                                        
+All these RMPs are relocatable.
+
+[You need to create a valid proxy.]                 
+
+                                                 
 The libraries contained in the LFC and lcg-dm-common RPMs are:
                                                                                                         
 /opt/lcg/lib/liblfc.so
@@ -140,6 +162,10 @@ The libraries contained in the LFC and lcg-dm-common RPMs are:
 The ``custodial'' attribute of a replica can be specified using the
 f\_type field of the LFC's replica (``P'' permanent, ``V'' volatile, etc..).
 
+The f\_type attribute and the pin time (that could be used to somehow estimate access cost) were intended for DPM rather than LFC use, so one has to decide
+whether or not to use them for custodial and access cost estimation 
+although they were not intended for that.
+
 The replica permanent/volatile attribute is set at creation time now,
 and cannot be modified afterwards. There is currently no way to update that
 attribute.
@@ -149,8 +175,8 @@ A new method to modify this attribute could be also added, if it is a CMS requir
 
 [ Not a requirement for the time being]
 
-{\bf FIXME:} Is it possible to retrieve the value of this attribute?
-
+%{\bf FIXME:} Is it possible to retrieve the value of this attribute?
+% dlslfc-get-se -l
 %% 4.bis could other types be defined, up to this beeing an N-Byte
 %% code that we use as we like ? Or is there a standard e.g. in SRM ?
 %%????
@@ -159,8 +185,7 @@ A new method to modify this attribute could be also added, if it is a CMS requir
 
 The replica last update timestamp is described by the LFC's replica last access.
 
-The replica creation timestamp doesn't exist. It could be added to the catalog if 
-it is a CMS requirement.
+The replica creation timestamp doesn't exist. It could be added to the catalog if it is a CMS requirement.
 
 [Not a requirement for the time being]
 % Not a requirement for the time being
@@ -179,9 +204,7 @@ Other solutions can be found for that.
 \subsection {Get data locations}
 
 The typical use cases will be to get locations of one fileblock or N fileblocks (with N up to 1000??).
-[The query based on a single fileblock will be particularly important for data location
-performed by the Resource Broker via DLI, where fileblocks will be queries one
-by one (as far as it is now).]
+[The query based on a single fileblock will be particularly important for data location performed by the Resource Broker via DLI, where fileblocks will be queries one by one (as far as it is now).]
 
 For a single query, most of the time is probably lost in the connection 
 establishment and the authentication. 
@@ -305,6 +328,230 @@ should work against a dedicated back-end database (so no other experiments are e
 {\bf FIXME: } are the experiment supposed to share the same back-end database?
 
 
+\subsection{ Concurrent queries }
+ 
+In this section preliminar tests on performances when several clients 
+are concurrentlly accesing the LFC are reported.
+[These tests were perfomed from a UI over the WAN].
+
+Currently the LFC server has only 20 threads.
+
+{\bf FIXME:} check and comment the results.  
+
+\subsubsection{ Inserting replicas}
+
+\begin{table}[!htbp]
+\begin{center}
+ \begin{tabular}{|l|c|}         \hline
+   {\bf dlslfc-add} : & N concurrent clients = 1  \\ & M operations per client = 1\\ \hline
+    average - max - min time     & 1.336s - - \\ \hline
+\end{tabular}
+\caption {Timing for adding 1 replicas with 1 concurrent clients.}\label{dlslfc-add}
+\end{center}
+\end{table}
+
+\begin{table}[!htbp]
+\begin{center}
+ \begin{tabular}{|l|c|}         \hline
+   {\bf dlslfc-add} :  & N concurrent clients = 5  \\ & M operations per client = 1\\ \hline
+    %N concurrent clients & 5 \\ \hline
+    %M operations per client  & 1 \\ \hline \hline
+    %rate             & 2.97 \\ \hline
+    average - max - min time     & 1.611s - 1.672s - 1.565s \\ \hline
+\end{tabular}
+\caption {Timing for adding 5 replicas with 5 concurrent clients.}\label{dlslfc-add}
+\end{center}
+\end{table}
+
+\begin{table}[!htbp]
+\begin{center}
+ \begin{tabular}{|l|c|}         \hline
+   {\bf dlslfc-add} : & N concurrent clients = 10  \\ & M operations per client = 1\\ \hline
+    %rate             & 1.80 \\ \hline
+    average - max - min time  & 3.851s - 5.533s - 2.227s \\ \hline
+\end{tabular}
+\caption {Timing for adding 10 replicas with 10 concurrent clients.}\label{dlslfc-add}
+\end{center}
+\end{table}
+
+\begin{table}[!htbp]
+\begin{center}
+ \begin{tabular}{|l|c|}         \hline
+   {\bf dlslfc-add} : & N concurrent clients = 20  \\ & M operations per client = 1\\ \hline
+    %rate             & 2.16 \\ \hline
+    average - max - min time    & 5.756s  - 9.229s - 2.321s \\ \hline
+\end{tabular}
+\caption {Timing for adding 20 replicas with 20 concurrent clients.}\label{dlslfc-add}
+\end{center}
+\end{table}
+
+\begin{table}[!htbp]
+\begin{center}
+ \begin{tabular}{|l|c|}
+         \hline
+   {\bf dlslfc-add} : & N concurrent clients = 50  \\ & M operations per client = 1\\ \hline
+    %rate             & 2.40 \\ \hline
+    average - max - min time   & 11.801s - 20.871s - 2.931s\\ \hline
+\end{tabular}
+\caption {Timing for adding 50 replicas with 50 concurrent clients.}\label{dlslfc-add}
+\end{center}
+\end{table}
+
+\begin{table}[!htbp]
+\begin{center}
+ \begin{tabular}{|l|c|}         \hline
+   {\bf dlslfc-add} : & N concurrent clients = 100 \\
+                      & M operations per client = 1\\ \hline
+    %rate             & 1.90 \\ \hline
+    average - max - min time  & 22.285s - 50.925s - 2.763s \\ \hline
+\end{tabular}
+\caption {Timing for adding 100 replicas with 100 concurrent clients.}\label{dlslfc-add}
+\end{center}
+\end{table}
+
+\begin{table}[!htbp]
+\begin{center}
+ \begin{tabular}{|l|c|}         \hline
+   {\bf dlslfc-add} : & N concurrent clients = 10 \\ 
+    & M operations per client = 50\\ \hline
+    rate             & 5.80 \\ \hline
+    average - max - min time  & 1.685s - 5.209s - 1.305s \\ \hline
+\end{tabular}
+\caption {Timing for adding 500 replicas with 10 concurrent clients.}\label{dlslfc-add}
+\end{center}
+\end{table}
+
+\begin{table}[!htbp]
+\begin{center}
+ \begin{tabular}{|l|c|}         \hline
+   {\bf dlslfc-add} : & N concurrent clients = 10  \\
+   & M operations per client = 100\\ \hline
+    rate             & 5.60 \\ \hline
+    average - max - min time   & 1.739s - 5.394s - 1.299s \\ \hline
+\end{tabular}
+\caption {Timing for adding 1000 replicas with 10 concurrent clients.}\label{dlslfc-add}
+\end{center}
+\end{table}
+
+\begin{table}[!htbp]
+\begin{center}
+ \begin{tabular}{|l|c|}         \hline
+   {\bf dlslfc-add} : & N concurrent clients = 20  \\ 
+ & M operations per client = 50\\ \hline
+    rate             & 7.66 \\ \hline
+    average - max - min time  & 2.466s - 10.253s - 1.306s \\ \hline
+\end{tabular}
+\caption {Timing for adding 1000 replicas with 20 concurrent clients.}\label{dlslfc-add}
+\end{center}
+\end{table}
+
+\subsubsection{Get replica location}
+
+\begin{table}[!htbp] 
+\begin{center}
+ \begin{tabular}{|l|c|}         \hline
+   {\bf dlslfc-get-se} : & N concurrent clients = 1  \\ & M operations per client = 1\\ \hline
+    %rate             & 0.60 \\ \hline
+    average time     & 1.676s - - \\ \hline
+\end{tabular}
+\caption {Timing for getting location for 1 replica with 1 clients.}\label{dlslfc-get-se}
+\end{center}
+\end{table} 
+
+\begin{table}[!htbp]
+\begin{center}
+ \begin{tabular}{|l|c|}         \hline
+   {\bf dlslfc-get-se} :  & N concurrent clients = 5  \\ & M operations per client = 1\\ \hline
+    %N concurrent clients & 5 \\ \hline 
+    %M operations per client  & 1 \\ \hline \hline
+    %rate             & 2.50 \\ \hline
+    average - max - min time     &   1.941s - 2.025s - 1.896s  \\ \hline
+\end{tabular}
+\caption {Timing for getting location for 5 replicas with 5 concurrent clients.}\label{dlslfc-get-se}
+\end{center}
+\end{table}
+
+\begin{table}[!htbp]
+\begin{center}
+ \begin{tabular}{|l|c|}         \hline
+   {\bf dlslfc-get-se} : & N concurrent clients = 10  \\ & M operations per client = 1\\ \hline
+    %rate             & 1.80 \\ \hline
+    average - max - min time     & 3.132s - 5.507s - 2.384s \\ \hline
+\end{tabular}
+\caption {Timing for getting location for 10 replicas with 10 concurrent clients.}\label{dlslfc-get-se}
+\end{center}
+\end{table}
+
+\begin{table}[!htbp]
+\begin{center}
+ \begin{tabular}{|l|c|}         \hline
+   {\bf dlslfc-get-se} : & N concurrent clients = 20  \\ & M operations per client = 1\\ \hline
+    %rate             & 0.21 \\ \hline
+    average - max - min time     & 78.648s - 96.372s - 62.709s \\ \hline
+\end{tabular}
+\caption {Timing for getting location for 20 replicas with 20 concurrent clients.}\label{dlslfc-get-se}
+\end{center}
+\end{table}
+
+\begin{table}[!htbp]
+\begin{center}
+ \begin{tabular}{|l|c|}
+         \hline
+   {\bf dlslfc-get-se} : & N concurrent clients = 50  \\ & M operations per client = 1\\ \hline
+    %rate             & 0.26 \\ \hline
+    average - max - min time     &  100.808s - 191.510s - 63.070s \\ \hline
+\end{tabular}
+\caption {Timing for getting location for 50 replicas with 50 concurrent clients.}\label{dlslfc-get-se}
+\end{center}
+\end{table}
+
+\begin{table}[!htbp]
+\begin{center}
+ \begin{tabular}{|l|c|}         \hline
+   {\bf dlslfc-get-se} : & N concurrent clients = 100 \\
+                      & M operations per client = 1\\ \hline
+    %rate             & 0.50 \\ \hline
+    average - max - min time     &  168.593s - 213.353s - 63.682s \\ \hline
+\end{tabular}
+\caption {Timing for getting location for 100 replicas with 100 concurrent clients.}\label{dlslfc-get-se}
+\end{center}
+\end{table}
+
+\begin{table}[!htbp]
+\begin{center}
+ \begin{tabular}{|l|c|}         \hline
+   {\bf dlslfc-get-se} : & N concurrent clients = 10 \\ 
+    & M operations per client = 50\\ \hline
+    rate             & 3.40 \\ \hline
+    average - max - min time     &  2.755s - 9.334s - 0.879s \\ \hline
+\end{tabular}
+\caption {Timing for getting location for 500 replicas with 10 concurrent clients.}\label{dlslfc-get-se}
+\end{center}
+\end{table}
+
+\begin{table}[!htbp]
+\begin{center}
+ \begin{tabular}{|l|c|}         \hline
+   {\bf dlslfc-get-se} : & N concurrent clients = 10  \\
+   & M operations per client = 100\\ \hline
+    rate             & 3.40 \\ \hline
+    average - max - min time     &  2.737s - 10.992s - 1.619s \\ \hline
+\end{tabular}
+\caption {Timing for getting location for 1000 replicas with 10 concurrent clients.}\label{dlslfc-get-se}
+\end{center}
+\end{table}
+
+\begin{table}[!htbp]
+\begin{center}
+ \begin{tabular}{|l|c|}         \hline
+   {\bf dlslfc-get-se} : & N concurrent clients = 20  \\ 
+ & M operations per client = 50\\ \hline
+    rate             &  3.10 \\ \hline
+    average - max - min time     &   5.825s - 102.943s - 1.378s \\ \hline
+\end{tabular}
+\caption {Timing for get location for 1000 replicas with 20 concurrent clients.}\label{dlslfc-get-se}
+\end{center}
+\end{table}
 \subsection {Other tests}
 
 \begin{itemize}
@@ -319,10 +566,9 @@ should work against a dedicated back-end database (so no other experiments are e
  \item investigate the slowness of dlslfc-get-datablock 
        Retrieving list of fileblocks in one SE will be used not often and is outside the main workflow, so perormance of that is not very important at the moment.
        
- \item test the load and timing for concurrent query
- \item test the load and timing for concurrent insertion 
                                                                                                   
   \end{itemize} 
+
 
 \subsection{ Naive model for expected DLS performance}
 
@@ -369,7 +615,13 @@ should work against a dedicated back-end database (so no other experiments are e
 
 \end{itemize}
 
-  
+\section{Open Issues}
+\begin{itemize}
+ \item specification of DLS API and CLI syntax
+ \item attributes : use of attributes that were originally thought for different purposes?
+ \item performances in get location
+ \item DLI 
+\end{itemize}  
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \begin{thebibliography}{9}
