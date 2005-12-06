@@ -340,74 +340,31 @@ Currently the LFC server has only 20 threads.
 
 \subsubsection{ Inserting replicas}
 
+
 \begin{table}[!htbp]
 \begin{center}
- \begin{tabular}{|l|c|}         \hline
-   {\bf dlslfc-add} : & N concurrent clients = 1  \\ & M operations per client = 1\\ \hline
-    average - max - min time     & 1.336s - - \\ \hline
+ \begin{tabular}{|l|c|c|c|c|c|c|}         \hline
+ {\bf dlslfc-add} : & N = 1  & N  = 5  & N = 10 & N = 20 & N = 50 & N = 100 \\ \hline
+  average & 1.3s & 1.6s & 3.9s &  5.8s &  11.8s  & 22.3s \\ \hline
+  max     & - & 1.7s & 5.5s &  9.2s & 20.9s &  50.9s \\ \hline
+  min     &  - &  1.6s & 2.2s  & 2.3s & 2.9s  & 2.8s \\ \hline
 \end{tabular}
-\caption {Timing for adding 1 replicas with 1 concurrent clients.}\label{dlslfc-add}
+\caption {Timing for adding 1 replicas with N concurrent clients.}\label{dlslfc-add}
 \end{center}
 \end{table}
 
 \begin{table}[!htbp]
 \begin{center}
- \begin{tabular}{|l|c|}         \hline
-   {\bf dlslfc-add} :  & N concurrent clients = 5  \\ & M operations per client = 1\\ \hline
-    %N concurrent clients & 5 \\ \hline
-    %M operations per client  & 1 \\ \hline \hline
-    %rate             & 2.97 \\ \hline
-    average - max - min time     & 1.611s - 1.672s - 1.565s \\ \hline
+ \begin{tabular}{|l|c|c|c|c|c|c|}         \hline
+ {\bf dlslfc-add} : & N = 1  & N  = 5  & N = 10 & N = 20 & N = 50 & N = 100 \\ \hline
+  average           & 1.3s   & 1.2s    & 2.64s  &  3.4   & 7.1s   & 11.8s \\ \hline
+  max               & -      & 1.5s    & 2.96s  &  4.9s  & 12.4s  & 26.4s \\ \hline
+  min               &  -     & 0.95s   & 1.4s   &  2.0s  & 2.0s   & 2.0s \\ \hline
 \end{tabular}
-\caption {Timing for adding 5 replicas with 5 concurrent clients.}\label{dlslfc-add}
+\caption {Timing for adding 1 replicas with N concurrent clients.}\label{dlslfc-add}
 \end{center}
 \end{table}
 
-\begin{table}[!htbp]
-\begin{center}
- \begin{tabular}{|l|c|}         \hline
-   {\bf dlslfc-add} : & N concurrent clients = 10  \\ & M operations per client = 1\\ \hline
-    %rate             & 1.80 \\ \hline
-    average - max - min time  & 3.851s - 5.533s - 2.227s \\ \hline
-\end{tabular}
-\caption {Timing for adding 10 replicas with 10 concurrent clients.}\label{dlslfc-add}
-\end{center}
-\end{table}
-
-\begin{table}[!htbp]
-\begin{center}
- \begin{tabular}{|l|c|}         \hline
-   {\bf dlslfc-add} : & N concurrent clients = 20  \\ & M operations per client = 1\\ \hline
-    %rate             & 2.16 \\ \hline
-    average - max - min time    & 5.756s  - 9.229s - 2.321s \\ \hline
-\end{tabular}
-\caption {Timing for adding 20 replicas with 20 concurrent clients.}\label{dlslfc-add}
-\end{center}
-\end{table}
-
-\begin{table}[!htbp]
-\begin{center}
- \begin{tabular}{|l|c|}
-         \hline
-   {\bf dlslfc-add} : & N concurrent clients = 50  \\ & M operations per client = 1\\ \hline
-    %rate             & 2.40 \\ \hline
-    average - max - min time   & 11.801s - 20.871s - 2.931s\\ \hline
-\end{tabular}
-\caption {Timing for adding 50 replicas with 50 concurrent clients.}\label{dlslfc-add}
-\end{center}
-\end{table}
-
-\begin{table}[!htbp]
-\begin{center}
- \begin{tabular}{|l|c|}         \hline
-   {\bf dlslfc-add} : & N concurrent clients = 100 \\
-                      & M operations per client = 1\\ \hline
-    %rate             & 1.90 \\ \hline
-    average - max - min time  & 22.285s - 50.925s - 2.763s \\ \hline
-\end{tabular}
-\caption {Timing for adding 100 replicas with 100 concurrent clients.}\label{dlslfc-add}
-\end{center}
-\end{table}
 
 \begin{table}[!htbp]
 \begin{center}
@@ -447,73 +404,27 @@ Currently the LFC server has only 20 threads.
 
 \subsubsection{Get replica location}
 
-\begin{table}[!htbp] 
-\begin{center}
- \begin{tabular}{|l|c|}         \hline
-   {\bf dlslfc-get-se} : & N concurrent clients = 1  \\ & M operations per client = 1\\ \hline
-    %rate             & 0.60 \\ \hline
-    average time     & 1.676s - - \\ \hline
-\end{tabular}
-\caption {Timing for getting location for 1 replica with 1 clients.}\label{dlslfc-get-se}
-\end{center}
-\end{table} 
-
 \begin{table}[!htbp]
 \begin{center}
- \begin{tabular}{|l|c|}         \hline
-   {\bf dlslfc-get-se} :  & N concurrent clients = 5  \\ & M operations per client = 1\\ \hline
-    %N concurrent clients & 5 \\ \hline 
-    %M operations per client  & 1 \\ \hline \hline
-    %rate             & 2.50 \\ \hline
-    average - max - min time     &   1.941s - 2.025s - 1.896s  \\ \hline
+ \begin{tabular}{|l|c|c|c|c|c|c|}         \hline
+ {\bf dlslfc-get-se} : & N = 1  & N  = 5  & N = 10 & N = 20 & N = 50 & N = 100 \\ \hline
+  average & 1.7s & 1.9s & 3.1s &  78.6s &  100.8s  & 168.6s \\ \hline
+  max     & -    & 2.0s & 5.5s &  96.4s & 191.5s &  213.4s \\ \hline
+  min     &  -   & 1.9s & 2.4s  & 62.7s & 63.0s  & 63.7s \\ \hline
 \end{tabular}
-\caption {Timing for getting location for 5 replicas with 5 concurrent clients.}\label{dlslfc-get-se}
+\caption {Timing for getting location for 1 replica with N concurrent clients.}\label{dlslfc-add}
 \end{center}
 \end{table}
 
 \begin{table}[!htbp]
 \begin{center}
- \begin{tabular}{|l|c|}         \hline
-   {\bf dlslfc-get-se} : & N concurrent clients = 10  \\ & M operations per client = 1\\ \hline
-    %rate             & 1.80 \\ \hline
-    average - max - min time     & 3.132s - 5.507s - 2.384s \\ \hline
+ \begin{tabular}{|l|c|c|c|c|c|c|}         \hline
+ {\bf dlslfc-get-se} : & N = 1  & N  = 5  & N = 10 & N = 20 & N = 50 & N = 100 \\ \hline
+  average           & 0.5s   & 1.2s   & 2.1s  &  79.8s  & 98.690s  & 169.9s \\ \hline
+  max               &  -     & 1.2s   & 2.1s  &  119.7s  & 191.4s  & 237.7s \\ \hline
+  min               &  -     & 1.2s   & 2.0s  &  61.8s  & 62.8s   & 62.9s \\ \hline
 \end{tabular}
-\caption {Timing for getting location for 10 replicas with 10 concurrent clients.}\label{dlslfc-get-se}
-\end{center}
-\end{table}
-
-\begin{table}[!htbp]
-\begin{center}
- \begin{tabular}{|l|c|}         \hline
-   {\bf dlslfc-get-se} : & N concurrent clients = 20  \\ & M operations per client = 1\\ \hline
-    %rate             & 0.21 \\ \hline
-    average - max - min time     & 78.648s - 96.372s - 62.709s \\ \hline
-\end{tabular}
-\caption {Timing for getting location for 20 replicas with 20 concurrent clients.}\label{dlslfc-get-se}
-\end{center}
-\end{table}
-
-\begin{table}[!htbp]
-\begin{center}
- \begin{tabular}{|l|c|}
-         \hline
-   {\bf dlslfc-get-se} : & N concurrent clients = 50  \\ & M operations per client = 1\\ \hline
-    %rate             & 0.26 \\ \hline
-    average - max - min time     &  100.808s - 191.510s - 63.070s \\ \hline
-\end{tabular}
-\caption {Timing for getting location for 50 replicas with 50 concurrent clients.}\label{dlslfc-get-se}
-\end{center}
-\end{table}
-
-\begin{table}[!htbp]
-\begin{center}
- \begin{tabular}{|l|c|}         \hline
-   {\bf dlslfc-get-se} : & N concurrent clients = 100 \\
-                      & M operations per client = 1\\ \hline
-    %rate             & 0.50 \\ \hline
-    average - max - min time     &  168.593s - 213.353s - 63.682s \\ \hline
-\end{tabular}
-\caption {Timing for getting location for 100 replicas with 100 concurrent clients.}\label{dlslfc-get-se}
+\caption {Timing for getting location for 1 replica  with N concurrent clients.}\label{dlslfc-add}
 \end{center}
 \end{table}
 
