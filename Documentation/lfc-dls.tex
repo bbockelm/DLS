@@ -331,27 +331,48 @@ should work against a dedicated back-end database (so no other experiments are e
 \subsection{ Concurrent queries }
  
 In this section preliminar tests on performances when several clients 
-are concurrentlly accesing the LFC are reported.
+are concurrentlly accessing the LFC are reported
+\ref{dlslfc-add-parallel}, \ref{dlslfc-get-se-parallel}.
 [These tests were perfomed from a UI over the WAN].
 
-Currently the LFC server has only 20 threads.
+Currently the LFC server has only 20 threads, thus only
+20 clients can be served at the same time. 
+Increasing the number of concurrent clients above the
+number of threads being served cause degrade
+in performances and sometimes error in connecting to
+the server (for example some connections are timed out
+when more then 50 dlslfc-get-se clients are used).
 
-{\bf FIXME:} check and comment the results.  
+
+An increase in the number of threads served by the LFC server
+is planned. As long as the machine itself can handle the load and 
+the DB does not become a bottleneck, the number of threads is 
+almost arbitrary. An indication of how many parallel queries 
+are expeceted for the DLS would help defining that.
+
+
+{\bf FIXME:} check and comments more the results?  
 
 \subsubsection{ Inserting replicas}
 
+Few errors (<10 times "Error creating the LFN: File exists" ) 
+occurred when inserting with 10 concurrent clients and 100 
+operations per client or 20 concurrent clients and 
+50 operations per client.
+{\bf FIXME} it might be a bug in the inserting script but
+that's weird.
 
-\begin{table}[!htbp]
-\begin{center}
- \begin{tabular}{|l|c|c|c|c|c|c|}         \hline
- {\bf dlslfc-add} : & N = 1  & N  = 5  & N = 10 & N = 20 & N = 50 & N = 100 \\ \hline
-  average & 1.3s & 1.6s & 3.9s &  5.8s &  11.8s  & 22.3s \\ \hline
-  max     & - & 1.7s & 5.5s &  9.2s & 20.9s &  50.9s \\ \hline
-  min     &  - &  1.6s & 2.2s  & 2.3s & 2.9s  & 2.8s \\ \hline
-\end{tabular}
-\caption {Timing for adding 1 replicas with N concurrent clients.}\label{dlslfc-add}
-\end{center}
-\end{table}
+%\begin{table}[!htbp]
+%\begin{center}
+% \begin{tabular}{|l|c|c|c|c|c|c|}         \hline
+% {\bf dlslfc-add} : & N = 1  & N  = 5  & N = 10 & N = 20 & N = 50 & N = 100 \\ \hline
+%  average & 1.3s & 1.6s & 3.9s &  5.8s &  11.8s  & 22.3s \\ \hline
+%  max     & - & 1.7s & 5.5s &  9.2s & 20.9s &  50.9s \\ \hline
+%  min     &  - &  1.6s & 2.2s  & 2.3s & 2.9s  & 2.8s \\ \hline
+%\end{tabular}
+%\caption {Timing for adding 1 replicas with N concurrent clients.}\label{dlslfc-add}
+%\end{center}
+%\end{table}
 
 \begin{table}[!htbp]
 \begin{center}
@@ -361,7 +382,7 @@ Currently the LFC server has only 20 threads.
   max               & -      & 1.5s    & 2.96s  &  4.9s  & 12.4s  & 26.4s \\ \hline
   min               &  -     & 0.95s   & 1.4s   &  2.0s  & 2.0s   & 2.0s \\ \hline
 \end{tabular}
-\caption {Timing for adding 1 replicas with N concurrent clients.}\label{dlslfc-add}
+\caption {Timing for adding 1 replicas with N concurrent clients. The replica is added using transactions.}\label{dlslfc-add-parallel}
 \end{center}
 \end{table}
 
@@ -371,10 +392,12 @@ Currently the LFC server has only 20 threads.
  \begin{tabular}{|l|c|}         \hline
    {\bf dlslfc-add} : & N concurrent clients = 10 \\ 
     & M operations per client = 50\\ \hline
-    rate             & 5.80 \\ \hline
-    average - max - min time  & 1.685s - 5.209s - 1.305s \\ \hline
+    average & 1.280s \\ \hline
+    max & 4.288s \\ \hline
+    min &  0.630s \\ \hline
+    rate  & 7.6 \\ \hline
 \end{tabular}
-\caption {Timing for adding 500 replicas with 10 concurrent clients.}\label{dlslfc-add}
+\caption {Timing for adding 500 replicas with 10 concurrent clients. Each replica is added using transactions.}\label{dlslfc-add}
 \end{center}
 \end{table}
 
@@ -383,10 +406,12 @@ Currently the LFC server has only 20 threads.
  \begin{tabular}{|l|c|}         \hline
    {\bf dlslfc-add} : & N concurrent clients = 10  \\
    & M operations per client = 100\\ \hline
-    rate             & 5.60 \\ \hline
-    average - max - min time   & 1.739s - 5.394s - 1.299s \\ \hline
+    average &  1.323s \\ \hline
+    max & 3.160s \\ \hline
+    min &  0.664s \\ \hline
+    rate  & 7.5 \\ \hline
 \end{tabular}
-\caption {Timing for adding 1000 replicas with 10 concurrent clients.}\label{dlslfc-add}
+\caption {Timing for adding 1000 replicas with 10 concurrent clients. Each replica is added using transactions.}\label{dlslfc-add}
 \end{center}
 \end{table}
 
@@ -395,26 +420,49 @@ Currently the LFC server has only 20 threads.
  \begin{tabular}{|l|c|}         \hline
    {\bf dlslfc-add} : & N concurrent clients = 20  \\ 
  & M operations per client = 50\\ \hline
-    rate             & 7.66 \\ \hline
-    average - max - min time  & 2.466s - 10.253s - 1.306s \\ \hline
+    average &  2.131s \\ \hline
+    max & 7.418s \\ \hline
+    min & 0.608s \\ \hline
+    rate  & 9.07 \\ \hline 
 \end{tabular}
-\caption {Timing for adding 1000 replicas with 20 concurrent clients.}\label{dlslfc-add}
+\caption {Timing for adding 1000 replicas with 20 concurrent clients.Each replica is added using transactions.}\label{dlslfc-add}
 \end{center}
 \end{table}
 
 \subsubsection{Get replica location}
 
-\begin{table}[!htbp]
-\begin{center}
- \begin{tabular}{|l|c|c|c|c|c|c|}         \hline
- {\bf dlslfc-get-se} : & N = 1  & N  = 5  & N = 10 & N = 20 & N = 50 & N = 100 \\ \hline
-  average & 1.7s & 1.9s & 3.1s &  78.6s &  100.8s  & 168.6s \\ \hline
-  max     & -    & 2.0s & 5.5s &  96.4s & 191.5s &  213.4s \\ \hline
-  min     &  -   & 1.9s & 2.4s  & 62.7s & 63.0s  & 63.7s \\ \hline
-\end{tabular}
-\caption {Timing for getting location for 1 replica with N concurrent clients.}\label{dlslfc-add}
-\end{center}
-\end{table}
+The operation to get the location of a given fileblock (dlslfc-get-se)
+currently use two different threads (one to open a session and the other
+for the listing operation), thus showing a more significant degrade
+in performances when the number of concurrent clients increases.
+For example 20 concurrent dlslfc-get-se (\ref{dlslfc-get-se-parallel})
+clients open a session and get the 20 server threads busy.
+Then none of them can get a new thread for the listing operation.
+After 60 seconds, the no activity timeout occurs, and the session
+is ended (but operations go on anyway, only outside of the session).
+The listing can at that point (not before 60 seconds) take place
+and we get all those long times.
+
+The new LFC methods being developped should eliminate the use of the 
+second thread in dlslfc-get-se , so the number of threads can be 
+used integrally.
+
+
+When more then 50 dlslfc-get-se clients are used 
+some connections to the LFC server are timed out.
+
+
+%\begin{table}[!htbp]
+%\begin{center}
+% \begin{tabular}{|l|c|c|c|c|c|c|}         \hline
+% {\bf dlslfc-get-se} : & N = 1  & N  = 5  & N = 10 & N = 20 & N = 50 & N = 100 \\ \hline
+%  average & 1.7s & 1.9s & 3.1s &  78.6s &  100.8s  & 168.6s \\ \hline
+%  max     & -    & 2.0s & 5.5s &  96.4s & 191.5s &  213.4s \\ \hline
+%  min     &  -   & 1.9s & 2.4s  & 62.7s & 63.0s  & 63.7s \\ \hline
+%\end{tabular}
+%\caption {Timing for getting location for 1 replica with N concurrent clients.}\label{dlslfc-add}
+%\end{center}
+%\end{table}
 
 \begin{table}[!htbp]
 \begin{center}
@@ -424,7 +472,7 @@ Currently the LFC server has only 20 threads.
   max               &  -     & 1.2s   & 2.1s  &  119.7s  & 191.4s  & 237.7s \\ \hline
   min               &  -     & 1.2s   & 2.0s  &  61.8s  & 62.8s   & 62.9s \\ \hline
 \end{tabular}
-\caption {Timing for getting location for 1 replica  with N concurrent clients.}\label{dlslfc-add}
+\caption {Timing for getting location for 1 replica  with N concurrent clients.}\label{dlslfc-get-se-parallel}
 \end{center}
 \end{table}
 
@@ -433,8 +481,10 @@ Currently the LFC server has only 20 threads.
  \begin{tabular}{|l|c|}         \hline
    {\bf dlslfc-get-se} : & N concurrent clients = 10 \\ 
     & M operations per client = 50\\ \hline
-    rate             & 3.40 \\ \hline
-    average - max - min time     &  2.755s - 9.334s - 0.879s \\ \hline
+    average & 1.931s \\ \hline
+    max & 4.884s \\ \hline
+    min & 0.645s \\ \hline
+    rate  & 5.1 \\ \hline
 \end{tabular}
 \caption {Timing for getting location for 500 replicas with 10 concurrent clients.}\label{dlslfc-get-se}
 \end{center}
@@ -445,8 +495,10 @@ Currently the LFC server has only 20 threads.
  \begin{tabular}{|l|c|}         \hline
    {\bf dlslfc-get-se} : & N concurrent clients = 10  \\
    & M operations per client = 100\\ \hline
-    rate             & 3.40 \\ \hline
-    average - max - min time     &  2.737s - 10.992s - 1.619s \\ \hline
+    average & 1.866s \\ \hline
+    max & 4.511s \\ \hline
+    min & 0.676s  \\ \hline
+    rate  & 5.3 \\ \hline
 \end{tabular}
 \caption {Timing for getting location for 1000 replicas with 10 concurrent clients.}\label{dlslfc-get-se}
 \end{center}
@@ -457,8 +509,10 @@ Currently the LFC server has only 20 threads.
  \begin{tabular}{|l|c|}         \hline
    {\bf dlslfc-get-se} : & N concurrent clients = 20  \\ 
  & M operations per client = 50\\ \hline
-    rate             &  3.10 \\ \hline
-    average - max - min time     &   5.825s - 102.943s - 1.378s \\ \hline
+    average & 4.501s \\ \hline
+    max & 120.298s \\ \hline
+    min &  0.482s  \\ \hline
+    rate  & 4.0 \\ \hline
 \end{tabular}
 \caption {Timing for get location for 1000 replicas with 20 concurrent clients.}\label{dlslfc-get-se}
 \end{center}
@@ -530,8 +584,10 @@ Currently the LFC server has only 20 threads.
 \begin{itemize}
  \item specification of DLS API and CLI syntax
  \item attributes : use of attributes that were originally thought for different purposes?
- \item performances in get location
- \item DLI 
+ \item performances, in particular when getting location of data (dlslfc-get-se). The new LFC methods are under testing, however only the C API are currently available and the wrapper python API cannot be used yet (it seems that SWIG would need some tweaks to work properly due to the particular C syntax the new method uses).
+ 
+ \item error conditions and error handlings
+ \item investigate DLI usage
 \end{itemize}  
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
