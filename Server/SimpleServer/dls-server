@@ -1,6 +1,5 @@
 #!/usr/bin/python
-
-# $Id: dls-server,v 1.2 2005/11/21 20:38:41 afanfani Exp $
+# $Id: dls-server,v 1.3 2005/11/27 17:32:35 afanfani Exp $
 
 import Queue
 import socket
@@ -552,7 +551,7 @@ if __name__ == "__main__":
       if o=="--host":
          host=a
       if o=="--port":
-         port=a
+         port=int(a)
       if o=="--database":
          database=a
       if o=="--passwd":
