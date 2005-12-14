@@ -1,0 +1,13 @@
+#!/usr/bin/python
+
+# 
+# 11/2005. dlslfc v 0.7
+# Antonio Delgado Peris. CERN, LCG. $Id
+#
+
+import sys
+import dlslfc_get_datablock
+
+if __name__ == "__main__":
+  sys.exit(dlslfc_get_datablock.main(sys.argv[1:]))
+
