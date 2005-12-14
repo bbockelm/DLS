@@ -1,4 +1,4 @@
-%  $Id: lfc-dls.tex,v 1.1 2005/11/22 17:51:55 afanfani Exp $
+%  $Id: lfc-dls.tex,v 1.4 2005/12/07 16:56:52 afanfani Exp $
 
 \documentclass[pdftex]{cmspaper}
 \usepackage[bookmarksnumbered,bookmarksopen,bookmarksopenlevel=1,colorlinks,link
@@ -582,13 +582,118 @@ some connections to the LFC server are timed out.
 
 \section{Open Issues}
 \begin{itemize}
- \item specification of DLS API and CLI syntax
+ \item specification of DLS API and CLI syntax (see \ref{appendix})
  \item attributes : use of attributes that were originally thought for different purposes?
- \item performances, in particular when getting location of data (dlslfc-get-se). The new LFC methods are under testing, however only the C API are currently available and the wrapper python API cannot be used yet (it seems that SWIG would need some tweaks to work properly due to the particular C syntax the new method uses).
+ \item performances when getting location of data (dlslfc-get-se). 
+The new LFC methods were not available as python API, because the SWIG wrapping of the C API was not trivial (as it was for old methods) and the development of them was a lower priority. The python wrapping of the new lfc\_getreplica was implemented and one should mimic that for other methods.
  
- \item error conditions and error handlings
+ \item reliability, error conditions: 
+       \begin{itemize}
+       \item when much more clients (50-100) than available LFC server threads (20) are used some connections 
+       to the LFC server are timed out
+       \item inserting replicas, even with less concurrent clients than LFC threads, fails with "Internal Error" in $<1\%$ : need to investigate
+      \end{itemize}
  \item investigate DLI usage
+
+ There is a DLI client (written in C), which just queries the LFC via
+ the DLI giving an LFN and returning the associated SFNs. This client has
+ the real code the RB uses, so it could be used to measure how long it
+ takes for the LFC to reply to single queries.
+
 \end{itemize}  
+
+
+\subsection{CLI and API specification preliminar proposal}
+\label{appendix}
+
+\subsubsection{CLI}
+
+It might be desirable to avoid using positional arguments; i.e. to distinguish
+what is a fileblock or a SE, and to which SE (or fileblock) belong the different
+attributes specified, based on the order in which they were specified in the
+command line.
+                                                                                                                      NOTE: This practice is not completely infrequent, and the user has always the
+possibility to use the API instead, so the current syntax should probably be
+replaced only if the alternative is more convenient (easier) to use.
+
+\begin{itemize}
+\item Use options rater than arguments for the specification of fblocks, replicas, attrs. 
+
+Options for dlslfc-add (and dlslfc-update):
+
+\begin{flushleft}
+  $\mbox{ dlslfc-add --fb $<$fileblock1$>$ [--fb-at a1$=$v1..]  --se $<$SEnameA$>$ [--rep-at a1$=$v1..]}$
+\end{flushleft}
+
+\begin{flushleft}
+  $\mbox{ dlslfc-add --fb $<$fileblock1$>$ [a1$=$v1..]  --se $<$SE1$>$ [a1$=$v1..] }$
+\end{flushleft}
+
+\begin{flushleft}
+  $\mbox{ dlslfc-add  [--fb-at a1$=$v1..] --se $<$SE1$>$ [--rep-at a1$=$v1..] $<$fileblock1$>$ }$
+\end{flushleft}
+
+
+Options for dlslfc-delete:
+
+
+"-a" case seems all right:
+\begin{flushleft}
+   $\mbox{ dlslfc-delete [-v] [-k | -l] [-x] [-a] <fileblock> }$
+\end{flushleft}
+
+for the other:
+\begin{flushleft}
+   $\mbox{ dlslfc-delete [-v] [-k ] [-x] $<$fileblock$>$ $<$SE1$>$ [$<$SE2$>$ ..]}$
+\end{flushleft}                                                                                                                                               
+An option for SEs could be added:
+\begin{flushleft}
+   $\mbox{ dlslfc-delete [-v] [-k ] [-x] --se $<$SE1$>$ [--se $<$SE2$>$ ..]  $<$fileblock$>$}$
+\end{flushleft} 
+
+\item Allow an interactive specification of the different parameters. I.e., the tool would
+ask for fileblock, its attributes, then each one of the replicas and the attributes of each.
+
+\item Any other idea?
+
+\end{itemize}
+
+\subsubsection{API}
+Current methods have complicated arguments due to the need to specify complex
+relations like: several replicas for 1 lfn, having each replica several key=val
+pairs for its attributes, and also having the lfn a different list of attribute
+pairs.
+                                                                                                                                               
+One possibility for the API would be to define objects to group things (rather
+like C structures). E.g.:
+\begin{itemize}                                                                                                                   
+\item "DlsEntry" class:
+  \begin{itemize} 
+  \item DlsFileblock
+  \item DlsReplica list
+   \end{itemize}                                                                                                                                             
+\item "DlsFileblock" class:
+   \begin{itemize}
+   \item LFN
+   \item GUID *
+   \item DlsAttribute list
+   \end{itemize}                                                                                                                                            
+\item "DlsReplica" class:
+   \begin{itemize}
+   \item Host
+   \item SFN **
+   \item DlsAttribute list
+   \end{itemize}                                                                                                                                             
+\item "DlsAttribute" class:
+   \begin{itemize}
+   \item Key
+   \item Value
+   \end{itemize}
+\end{itemize}                                                                                                                                                                                                                                                                
+* GUID could be just another attribute in the list, or be explicit (to ensure it's not not null/default)
+
+** SFN could be just another attribute in the list, or be explicit (to ensure it's not not null/default)
+                                                                                                                                               
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \begin{thebibliography}{9}
