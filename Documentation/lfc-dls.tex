@@ -1,4 +1,4 @@
-%  $Id: lfc-dls.tex,v 1.4 2005/12/07 16:56:52 afanfani Exp $
+%  $Id: lfc-dls.tex,v 1.5 2005/12/14 12:59:33 afanfani Exp $
 
 \documentclass[pdftex]{cmspaper}
 \usepackage[bookmarksnumbered,bookmarksopen,bookmarksopenlevel=1,colorlinks,link
@@ -585,7 +585,25 @@ some connections to the LFC server are timed out.
  \item specification of DLS API and CLI syntax (see \ref{appendix})
  \item attributes : use of attributes that were originally thought for different purposes?
  \item performances when getting location of data (dlslfc-get-se). 
+
 The new LFC methods were not available as python API, because the SWIG wrapping of the C API was not trivial (as it was for old methods) and the development of them was a lower priority. The python wrapping of the new lfc\_getreplica was implemented and one should mimic that for other methods.
+
+
+In order to use the new methods:
+\begin{itemize}
+
+\item Use an LFC server that support them (version 1.4.1)
+    You can use lfc-cms.cern.ch, but not (yet) lfc-cms-test.cern.ch
+\item Use a UI where the new C client has been installed (version 1.4.1)
+    That is not yet in lxplus, but you can get it from:
+    /afs/cern.ch/project/gd/RpmDir\_i386-sl3/lcg/LFC-client-1.4.1-1sec\_sl3.i386.rpm
+\item Install the python interface for this C client (not yet in 1.4.1, but
+in a test RPM developed ad hoc by me and Sophie Lemaitre).
+
+\item use the C DLI client (lfc-dli-client) or the new python API for getting data location (dlslfc\_get\_se\_new.py)
+\end{itemize}
+
+
  
  \item reliability, error conditions: 
        \begin{itemize}
@@ -599,6 +617,7 @@ The new LFC methods were not available as python API, because the SWIG wrapping 
  the DLI giving an LFN and returning the associated SFNs. This client has
  the real code the RB uses, so it could be used to measure how long it
  takes for the LFC to reply to single queries.
+
 
 \end{itemize}  
 
@@ -698,7 +717,7 @@ like C structures). E.g.:
 
 \begin{thebibliography}{9}
   \bibitem{DLS} {\bf ????}, , {\bf The CMS Data Location Service} 
-  
+  \bibitem{LFC} {\bf LFC Administrative Guide} https://edms.cern.ch/file/579088/1/LFC-Administrator-Guide-1.3.5.pdf \\ {\bf LCG-2 User guide } https://edms.cern.ch/file/454439//LCG-2-UserGuide.html 
   \bibitem{CTDR} {\bf CERN/LHCC 2005-023}, , {\bf CMS Computing Technical Design Report}
   \bibitem{CM} {\bf CMS Note 2004/031}, C. Grandi, D. Stickland,
                L. Taylor, {\bf The CMS Computing Model}
