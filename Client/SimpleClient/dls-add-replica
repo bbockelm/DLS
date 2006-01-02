@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# $Id: dls-add-replica,v 1.4 2005/11/04 09:20:16 elmer Exp $
+# $Id: dls-add-replica,v 1.1 2005/11/21 20:20:44 elmer Exp $
 
 import socket
 import pdb
@@ -35,7 +35,7 @@ class DLS_client:
         se=None
         
         for o, a in opts:
-            if o == "-v":
+            if o in ("-v", "--verbose"):
                 verbose = True
             if o in ("-h", "--help"):
                 self.help()

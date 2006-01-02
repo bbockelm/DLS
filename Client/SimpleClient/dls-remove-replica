@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# $Id: dls-remove-replica,v 1.2 2005/08/16 00:42:09 elmer Exp $
+# $Id: dls-remove-replica,v 1.1 2005/11/21 20:20:44 elmer Exp $
 
 import socket
 import pdb
@@ -35,7 +35,7 @@ class DLS_client:
         se=None
         
         for o, a in opts:
-            if o == "-v":
+            if o in ("-v", "--verbose"):
                 verbose = True
             if o in ("-h", "--help"):
                 self.help()
