@@ -1,1 +1,63 @@
-     $Id:$
+#     $Id: README,v 1.1.1.1 2005/11/15 16:53:01 elmer Exp $
+
+#================================================
+#   DLS Server Prototype 0 (Giovanni Ciraolo)   #
+#================================================
+# Sever code:
+ Server/SimpleServer/
+# Client code:
+ Client/SimpleClient/
+
+Ver 0.0:
+* Support up to 120 Thread
+* Transacion support
+* Easy Installation Tool
+
+INSTALLATION:
+
+ 1. Requirements
+
+   * mysql server ver>= 4.0.1
+   * MySQL-python-1.2.0
+   * Mysql Administration privileges
+   * pyton >= 2.2 (default SLC304)
+
+ 2. Create a new MySQL database
+
+ Server/SimpleServer/dls-create --user root --passwd "" --host localhost --database dls --dlsuser dls --dlspasswd dls --verbose
+
+ This create and populate  new Mysql dls database with user 'dls' indentified by password 'dls'
+
+ 3. Start a dls server
+
+ Server/SimpleServer/dls-server  --host localhost --host_db localhost --user dls --passwd dls --database dls --num_thread 2
+
+ This start a dls server with 2 Client Thread on default port 18080
+ 
+
+EXAMPLES from a client:                                                                                                 
+- Add a Replica:
+
+ dls-add-replica --host localhost --datablock datablock1 --se grid001.fi.infn.it --port 18080
+
+- Show list of datablocks  in grid001.fi,infn.it :
+
+ dls-get-datablock --se grid001.fi.infn.it --host localhost
+
+- Show list of se that stores datablock1 :
+
+ dls-get-se --datablock datablock1 --host localhost
+
+- Remove a replica:
+
+ dls-remove-replica --host localhost --datablock datablock1 --se grid001.fi.infn.it --port 18080
+
+
+
+#================================================
+# DLS  Prototype based on LFC (Antonio Delgado) #
+#================================================
+# Server code is the LFC server
+# Client code:
+ DLS/Client/LFCClient/
+
