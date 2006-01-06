@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# $Id: dls-server,v 1.3 2005/11/27 17:32:35 afanfani Exp $
+# $Id: dls-server,v 1.4 2005/12/11 16:19:29 afanfani Exp $
 
 import Queue
 import socket
@@ -320,9 +320,9 @@ class DLS_db:
 
       if not self.select_relation_id(table,id1,id1value,id2,id2value):
          self.execute_query("INSERT INTO %s (%s,%s) VALUES (%d,%d)"%(table,id1,id2,id1value,id2value))
-         return 1
+         return 0
       else:
-         return 2
+         return 1
       
    def delete_by_id(self,table,field_id,field,value):
       self.self.execute_query("SELECT %id FROM  %s WHERE %s=%d"%(table,field,value))
@@ -355,16 +355,16 @@ class DLS_db:
             id_db=self.insert("db","db_id","db",db)
             result=self.insert_relation("db_se","se_id",id_se,"db_id",id_db)
 
-            if result==1:
+            if result==0:
                self.commit_transaction()
-               return 1
-            elif result==2:
-               self.rollback_transaction()
-               return 2
-            else:
                return 0
+            elif result==1:
+               self.rollback_transaction()
+               return 1
+            else:
+               return 2
          except:
-            return 0
+            return 2
       
    def del_replica(self,db,se):
 
@@ -392,12 +392,12 @@ class DLS_db:
             if not row:
                self.execute_query("DELETE FROM db WHERE db_id=%d"%(db_id))
             self.commit_transaction()
-            return 1
+            return 0
          else:
-            return 2             
+            return 1             
       except:
          self.rollback_transaction()
-         return 0
+         return 2
 
       
 
