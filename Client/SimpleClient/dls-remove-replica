@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# $Id: dls-remove-replica,v 1.1 2005/11/21 20:20:44 elmer Exp $
+# $Id: dls-remove-replica,v 1.2 2006/01/02 20:53:13 afanfani Exp $
 
 import socket
 import pdb
@@ -84,13 +84,13 @@ class DLS_client:
             msg=self.dls_receive()
             
             if verbose:
-                if msg=="1":
+                if msg=="0":
                     print "Replica Deleted"
-                elif msg=="2":
+                elif msg=="1":
                     print "Replica Not present"
                 else:
                     print "error: %s not Stored"%(msg) 
-                    msg="0"
+                    msg="2"
             
             self.__client.close()
             return int(msg)
@@ -98,7 +98,7 @@ class DLS_client:
             print "DLS Server don't respond"
             if self.__client:
                 self.__client.close()
-            return 0
+            return 3
     
     def dls_send(self,msg):
         totalsent=0

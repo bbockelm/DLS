@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# $Id: dls-get-se,v 1.1 2005/11/21 20:20:44 elmer Exp $ 
+# $Id: dls-get-se,v 1.2 2006/01/02 20:53:13 afanfani Exp $ 
 
 import socket
 import getopt
@@ -79,7 +79,7 @@ class DLS_client:
             return 0
         except:
             print "DLS Server don't respond"
-            return 2
+            return 3
     
     def dls_send(self,msg):
         totalsent=0

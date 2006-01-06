@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# $Id: dls-add-replica,v 1.1 2005/11/21 20:20:44 elmer Exp $
+# $Id: dls-add-replica,v 1.2 2006/01/02 20:53:13 afanfani Exp $
 
 import socket
 import pdb
@@ -84,12 +84,12 @@ class DLS_client:
             msg=self.dls_receive()
             
             if verbose:
-                if msg=="1":
+                if msg=="0":
                     print "Replica Registered"
-                elif msg=="2":
+                elif msg=="1":
                     print "Replica already stored"
                 else:
-                    msg="0"
+                    msg="2"
                     print "Replica not registered"
                     
             
@@ -97,7 +97,7 @@ class DLS_client:
             return int(msg)
         except:
             print "DLS Server don't respond"
-            return 0
+            return 3
     
     def dls_send(self,msg):
         totalsent=0
