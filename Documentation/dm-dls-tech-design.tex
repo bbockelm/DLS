@@ -1,4 +1,4 @@
-%  $Id: dm-dls-tech-design.tex,v 1.1 2005/11/22 17:38:56 afanfani Exp $
+%  $Id: dm-dls-tech-design.tex,v 1.2 2006/02/27 23:03:01 afanfani Exp $
 
 \documentclass[pdftex]{cmspaper}
 \usepackage[bookmarksnumbered,bookmarksopen,bookmarksopenlevel=1,colorlinks,link
@@ -193,9 +193,13 @@ A global DLS instance will know the location of data available for the
 whole CMS collaboration.
 Several DLS instances with a "local" scope are foreseen, for example 
 to locate data being produced within a MC production system
+
 {\bf FIXME: Need to clarify the global/local scopes and implications}.
+For example the average insert rate expected 
+could be higher for a DLS local instance where managed fileblocks could have a smaller size, thus increasing their number.
 
 \subsection{Expected DLS performances}
+\label{sec:expected}
 \begin{itemize}
 \item Number of DLS entries CMS expects (2008)
 
@@ -233,8 +237,7 @@ The 10K fileblocks are likely grouped in a few hundred (up to 1K) task/day submi
 We can assume 1000 submissions (task), 10fileblocks each. So 1K processes/day,
 each needing locations for 10 entries in DLS, i.e. 1K queries, each
 lasting up to 10 seconds. More or less uniformly scattered during
-10 "peak hours": 100 query/hour, 10 seconds each, duty cicle is
-100*10/3600=30 $100*10/3600=30\%$, several tens of the 100 query will overlap.
+10 "peak hours": 100 query/hour, 10 seconds each, duty cicle is $100*10/3600=30\%$, several tens of the 100 query will overlap.
 At worst one can expect up to 100 query to pile up in the same 10 seconds.
 In reality one would expect much less then 10K fileblocks to be accessed every day.
 It seems difficult that a central DLS may realistically need to deal with 
