@@ -176,27 +176,32 @@ def deleteOneEntry(pLfn, pSeList, pKeepLfn, pRemoveLinks, pForce, pVerbose):
 
    custodialLeft = False
 
-   # Look for specified SE within the list of replicas
-   listrep=lfc.lfc_list()
-   flagsrep=lfc.CNS_LIST_BEGIN 
+#   # Look for specified SE within the list of replicas
+#   listrep=lfc.lfc_list()
+#   flagsrep=lfc.CNS_LIST_BEGIN 
    
-   # Call the retrieval in a loop
-   found=False
-   filerep=lfc.lfc_listreplica(lfn, "", flagsrep, listrep)
+#   # Call the retrieval in a loop
+#   found=False
+#   filerep=lfc.lfc_listreplica(lfn, "", flagsrep, listrep)
    
-   while(filerep):
-  
-      if(verbose):
-         print "--lfc.lfc_listreplica(\""+lfn+"\", \"\",",flagsrep,",listrep)"
-        
+#   while(filerep):
+#  
+#      if(verbose):
+#         print "--lfc.lfc_listreplica(\""+lfn+"\", \"\",",flagsrep,",listrep)"
+
+   if(verbose):
+      print "--lfc.lfc_getreplica(\""+lfn+"\", \"\",\"\")"
+   err, list = lfc.lfc_getreplica(lfn, "", "")
+   if(err):
+      sys.stderr.write("Error retrieving replicas for: "+lfn+": "+lfc.sstrerror(lfc.cvar.serrno)+'\n')
+      return -1
+      
+   for filerep in list:              
       # Check if it is custodial before deleting (unless force was specified)
       if ((filerep.f_type == 'P') and (not force)):
          print "Warning: Not deleting custodial replica in",filerep.host,"of",lfn
          custodialLeft = True
-         flags=lfc.CNS_LIST_CONTINUE
-         filerep=lfc.lfc_listreplica(lfn, "", flags, listrep)
          continue
-
       # If all are to be deleted, just do it
       if(all):
          err = deleteOneReplica(filerep.sfn, verbose)
@@ -216,11 +221,11 @@ def deleteOneEntry(pLfn, pSeList, pKeepLfn, pRemoveLinks, pForce, pVerbose):
             if(not seList):
                break
 
-      flagsrep=lfc.CNS_LIST_CONTINUE
-      filerep=lfc.lfc_listreplica(lfn, "", flagsrep, listrep)
+#      flagsrep=lfc.CNS_LIST_CONTINUE
+#      filerep=lfc.lfc_listreplica(lfn, "", flagsrep, listrep)
 
-   flagsrep=lfc.CNS_LIST_END
-   lfc.lfc_listreplica(lfn, "", flagsrep, listrep)
+#   flagsrep=lfc.CNS_LIST_END
+#   lfc.lfc_listreplica(lfn, "", flagsrep, listrep)
 
    # For the SEs specified, warn if they were not all removed
    if(seList and verbose):
@@ -232,23 +237,32 @@ def deleteOneEntry(pLfn, pSeList, pKeepLfn, pRemoveLinks, pForce, pVerbose):
 
       # If -l was specified, delete all links (even main LFN)
       if(removeLinks):
-         list=lfc.lfc_list()
-         flags=lfc.CNS_LIST_BEGIN 
-         link=lfc.lfc_listlinks(lfn, "", flags, list)
+#         list=lfc.lfc_list()
+#         flags=lfc.CNS_LIST_BEGIN 
+#         link=lfc.lfc_listlinks(lfn, "", flags, list)
 
-         while(link):
+#         while(link):
 
-            if(verbose):
-               print "--lfc.lfc_listlinks(\""+lfn+"\", \"\",",flags,",list)"
+#            if(verbose):
+#               print "--lfc.lfc_listlinks(\""+lfn+"\", \"\",",flags,",list)"
 
+         if(verbose):
+            print "--lfc.lfc_getlinks(\""+lfn+"\", \"\",\"\")"
+         err, list = lfc.lfc_getlinks(lfn, "", "")
+
+         if(err):
+            sys.stderr.write("Error retrieving links for: "+lfn+": "+lfc.sstrerror(lfc.cvar.serrno)+'\n')
+            return -1
+
+         for link in list:
             err = deleteOneLFN(link.path, verbose)
             if(err): rc=err          
             
-            flags=lfc.CNS_LIST_CONTINUE
-            link=lfc.lfc_listlinks(lfn, "", flags, list)
+#            flags=lfc.CNS_LIST_CONTINUE
+#            link=lfc.lfc_listlinks(lfn, "", flags, list)
 
-         flags=lfc.CNS_LIST_END
-         lfc.lfc_listlinks(lfn, "", flags, list)
+#         flags=lfc.CNS_LIST_END
+#         lfc.lfc_listlinks(lfn, "", flags, list)
          
       # If no "-l", but no "-k" either, remove the specified LFN (or sym link)
       else:
@@ -395,6 +409,15 @@ def main(pArgs):
       lfc.lfc_startsess("", "")
       err = deleteEntries(lineList, keepLfn, removeLinks, force, verbose)
       lfc.lfc_endsess()
+      
+      # Removal loops (under transaction)
+      #lfc.lfc_starttrans("", "")
+      #err = deleteEntries(lineList, keepLfn, removeLinks, force, verbose)
+      #if(err):
+      #   sys.stderr.write("Rolling back"+'\n')
+      #   lfc.lfc_aborttrans()
+      #else:
+      #   lfc.lfc_endtrans()
 
     # From command line options
    else:
@@ -421,7 +444,15 @@ def main(pArgs):
       lfc.lfc_startsess("", "")
       err = deleteOneEntry(lfn, seList, keepLfn, removeLinks, force, verbose)
       lfc.lfc_endsess()
-
+      
+      # Delete (under transaction)
+      #lfc.lfc_starttrans("", "")
+      #err = deleteOneEntry(lfn, seList, keepLfn, removeLinks, force, verbose)
+      #if(err):
+      #   sys.stderr.write("Rolling back"+'\n')
+      #   lfc.lfc_aborttrans()
+      #else:
+      #   lfc.lfc_endtrans()
          
  # Finally, if no error exited before, exit succesfully
    return err

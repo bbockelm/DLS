@@ -1,8 +1,8 @@
 #!/usr/bin/python
 
 # 
-# 11/2005. dlslfc v 0.7
-# Antonio Delgado Peris. CERN, LCG. $Id
+# 11/2005.
+# Antonio Delgado Peris. CERN, LCG.
 #
 
 import lfc
@@ -94,22 +94,34 @@ def showSEsForOneLFN(pLfn, pLonglist, pVerbose):
    lfn=checkHome(lfn)
 
  # Retrieve list of replicas
-   list = lfc.lfc_list()
-   flags = lfc.CNS_LIST_BEGIN 
 
-   # First check we can access the entry (cause next method's error are difficult to get)
-   R_OK=4
-   if(lfc.lfc_access(lfn, R_OK)<0):
-      sys.stderr.write("Error when accessing provided lfn: "+lfn+
-                       ": "+lfc.sstrerror(lfc.cvar.serrno)+'\n')
-      return -1
+#   list = lfc.lfc_list()
+#   flags = lfc.CNS_LIST_BEGIN 
+#
+#   # First check we can access the entry (cause next method's error are difficult to get)
+#   R_OK=4
+#   if(lfc.lfc_access(lfn, R_OK)<0):
+#      sys.stderr.write("Error when accessing provided lfn: "+lfn+
+#                       ": "+lfc.sstrerror(lfc.cvar.serrno)+'\n')
+#      return -1
+#
+#   # Call the retrieval in a loop
+#   filerep=lfc.lfc_listreplica(lfn, "", flags, list)
+#   while(filerep):
+#      if(verbose):
+#         print "--lfc.lfc_listreplica(\""+lfn+"\", \"\",",flags,",list)"   
+#
+
+   if(verbose):
+         print "--lfc.lfc_getreplica(\""+lfn+"\", \"\", \"\")"   
+         
+   err, list = lfc.lfc_getreplica(lfn, "", "")
    
-   # Call the retrieval in a loop
-   filerep=lfc.lfc_listreplica(lfn, "", flags, list)
-   while(filerep):
-      if(verbose):
-         print "--lfc.lfc_listreplica(\""+lfn+"\", \"\",",flags,",list)"   
-
+   if(err):
+      sys.stderr.write("Error retrieving replicas for: "+lfn+": "+lfc.sstrerror(lfc.cvar.serrno)+'\n')
+      return -1
+      
+   for filerep in list:
       print filerep.host,
       if(longlist):
          time_tuple = time.localtime(filerep.atime)
@@ -123,11 +135,11 @@ def showSEsForOneLFN(pLfn, pLonglist, pVerbose):
          print filerep.sfn,
       print
 
-      flags=lfc.CNS_LIST_CONTINUE
-      filerep=lfc.lfc_listreplica(lfn, "", flags, list)
-  
-   flags=lfc.CNS_LIST_END
-   lfc.lfc_listreplica(lfn, "", flags, list)
+#      flags=lfc.CNS_LIST_CONTINUE
+#      filerep=lfc.lfc_listreplica(lfn, "", flags, list)
+#  
+#   flags=lfc.CNS_LIST_END
+#   lfc.lfc_listreplica(lfn, "", flags, list)
 
  # Finally, if no error exited before, exit succesfully
    return 0

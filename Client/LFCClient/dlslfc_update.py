@@ -216,12 +216,21 @@ def updateOneReplica(pLfn, pSe, pAttrList, pTrans, pVerbose):
    
    # Call the retrieval in a loop
    found = False
-   list = lfc.lfc_list()
-   flags = lfc.CNS_LIST_BEGIN 
-   filerep=lfc.lfc_listreplica(lfn, "", flags, list)
-   while(filerep):
-      if(verbose):
-         print "--lfc.lfc_listreplica(\""+lfn+"\", \"\",",flags,",list)"   
+   #list = lfc.lfc_list()
+   #flags = lfc.CNS_LIST_BEGIN 
+   #filerep=lfc.lfc_listreplica(lfn, "", flags, list)
+   #while(filerep):
+   #   if(verbose):
+   #      print "--lfc.lfc_listreplica(\""+lfn+"\", \"\",",flags,",list)"
+
+   if(verbose):
+      print "--lfc.lfc_getreplica(\""+lfn+"\", \"\",\"\")"
+   err, list = lfc.lfc_getreplica(lfn, "", "")
+   if(err):
+      sys.stderr.write("Error retrieving replicas for: "+lfn+": "+lfc.sstrerror(lfc.cvar.serrno)+'\n')
+      return -1
+
+   for filerep in list:                    
       if(filerep.host == se):
          found = True
          sfn = filerep.sfn
@@ -229,11 +238,11 @@ def updateOneReplica(pLfn, pSe, pAttrList, pTrans, pVerbose):
          f_type = filerep.f_type  # This cannot be updated yet (nor SFN)
          break
          
-      flags=lfc.CNS_LIST_CONTINUE
-      filerep=lfc.lfc_listreplica(lfn, "", flags, list)
+      #flags=lfc.CNS_LIST_CONTINUE
+      #filerep=lfc.lfc_listreplica(lfn, "", flags, list)
   
-   flags=lfc.CNS_LIST_END
-   lfc.lfc_listreplica(lfn, "", flags, list)
+   #flags=lfc.CNS_LIST_END
+   #lfc.lfc_listreplica(lfn, "", flags, list)
 
    if(not found):
       sys.stderr.write("No replica on \""+se+"\" for the specified fileblock: "+lfn+'\n')
