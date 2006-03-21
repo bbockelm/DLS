@@ -1,1 +1,52 @@
 CMS DLS/LFC Stress Test Suite Version 1.0
+Fabio Farina
+fabio.farina@cern.ch
+
+This is a short guide to setup the parameters used for the Stress-Test.
+Such parameters are in the file parameters.py:
+
+- threadNum (int)
+	the number of threads used during each phase.
+
+- clientDir (str)
+	the location of the dls client commands
+
+- nBlocks (int)
+	number of blocks for each file
+- nReplicas (int)
+	number of replicas for each fileblock
+
+- paretoK (int) and paretoAlpha (float)
+	these values are used to model the clients arrival queue.
+	paretoK should be smaller or equals to threadNum, while paretoAlpha
+	is the hard-tail parameter for the distribution.Pay attention tuning it,
+	it could generate REALLY long wait time.
+
+- magThread (int), magBlocks (int), magReplicas (int), magParetoK (float)
+	multiplication coefficients of the previously described parameters. 
+	The are called by the most stressing phase (Magnitude Test), tune them
+	carefully.
+
+- magBlockPreambleLen (int) and magSePreambleLen (int)
+	padding fields sizes. The set values are qualitative, as soon as I will
+	know the actual LFC field sizes I will fix such values.
+
+- randRepetitions (int) and randFactor (int)
+	coefficients for the random test. They act mainly on the number of random tests
+	and on the range of the random parameters.
+
+- The following parameters act on the probabilistic automaton used to perform
+	user simulation test.
+
+	-userBound (int) 
+		the length of the automaton action chain
+	- userInitStateP (array of float)
+		the probability vector for the initial automaton move.
+		The sum of the components has to be 1.0
+	
+	- userMarkov (6*6 float matrix )
+		the transposed markov chain for the automaton.
+		The sum of each row has to be 1.0
+		The used values are euristics but without any log from LFC I can't say 
+		which are the frequencies of the actions.
+		
