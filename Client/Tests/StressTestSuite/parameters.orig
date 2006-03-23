@@ -6,7 +6,7 @@
 # Parameters file: put here the test case configuration parameters
 
 # general CLI and client parameters
-threadNum = 1
+threadNum = 10
 clientDir = './dummy_dls/'
 
 # attribute for action2command list expansion

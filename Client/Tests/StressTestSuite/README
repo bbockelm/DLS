@@ -2,6 +2,52 @@ CMS DLS/LFC Stress Test Suite Version 1.0
 Fabio Farina
 fabio.farina@cern.ch
 
+-- HOW TO RUN THE SETUP ---
+
+The script runs a group of different test to stress the DLS backends.
+
+(optional) if you use LFC implementation of the DLS client the execute
+export LFC_HOME=<your lfc server>
+
+Then simply run the command 
+./run_test.py
+
+with the proper arguments. 
+In the following I give some brief explaining about the test tipologies:
+
+-r Repetition Test: it performs many and many times the same sequence of actions, to stress 
+	the repeatability of the operations and the consistency of data.
+
+-c Concurrency Test: many operations are performed concurrently to stress the cache of the server and 
+	hidden race conditions.
+
+-m Magnitude Test: stress the connection and the persistent data using high latency connections 
+	and oversize data fields. Pay attention to set up this test properly it could cause 
+	serious problems to the DB behind LFC service (mainly for oversize data).
+
+-a Random Test: repeat the previously tests introducing unexpected changes. It is useful to cover 
+	uncommon program paths errors.
+
+-u User Simulation: a smart random test. It generates coerent sequences of actions to mimic the behaviour
+	of a mean user.
+
+Furthermore as You run a test you can specify the arrival queue model used to introduce delays in the thread ececutions.
+
+There are three different models:
+
+-distribution=pareto (default)
+	The threads are created and then they are immediatly woken up
+
+-distribution=burst
+	The threads are created and then they are summoned all together
+
+-distribution=pareto
+	The threads are created and then suspended for a random time distributed according
+	and haevy tailed distribution. You can change the parameters of the distribution
+	editing the parameters.py file. 
+
+--- HOW TO SET UP THE TEST PARAMETERS ---
+
 This is a short guide to setup the parameters used for the Stress-Test.
 Such parameters are in the file parameters.py:
 
