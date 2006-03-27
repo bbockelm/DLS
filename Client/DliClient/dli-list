@@ -1,0 +1,182 @@
+#!/usr/bin/env python
+
+#
+# $Id$
+#
+# DliClient v 0.1
+# Antonio Delgado Peris. CIEMAT. CMS.
+#
+
+#
+# This is a testing tool (CLI) of the DliClient.
+#
+
+import sys
+import dliClient 
+import getopt
+
+def usage():
+   """
+    Provides usage information
+   """
+   print "Usage: dli-list [-v] <fileblock>"
+   print "       dli-list [-v] -f <listing_file>"
+   print "       dli-list -u"
+   print "       dli-list -h"
+                                                                                                    
+def options():
+   """
+    Provides some information regarding the available options
+   """
+   print """Options summary:
+   -h, --help
+   -u, --usage
+   -v, --verbose
+   -f, --from-file
+   """
+                                                                                                    
+def help():
+   """
+    Provides some help information
+   """
+   print """This script will print the locations for which there is a replica of the specified
+fileblock registered. This information is obtained by querying the DLI interface of the DLS.
+                                                                                                    
+The "-f" option can be used to retrieve fileblock names from a file rather than from the
+given arguments. The file must contain one line per fileblock to be listed.
+                                                                                                    
+If "-u" is specified, usage information is displayed.
+                                                                                                    
+If "-h" is specified, help information is displayed.
+   """
+   options()
+   usage()
+
+
+def showSEsForOneLFN(dli_iface, lfn, verbose):
+   """
+    Prints the Locations which hold a replica of the specified fileblock.
+   """
+
+   if(verbose):
+      print "--dliClient.listLocations(\""+lfn+"\")"
+
+   try:
+#      res = dli_iface.listLocations(lfn)
+      res = dli_iface.listLocations(lfn, fileType = "lfn")
+      if(res):
+         for i in res:
+           print i
+      else:
+         return -1
+
+   except Exception, inst:
+      sys.stderr.write("Error in SOAP operation!: "+str(inst)+'\n')
+      return -1
+   
+   return 0
+
+
+
+def showSEsForLFNs(dli_iface, lfnList, verbose):
+   """
+    Prints the locations which hold a replica of the specified fileblock.
+   """
+                                                                                                    
+   for lfn in lfnList:
+      lfn = lfn.strip()
+      print "  LFN: "+lfn
+      showSEsForOneLFN(dli_iface, lfn, verbose)
+                                                                                                    
+ # Finally, if no error exited before, exit succesfully
+   return 0
+                                                                                                    
+
+
+
+###################### MAIN FUNCTION ########################
+                                                                                                    
+
+def main(pArgs):
+   """
+    Performes the main task of the script (invoked directly).
+    For information on its functionality, please call the help function.
+   """
+                                                                                                    
+ # Options and args...
+                                                                                                    
+   longoptions=["help", "usage", "verbose", "from-file"]
+   try:
+      optlist, args = getopt.getopt(pArgs, 'hutvf:', longoptions)
+   except getopt.GetoptError, inst:
+      sys.stderr.write("Bad usage: "+str(inst)+'\n')
+      usage()
+      sys.exit(-1)
+                                                                                                    
+   err=0
+   verbose = False
+   longlist = False
+   fromFile = False
+   fname=""
+   for opt, val in optlist:
+       if opt in ("-h", "--help"):
+           help()
+           return -1
+ 
+       elif opt in ("-u", "--usage"):
+           usage()
+           return -1
+
+       elif opt in ("-v", "--verbose"):
+           verbose = True
+
+       elif opt in ("-f","--from-file"):
+           fromFile = True
+           fname = val
+                                                                                                    
+ # Perform the listing
+
+   # Create the binding
+   api = dliClient.DliClient()
+
+   # From file
+   if(fromFile):
+      #Open File
+      try:
+         file=open(fname, 'r')
+      except IOError, inst:
+         msg="The file "+fname+" could not be opened: "+str(inst)+"\n"
+         sys.stderr.write(msg)
+         locations
+         return -1
+                                                                                                    
+      # Read lines
+      lfnList = file.readlines()
+                                                                                                    
+      # Show loop 
+      err = showSEsForLFNs(api, lfnList, verbose)
+                                                                                                    
+   # From command line options
+   else:
+      if(len(args)<1):
+        sys.stderr.write("Not enough input arguments"+'\n')
+        usage()
+        return(-1)
+
+      else:
+         lfn = args[0]
+         if(verbose):
+            print "--LFN: "+lfn
+         err = showSEsForOneLFN(api, lfn, verbose)
+         
+
+ # Finally, if no error exited before, exit succesfully
+   return err
+                                                                                                    
+
+
+######################### MAKE IT CALLABLE ###########################
+
+if __name__ == "__main__":
+  sys.exit(main(sys.argv[1:]))
+
