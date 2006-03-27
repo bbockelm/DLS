@@ -49,11 +49,11 @@ tar cvzf run3.1.tgz run3.1.out *.csv;
 rm *.out *.csv
 
 echo "Run3.2: 5 threads, 8 blocks, 5 replica, pareto arrivals"
-sed -i "s/nReplicas = 1/nRelpicas = 5/" parameters.py;
+sed -i "s/nReplicas = 1/nReplicas = 5/" parameters.py;
 ./run_test.py -r --distribution=pareto > run3.2.out;
 tar cvzf run3.2.tgz run3.2.out *.csv;
 rm *.out *.csv
-sed -i "s/nReplicas = 5/nRelpicas = 1/" parameters.py;
+sed -i "s/nReplicas = 5/nReplicas = 1/" parameters.py;
 
 sed -i "s/nBlocks = 8/nBlocks = 4/" parameters.py;
 
@@ -82,11 +82,11 @@ tar cvzf run6.1.tgz run6.1.out *.csv;
 rm *.out *.csv
 
 echo "Run6.2: 10 threads, 8 blocks, 5 replica, pareto arrivals"
-sed -i "s/nReplicas = 1/nRelpicas = 5/" parameters.py;
+sed -i "s/nReplicas = 1/nReplicas = 5/" parameters.py;
 ./run_test.py -r --distribution=pareto > run6.2.out;
 tar cvzf run6.2.tgz run6.2.out *.csv;
 rm *.out *.csv
-sed -i "s/nReplicas = 5/nRelpicas = 1/" parameters.py;
+sed -i "s/nReplicas = 5/nReplicas = 1/" parameters.py;
 
 sed -i "s/nBlocks = 8/nBlocks = 4/" parameters.py;
 
@@ -117,11 +117,11 @@ tar cvzf run9.1.tgz run9.1.out *.csv;
 rm *.out *.csv
 
 echo "Run9.2: 20 threads, 8 blocks, 5 replica, pareto arrivals"
-sed -i "s/nReplicas = 1/nRelpicas = 5/" parameters.py;
+sed -i "s/nReplicas = 1/nReplicas = 5/" parameters.py;
 ./run_test.py -r --distribution=pareto > run9.2.out;
 tar cvzf run9.2.tgz run9.2.out *.csv;
 rm *.out *.csv
-sed -i "s/nReplicas = 5/nRelpicas = 1/" parameters.py;
+sed -i "s/nReplicas = 5/nReplicas = 1/" parameters.py;
 
 sed -i "s/nBlocks = 8/nBlocks = 4/" parameters.py;
 

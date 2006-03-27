@@ -137,13 +137,13 @@ def expandFunctionSequence(actionsList, globalList, blockPreamble, sePreamble):
                 par_lis = parameters.clientDir + "dlslfc-delete -a "
                 par_lis += b
             elif acts[i] == "get":
-                par_lis = parameters.clientDir + "dlslfc-get-se-new "
+                par_lis = parameters.clientDir + "dlslfc-get-se "
                 par_lis += b
             elif acts[i] == "dli":
-                par_lis = parameters.clientDir + "lfc-dli-client -e http://$LFC_HOST:8085/ lfn:$LFC_HOME/ "
+                par_lis = parameters.clientDir + "lfc-dli-client -e http://$LFC_HOST:8085/ lfn:$LFC_HOME/"
                 par_lis += b
             elif acts[i] == "lcg":
-                par_lis = "lcg-lr --vo cms lfn:$LFC_HOME/ "
+                par_lis = "lcg-lr --vo cms lfn:$LFC_HOME/"
                 par_lis += b
 
             globalList.append(par_lis)

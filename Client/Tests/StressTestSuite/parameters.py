@@ -7,7 +7,8 @@
 
 # general CLI and client parameters
 threadNum = 1
-clientDir = './dummy_dls/'
+#clientDir = './dummy_dls/'
+clientDir = '../../LFCClient/'
 
 # attribute for action2command list expansion
 nBlocks = 4
