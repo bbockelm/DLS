@@ -1,5 +1,5 @@
 #
-# $Id$
+# $Id: dlsClient.py,v 1.1 2006/03/29 13:34:11 delgadop Exp $
 #
 # Dls Client v 0.1
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -36,6 +36,8 @@ DLS_TYPE_LFC = "DLS_TYPE_LFC"
 # DlsDliClient (getLocations only API with LFC back-end)
 DLS_TYPE_DLI = "DLS_TYPE_DLI" 
 
+# DlsMySQLApi (complete API with MySQL proto back-end)
+DLS_TYPE_MYSQL = "DLS_TYPE_MYSQL"
 
 #########################################
 # getDlsApi function 
@@ -59,6 +61,7 @@ def getDlsApi(dls_type = None, dls_host = None, verbosity = dlsApi.DLS_VERB_WARN
   Currently admitted values are:    
     DLS_TYPE_LFC  =>  DlsLfcApi class (complete API with LFC back-end)
     DLS_TYPE_DLI  =>  DlsDliClient class (getLocations only API with LFC back-end)
+    DLS_TYPE_MYSQL =>  DlsMySQLApi  class (complete API with MySQL proto back-end)
 
   The other arguments (dls_host and verbosity) are passed to the constructor 
   of the DLS API as they are. See the dlsApi.DlsApi documentation for details.
@@ -74,8 +77,9 @@ def getDlsApi(dls_type = None, dls_host = None, verbosity = dlsApi.DLS_VERB_WARN
     dlsApi.ValueError: if the specified value is not one of the admitted ones
   """
 
-  admitted_vals = [DLS_TYPE_LFC, DLS_TYPE_DLI]
+  admitted_vals = [DLS_TYPE_LFC, DLS_TYPE_DLI, DLS_TYPE_MYSQL]
   default = DLS_TYPE_LFC
+  #default = DLS_TYPE_MYSQL
   candidate = None
  
   # First set the candidate from the arguments or environment
@@ -83,7 +87,7 @@ def getDlsApi(dls_type = None, dls_host = None, verbosity = dlsApi.DLS_VERB_WARN
     candidate = dls_type
   else:
     # try to read the env varible here... 
-
+    print ""
 
   # If not set, use the default
   if(not candidate):
@@ -100,5 +104,8 @@ def getDlsApi(dls_type = None, dls_host = None, verbosity = dlsApi.DLS_VERB_WARN
      from dlsLfcApi import DlsLfcApi as api
   if(candidate == DLS_TYPE_DLI):
      from dlsDliClient import DlsDliClient as api
+  if(candidate == DLS_TYPE_MYSQL):
+     from dlsMySQLApi import DlsMySQLApi as api
+                                                                                                 
 
   return api(dls_host, verbosity)

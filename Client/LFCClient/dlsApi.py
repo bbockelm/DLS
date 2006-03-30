@@ -1,5 +1,5 @@
 #
-# $Id$
+# $Id: dlsApi.py,v 1.1 2006/03/29 13:34:11 delgadop Exp $
 #
 # Dls Client v 0.1
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -27,6 +27,7 @@
 # Module globals
 #########################################
 DLS_VERB_NONE = 0    # print nothing
+DLS_VERB_INFO = 5    # print info
 DLS_VERB_WARN = 10   # print only warnings (to stdout)
 DLS_VERB_HIGH = 20   # print warnings (stdout) and error messages (stderr)
 
@@ -385,6 +386,7 @@ class DlsApi(object):
     
     Currently admitted values are:    
       DLS_VERB_NONE => print nothing
+      DLS_VERB_INFO => print info
       DLS_VERB_WARN => print only warnings (to stdout)
       DLS_VERB_HIGH => print warnings (stdout) and error messages (stderr)
 
@@ -393,7 +395,7 @@ class DlsApi(object):
     EXCEPTION:
       ValueError: if the specified value is not one of the admitted ones
     """
-    admitted_vals = [DLS_VERB_NONE, DLS_VERB_WARN, DLS_VERB_HIGH]
+    admitted_vals = [DLS_VERB_NONE, DLS_VERB_INFO, DLS_VERB_WARN, DLS_VERB_HIGH]
     if(value not in admitted_vals):
       msg = "The specified value is not one of the admitted ones"
       raise ValueError(msg)
