@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #
-# $Id$
+# $Id: dli-list,v 1.1 2006/03/27 11:22:19 delgadop Exp $
 #
 # DliClient v 0.1
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -19,8 +19,8 @@ def usage():
    """
     Provides usage information
    """
-   print "Usage: dli-list [-v] <fileblock>"
-   print "       dli-list [-v] -f <listing_file>"
+   print "Usage: dli-list [-v] [-e <endpoint>] <fileblock>"
+   print "       dli-list [-v] [-e <endpoint>] -f <listing_file>"
    print "       dli-list -u"
    print "       dli-list -h"
                                                                                                     
@@ -32,6 +32,7 @@ def options():
    -h, --help
    -u, --usage
    -v, --verbose
+   -e, --endpoint
    -f, --from-file
    """
                                                                                                     
@@ -39,11 +40,16 @@ def help():
    """
     Provides some help information
    """
-   print """This script will print the locations for which there is a replica of the specified
-fileblock registered. This information is obtained by querying the DLI interface of the DLS.
-                                                                                                    
-The "-f" option can be used to retrieve fileblock names from a file rather than from the
-given arguments. The file must contain one line per fileblock to be listed.
+   print """This script will print the locations for which there is a replica of the
+specified fileblock registered. This information is obtained by querying the DLI
+interface of the file catalog.
+
+The "-e" option can be used to set the DLI endpoint to use. If not specified,
+the endpoint is retrieved from the DLI_ENDPOINT environmental variable
+If the DLI endpoint cannot be retrieved in any of this ways, the command fails. 
+
+The "-f" option can be used to retrieve fileblock names from a file rather than from
+the given arguments. The file must contain one line per fileblock to be listed.
                                                                                                     
 If "-u" is specified, usage information is displayed.
                                                                                                     
@@ -62,7 +68,6 @@ def showSEsForOneLFN(dli_iface, lfn, verbose):
       print "--dliClient.listLocations(\""+lfn+"\")"
 
    try:
-#      res = dli_iface.listLocations(lfn)
       res = dli_iface.listLocations(lfn, fileType = "lfn")
       if(res):
          for i in res:
@@ -70,8 +75,16 @@ def showSEsForOneLFN(dli_iface, lfn, verbose):
       else:
          return -1
 
-   except Exception, inst:
-      sys.stderr.write("Error in SOAP operation!: "+str(inst)+'\n')
+   except dliClient.SoapError, inst:
+      msg = "Error in SOAP operation!: " + inst.msg + ". "
+      for i in [inst.actor, inst.faultcode, inst.detail, inst.faultstring]:
+         if(i):  msg += str(i) + ". "
+      sys.stderr.write(msg +'\n')
+      return -1
+      
+   except dliClient.DliClientError, inst:
+      msg = "Error in operations with DLI!: " + inst.msg + ". "
+      sys.stderr.write(msg +'\n')
       return -1
    
    return 0
@@ -105,9 +118,9 @@ def main(pArgs):
                                                                                                     
  # Options and args...
                                                                                                     
-   longoptions=["help", "usage", "verbose", "from-file"]
+   longoptions=["help", "usage", "verbose", "endpoint", "from-file"]
    try:
-      optlist, args = getopt.getopt(pArgs, 'hutvf:', longoptions)
+      optlist, args = getopt.getopt(pArgs, 'hutve:f:', longoptions)
    except getopt.GetoptError, inst:
       sys.stderr.write("Bad usage: "+str(inst)+'\n')
       usage()
@@ -115,7 +128,7 @@ def main(pArgs):
                                                                                                     
    err=0
    verbose = False
-   longlist = False
+   endpoint = None
    fromFile = False
    fname=""
    for opt, val in optlist:
@@ -130,6 +143,9 @@ def main(pArgs):
        elif opt in ("-v", "--verbose"):
            verbose = True
 
+       elif opt in ("-e","--endpoint"):
+           endpoint = val
+
        elif opt in ("-f","--from-file"):
            fromFile = True
            fname = val
@@ -137,7 +153,16 @@ def main(pArgs):
  # Perform the listing
 
    # Create the binding
-   api = dliClient.DliClient()
+   try:
+      api = dliClient.DliClient(endpoint)
+   except dliClient.SetupError, inst:
+      msg = "The DLI endpoint could not be found! Consider using the -e option.\n"
+      sys.stderr.write(msg)
+      return -1
+   except dliClient.dliClientError, inst:
+      msg = "Error in the DLI interface instantiation: " + str(inst) + "\n"
+      sys.stderr.write(msg)
+      return -1
 
    # From file
    if(fromFile):
@@ -147,7 +172,6 @@ def main(pArgs):
       except IOError, inst:
          msg="The file "+fname+" could not be opened: "+str(inst)+"\n"
          sys.stderr.write(msg)
-         locations
          return -1
                                                                                                     
       # Read lines
