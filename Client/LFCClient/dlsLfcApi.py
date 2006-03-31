@@ -1,5 +1,5 @@
 #
-# $Id$
+# $Id: dlsLfcApi.py,v 1.1 2006/03/29 13:34:54 delgadop Exp $
 #
 # Dls Client v 0.1
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -105,11 +105,14 @@ class DlsLfcApi(dlsApi.DlsApi):
       SetupError: if no DLS server can be found.
     """
 
+    # Let the parent set the server (if possible) and verbosity
     dlsApi.DlsApi.__init__(self, dls_endpoint, verbosity)
-    
-    if(not self.server):
-      # Do whatever... 
 
+    # If the server is not there yet, try from LFC_HOST
+    if(not self.server):
+      self.endpoint = environ.get("LFC_HOST")
+
+    # If still not there, give up 
     if(not self.server):
        raise SetupError("Could not set the DLS server to use")
 
@@ -162,9 +165,9 @@ class DlsLfcApi(dlsApi.DlsApi):
     pass
 
     
-  def delete(self, dlsFileBlockList, **kwd):
+  def clear(self, dlsFileBlockList, **kwd):
     """
-    Implementation of the dlsApi.DlsApi.delete method.
+    Implementation of the dlsApi.DlsApi.clear method.
     Refer to that method's documentation.
 
     Implementation specific remarks:
@@ -176,14 +179,23 @@ class DlsLfcApi(dlsApi.DlsApi):
     pass
 
     
-  def deleteLocations(self, dlsEntryList, **kwd):
+  def delete(self, dlsEntryList, **kwd):
     """
-    Implementation of the dlsApi.DlsApi.deleteLocations method.
+    Implementation of the dlsApi.DlsApi.delete method.
     Refer to that method's documentation.
 
     Implementation specific remarks:
+    
+    The LFC-based DLS supports symlinks to a FileBlock. This method accepts both
+    original FileBlocks or symlinks. Only the specified one will be deleted,
+    unless removeLinks (**kwd) is set to True; in that case, all the symlinks and
+    the original FileBlock will be removed from the DLS.
 
     NOTE: It is not safe to use this method within a transaction.
+    
+    PARAM (additional):
+      removeLinks (**kwd): boolean (default False) for removing all the symlinks
+
     """
 
     # Implement here...

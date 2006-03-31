@@ -1,5 +1,5 @@
 #
-# $Id$
+# $Id: dlsDataObjects.py,v 1.1 2006/03/29 13:34:11 delgadop Exp $
 #
 # Dls Client v 0.1
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -59,9 +59,9 @@ class DlsFileBlock(object):
   always the case.
 
   The FileBlock name is accessible on the data member "name". It is a string
-  that can be read and set. The form of the string should be that imposed by the
-  DLS catalog; normally similar to a UNIX file: "/grid/cms/dir1/dir2/file".
-  It does not make much sense that this member is set as None.
+  that can be read and set. The form of the string should be that imposed by
+  the DLS namespace. It does not make much sense that this member is set
+  as None.
 
   The attribute list is accessible on the data member "attribs". It is a
   dictionary that can be read and set. Any attribute key and value can be set
@@ -141,9 +141,15 @@ class DlsFileBlock(object):
     
     RETURN: the GUID of this FileBlock, as a string (or None, if not set)
     """
-    
     return self._guid
 
+
+  def __str__(self):
+    """
+    Returns a (simplified) string representation of the object
+    """
+    return self.name
+ 
 
 
 #########################################
@@ -241,9 +247,15 @@ class DlsLocation(object):
     
     RETURN: the SURL of this FileBlock, as a string (or None, if not set)
     """
-    
     return self._surl
 
+
+  def __str__(self):
+    """
+    Returns a (simplified) string representation of the object
+    """
+    return self.host
+ 
 
 
 #########################################
@@ -307,6 +319,22 @@ class DlsEntry(object):
     for i in self.locations:
       if(i.host == host):
          self.locations.remove(i)
+
+         
+  def __str__(self):
+    """
+    Returns a (simplified) string representation of the object
+    """
+    locStr = ""
+    for i in self.locations:
+       if (locStr):
+         locStr += ", "
+       locStr += str(i) 
+    
+    result = str(self.fileBlock) + ": " + locStr
+
+    return result
+ 
 
 
   #############################################################

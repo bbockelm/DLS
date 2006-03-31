@@ -1,5 +1,5 @@
 #
-# $Id: dlsApi.py,v 1.1 2006/03/29 13:34:11 delgadop Exp $
+# $Id: dlsApi.py,v 1.2 2006/03/30 23:16:55 afanfani Exp $
 #
 # Dls Client v 0.1
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -21,6 +21,7 @@
 #########################################
 # Imports 
 #########################################
+from os import environ
 
 
 #########################################
@@ -66,7 +67,8 @@ class NotImplementedError(DlsApiError):
 
 class ValueError(DlsApiError):
   """
-  Exception class for invocations of DlsApi methods with an incorrect value as argument.
+  Exception class for invocations of DlsApi methods with an incorrect
+  value as argument.
   """
 
 
@@ -89,8 +91,8 @@ class DlsApi(object):
   def __init__(self, dls_endpoint = None, verbosity = DLS_VERB_WARN):
     """
     This constructor is used as a general data members initialiser.
-    But remember that this class should not be instantiated, since no method here
-    is implemented!
+    But remember that this class should not be instantiated, since no method
+    here is implemented!
  
     Notice that this method allows to have an empty DLS endpoint, but instantiable
     DLS API classes should not allow this. They should deny instantiation if no
@@ -99,8 +101,9 @@ class DlsApi(object):
          - DLS_ENDPOINT environmental variable
          - DLS catalog advertised in the Information System (if implemented)
          - Possibly some default value (if defined in a given implementation)
- 
-    Other environmental variables may be used in particular DLS API implementations.
+  
+    The DLS_ENDPOINT variable is checked in this constructor. Other environmental
+    variables may be used in particular DLS API implementations.
 
     The verbosity level affects invocations of all methods in this object. See
     the setVerbosity method for information on accepted values.
@@ -111,7 +114,12 @@ class DlsApi(object):
     """
 
     self.setVerbosity(verbosity)
+
     self.server = dls_endpoint
+
+    if(not self.server):
+      self.server = environ.get("DLS_ENDPOINT")
+
 
   ############################################
   # Methods defining the main public interface
@@ -195,7 +203,7 @@ class DlsApi(object):
     raise NotImplementedError(msg) 
 
     
-  def delete(self, dlsFileBlockList, **kwd):
+  def clear(self, dlsFileBlockList, **kwd):
     """
     Deletes the DLS entry correponding to the specified DlsFileBlock object
     (or list of objects) from the DLS; i.e.: the FileBlock and all of its
@@ -207,12 +215,7 @@ class DlsApi(object):
     to True.
 
     In order to remove some (or even all) of the locations associated to a
-    FileBlock, but not the FileBlock itself, use the deleteLocations method.
-
-    The DLS supports symlinks to a FileBlock. This method accepts both original
-    FileBlocks or symlinks. Only the specified one will be deleted, unless
-    removeLinks (**kwd) is set to True; in that case, all the symlinks and the
-    original FileBlock will be removed from the DLS.
+    FileBlock, but not the FileBlock itself, use the delete method instead.
 
     The specified FileBlock is used as it is, without prepending the DLS client
     working directory to it; that may be made beforehand by the caller by means of
@@ -228,7 +231,6 @@ class DlsApi(object):
     PARAM:
       dlsFileBlockList: the DlsFileBlock object (or list of objects) to be deleted 
       force (**kwd): boolean (default False) for removing custodial locations 
-      removeLinks (**kwd): boolean (default False) for removing all the symlinks
 
     EXCEPTION: 
       On error with the DLS catalog
@@ -239,7 +241,7 @@ class DlsApi(object):
     raise NotImplementedError(msg)
 
     
-  def deleteLocations(self, dlsEntryList, **kwd):
+  def delete(self, dlsEntryList, **kwd):
     """
     Deletes the locations list composing the specified DLSEntry object
     (or list of objects) from the DLS; i.e.: only the locations are removed, 
@@ -251,7 +253,7 @@ class DlsApi(object):
     In any case, the FileBlock will be kept.
 
     In order to remove all the locations associated to a FileBlock and also the
-    FileBlock itself, use the delete method.
+    FileBlock itself, use the clear method instead.
 
     A location will not be removed if it is custodial (f_type  == "P"), unless
     force (*kwd) is set to True.
@@ -444,5 +446,5 @@ class DlsApi(object):
 # argument of the add and update methods, so that the whole operation of
 # the method is performed within a transaction (without explicit control
 # from the user). This can be enough (regarding performance), if the
-# arguments of these methods are list of DlsEntry objects.
+# arguments of these methods are lists of DlsEntry objects.
 

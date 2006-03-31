@@ -1,5 +1,5 @@
 #
-# $Id: dlsClient.py,v 1.1 2006/03/29 13:34:11 delgadop Exp $
+# $Id: dlsClient.py,v 1.2 2006/03/30 23:16:55 afanfani Exp $
 #
 # Dls Client v 0.1
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -51,7 +51,7 @@ def getDlsApi(dls_type = None, dls_host = None, verbosity = dlsApi.DLS_VERB_WARN
   The election of which concrete implementation is chosen depends on (in this
   order):
     - The specified dls_type argument
-    - The DlsType environmental variable
+    - The DLS_TYPE environmental variable
     - DLS catalog type advertised in the Information System (if implemented)
     - The default value defined in this class (currently DLS_LFC)
 
@@ -75,6 +75,7 @@ def getDlsApi(dls_type = None, dls_host = None, verbosity = dlsApi.DLS_VERB_WARN
       
   EXCEPTION:
     dlsApi.ValueError: if the specified value is not one of the admitted ones
+    SetupError (from the implementation class): on errors instantiating the interface
   """
 
   admitted_vals = [DLS_TYPE_LFC, DLS_TYPE_DLI, DLS_TYPE_MYSQL]
@@ -86,8 +87,7 @@ def getDlsApi(dls_type = None, dls_host = None, verbosity = dlsApi.DLS_VERB_WARN
   if(dls_type):
     candidate = dls_type
   else:
-    # try to read the env varible here... 
-    print ""
+    candidate = environ.get("DLS_TYPE")
 
   # If not set, use the default
   if(not candidate):
