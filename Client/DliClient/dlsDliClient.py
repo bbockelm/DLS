@@ -1,5 +1,5 @@
 #
-# $Id$
+# $Id: dlsDliClient.py,v 1.1 2006/03/29 13:35:58 delgadop Exp $
 #
 # Dls Client v 0.1
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -30,7 +30,9 @@
 # Imports 
 #########################################
 import dlsApi
+from dlsDataObjects import *
 import dliClient
+from os import environ
 
 #########################################
 # Module globals
@@ -38,7 +40,7 @@ import dliClient
 
 
 #########################################
-# DlsLfcApiError class
+# DlsDliClientError class
 #########################################
 
 class DlsDliClientError(dlsApi.DlsApiError):
@@ -59,20 +61,20 @@ class SetupError(DlsDliClientError):
 
 
 #########################################
-# DlsApì class
+# DlsDliClient class
 #########################################
 
-class DlsLfcApi(dlsApi.DlsApi):
+class DlsDliClient(dlsApi.DlsApi):
   """
-  This class is an implementation of the DLS client interface, defined by
-  the dlsApi.DlsApi class. This implementation relies on a DLI being
+  This class is an implementation of the a subset of the DLS client interface,
+  defined by the dlsApi.DlsApi class. This implementation relies on a DLI being
   supported by the DLS back-end.
   """
 
   def __init__(self, dli_endpoint = None, verbosity = dlsApi.DLS_VERB_WARN):
     """
     Constructor of the class. It sets the DLI endpoint to communicate with
-    and the verbosity level.
+    and the verbosity level, and creates the binding with the DLI interface.
     
     It tries to retrieve that value from several sources (in this order):
     
@@ -95,13 +97,14 @@ class DlsLfcApi(dlsApi.DlsApi):
       SetupError: if no DLI can be found.
     """
 
+    # Let the parent set the server (if possible) and verbosity
     dlsApi.DlsApi.__init__(self, dli_endpoint, verbosity)
-    
-    if(not self.server):
-      # Do whatever... 
-
-    if(not self.server):
-       raise SetupError("Could not set the DLI endpoint to use")
+   
+    # Create the binding (that tries also DLI_ENDPOINT if server not yet set)
+    try:    
+      self.iface = dliClient.DliClient(self.server)
+    except dliClient.SetupError, inst:
+      raise SetupError("Error creating the binding with the DLI interface: "+str(inst))
 
   ############################################
   # Methods defining the main public interface
@@ -116,9 +119,40 @@ class DlsLfcApi(dlsApi.DlsApi):
 
     The longlist (**kwd) flag is ignored. No attributes can be retrieved
     from the DLI.
+
+    If an error occurs in the interaction with the DLI interface, an
+    exception is raised. If the error is a SOAP fault, the code field 
+    stores the SOAP "faultcode" element.
+
+    EXCEPTIONS:
+      DlsDliClientError: On errors in the interaction with the DLI interface
     """
 
-    # Implement here...
-    pass
+    result = []
     
+    # Make sure the argument is a list
+    if (isinstance(fileBlockList, list)):
+       theList = fileBlockList
+    else:
+       theList = [fileBlockList]
+    
+    # Query the DLI
+    try:    
+      for fB in theList:
+        locList = []
+        for host in self.iface.listLocations(fB.name, fileType = "lfn"):
+           locList.append(DlsLocation(host))
+        entry = DlsEntry(fB, locList)        
+        result.append(entry)
+
+     # Return
+      return result
+
+    except dliClient.DliClientError, inst:
+      msg = "Error in DLI operation!: " + inst.msg + ". "
+      for i in [inst.actor, inst.faultcode, inst.detail, inst.faultstring]:
+         if(i):  msg += str(i) + ". "
+      e = DlsDliClientError(msg)
+      if(inst.faultcode):  e.code = inst.faultcode
+      raise e
 
