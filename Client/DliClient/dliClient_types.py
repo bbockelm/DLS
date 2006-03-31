@@ -1,36 +1,60 @@
 #
-# $Id$
+# $Id: dliClient_types.py,v 1.1 2006/03/27 11:22:19 delgadop Exp $
 #
 # DliClient v 0.1
 # Antonio Delgado Peris. CIEMAT. CMS.
 #
 
 """
- Classes Required to access the Data Location Interface (DLI) web service.
+ This module contains the classes Required to access the Data Location Interface
+ (DLI) web service that are used by the main API for user applications: the 
+ dliClient.DliClient class.
 
- It uses the Zolera SOAP Infrastructure (ZSI) (http://pywebsvcs.sourceforge.net/) 
- The following code is a simplification of the generated one by ZSI (based on
- the WSDL of the DLI)
+ The classes in this module use the Zolera SOAP Infrastructure (ZSI)
+ (http://pywebsvcs.sourceforge.net/). The following code is a simplification of
+ the generated one by ZSI (based on the WSDL of the DLI)
 """
 
+#########################################
+# Imports 
+#########################################
 import ZSI
 from ZSI import client
 from ZSI.TCcompound import Struct
 import urlparse, types
+from dliClient import TypeError
 
+
+#########################################
+# Module globals
+#########################################
 NAMESPACE = "urn:DataLocationInterface" 
 METHOD_NAME = "listReplicas"
 
 
-class ArrayOfstring(ZSI.TCcompound.Array):
-  def __init__(self, name = None, ns = None, **kw):
-     ZSI.TCcompound.Array.__init__(self, 'arrayTypeNS:string[]',\
-                                   ZSI.TC.String(), pname = name, **kw)
+  
+#########################################
+# DliSOAP class
+#########################################
 
 class DliSOAP:
+    """
+    Main class for the binding with the remote DLI web service.
+    It contains the method for querying the DLI.
+    """
 
     def __init__(self, addr, **kw):
+        """
+        Constructor of the class. It receives the DLI web service endpoint
+        as a required argument.
+
+        PARAMS:
+          addr: the DLI endpoint, as a string with format "[http://]hostname[:port]"
+        """
+        
         # Parse the service endpoint (extract host, port, url, for the Binding)
+        if(addr.find("://") == -1):
+          addr = "http://" + addr
         netloc = (urlparse.urlparse(addr)[1]).split(":") + [80,]
         if not kw.has_key("host"):
             kw["host"] = netloc[0]
@@ -45,15 +69,13 @@ class DliSOAP:
 
     def listReplicas(self, request):
         """
-        Queries the DLI for the list of SURLs for the LFN/GUID/Dataset specified in the request.
+        Queries the DLI for the list of SURLs for the LFN/GUID/Dataset specified
+        in the request. The request can be built with the
+        dliClient_types.new_listReplicasRequest method.
         
-        @param: request to listReplicasRequest::
-          inputData: str
-          inputDataType: str
+        PARAMS: a listReplicaRequest object containing the input data and its type
 
-        @return: response from listReplicasResponse::
-          _urlList: ArrayOfstring
-            _element: str
+        RETURN: a listReplicasResponseWrapper object, containing the list of SURLs 
         """
 
         # Check correct type is passed
@@ -76,14 +98,35 @@ class DliSOAP:
 
 
 
+#######################################################
+# Dli Client Data Objects (request, response) classes
+#######################################################
+
+class ArrayOfstring(ZSI.TCcompound.Array):
+  """
+  Helper class that wrappes the list of strings for use by the
+  listReplicaResponse method
+  """
+  def __init__(self, name = None, ns = None, **kw):
+     ZSI.TCcompound.Array.__init__(self, 'arrayTypeNS:string[]',\
+                                   ZSI.TC.String(), pname = name, **kw)
+
+
 class listReplicasRequest (ZSI.TCcompound.Struct): 
    """
-   Packer of the request information for the DLI service.
+   Packer of the request information for the listReplica method of the DLI service.
    Members inputDataType and inputData must be set to "lfn"/"guid"/"dataset"
    the first, and the filename whose replicas are to be retrieved, the second.
    """
 
    def __init__(self, name=METHOD_NAME, ns=NAMESPACE):
+        """
+        Constructor of the class.
+
+        PARAMS:
+          name: DLI method this class will be used with (should be the default)
+          ns: namespace where this DLI method is defined (should be the default)
+        """
    
         # Required method arguments
         self.inputDataType = None
@@ -97,17 +140,23 @@ class listReplicasRequest (ZSI.TCcompound.Struct):
                 oname += ' xmlns="%s"' % ns
 
             ZSI.TC.Struct.__init__(self, listReplicasRequest,\
-                                   [\
-                                   ZSI.TC.String(pname="inputDataType",aname="inputDataType",optional=1),\
-                                   ZSI.TC.String(pname="inputData",aname="inputData",optional=1),\
-                                   ],\
-                                   pname=name, aname="%s" % name, oname=oname )
+                   [\
+                    ZSI.TC.String(pname="inputDataType",aname="inputDataType",optional=1),\
+                    ZSI.TC.String(pname="inputData",aname="inputData",optional=1),\
+                   ],\
+                    pname=name, aname="%s" % name, oname=oname )
 
 
 
 def new_listReplicasRequest(file, fileType = "lfn"):
    """
    Helper function to create the request, setting the typecode at the same time.
+
+   PARAMS:
+     file: the LFN/GUID/DataSet Id of the file/dataset to query upon
+     fileType: the type of file identifier being used ("lfn"/"guid"/"dataset")
+
+   RETURN: a listReplicaRequest object, ready to pass to the listReplicas method
    """
 
    listReplicasRequest.typecode = listReplicasRequest()
@@ -119,7 +168,20 @@ def new_listReplicasRequest(file, fileType = "lfn"):
 
 
 class listReplicasResponse (ZSI.TCcompound.Struct): 
-    def __init__(self, name="listReplicasResponse", ns=NAMESPACE):
+   """
+   Packer of the response information from the listReplica method of the
+   DLI service. It contains the replicas' SURLs as a list of strings (one
+   string per SURL) in the publicly accessible "urlList" field. 
+   """
+   def __init__(self, name="listReplicasResponse", ns=NAMESPACE):
+        """
+        Constructor of the class.
+
+        PARAMS:
+          name: type of response object as defined in the WSDL (should be the default)
+          ns: namespace where the "name" is defined (should be the default)
+        """
+
         self.urlList = ArrayOfstring()
 
         oname = None
@@ -136,9 +198,15 @@ class listReplicasResponse (ZSI.TCcompound.Struct):
 class listReplicasResponseWrapper(listReplicasResponse):
     """
     Wrapper class around listReplicasResponse to have the typecode included
-    (cannot be done inside the own class definition
+    (cannot be done inside the own class definition).
     """
 
     typecode = listReplicasResponse()
+    
     def __init__( self, name=None, ns=None, **kw ):
+        """
+        Constructor of the class. It does nothing else that invoke its
+        parent's contructor with default values.
+        """
+
         listReplicasResponse.__init__(self)
