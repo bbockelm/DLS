@@ -1,9 +1,9 @@
 #
-# $Id: dlsMySQLApi.py,v 1.1 2006/03/29 13:34:54 delgadop Exp $
+# $Id: dlsMySQLApi.py,v 1.1 2006/03/30 23:16:55 afanfani Exp $
 #
 # Dls Client v 0.1
 # Antonio Delgado Peris. CIEMAT. CMS.
-#
+# client for MySQL prototype : A. Fanfani  
 
 """
  This module implements a CMS Dataset Location Service (DLS) client
@@ -150,7 +150,7 @@ class DlsMySQLApi(dlsApi.DlsApi):
 #  def delete(self, dlsFileBlockList, **kwd):
 #
 
-  def deleteLocations(self, dlsEntryList, **kwd):
+  def delete(self, dlsEntryList, **kwd):
     """
     Implementation of the dlsApi.DlsApi.delete method.
     Refer to that method's documentation.
@@ -363,6 +363,6 @@ if __name__ == "__main__":
 ## delete a DLS entry
    loc=DlsLocation("testSE")
    entry=DlsEntry(fileblock,[loc])
-   api.deleteLocations([entry])
+   api.delete([entry])
 
 
