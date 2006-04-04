@@ -1,5 +1,5 @@
 #
-# $Id: dlsMySQLApi.py,v 1.1 2006/03/30 23:16:55 afanfani Exp $
+# $Id: dlsMySQLApi.py,v 1.2 2006/04/03 00:09:53 afanfani Exp $
 #
 # Dls Client v 0.1
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -88,13 +88,11 @@ class DlsMySQLApi(dlsApi.DlsApi):
  
     The verbosity level affects invocations of all methods in this object. See
     the dlsApi.DlsApi.setVerbosity method for information on accepted values.
-
-    PARAM:
-      dls_endpoint: the DLS server to be used, as a string of form "hostname[:port]"
-      verbosity: value for the verbosity level
       
-    EXCEPTIONS:
-      SetupError: if no DLS server can be found.
+    @exception SetupError: if no DLS server can be found.
+
+    @param dls_endpoint: the DLS server to be used, as a string of form "hostname[:port]"
+    @param verbosity: value for the verbosity level
     """
 
     dlsApi.DlsApi.__init__(self, dls_endpoint, verbosity)    
@@ -117,8 +115,7 @@ class DlsMySQLApi(dlsApi.DlsApi):
 
     Implementation specific remarks:
 
-     no attribute are supported in the MySQL prototype
-
+    No attribute are supported in the MySQL prototype
     """
     for entry in dlsEntryList:
       fb=entry.fileBlock.name
@@ -191,8 +188,8 @@ class DlsMySQLApi(dlsApi.DlsApi):
     Refer to that method's documentation.
 
     Implementation specific remarks:
-     no attribute are supported in the MySQL prototype
-   
+    
+    No attribute are supported in the MySQL prototype
     """
 
     for fb in fileBlockList:
@@ -210,16 +207,16 @@ class DlsMySQLApi(dlsApi.DlsApi):
     return
     
 
-  def getFileBlocks(self, locationsList):
+  def getFileBlocks(self, locationList):
     """
     Implementation of the dlsApi.DlsApi.getFileBlocks method.
     Refer to that method's documentation.
 
     Implementation specific remarks:
-     no attribute are supported in the MySQL prototype
-
+    
+    No attribute are supported in the MySQL prototype
     """ 
-    for se in locationsList: 
+    for se in locationList: 
             self.dls_connect()
             msg='show_replica_by_se#%s'%(se)
             self.dls_send(msg)
