@@ -1,4 +1,4 @@
-%  $Id: dm-dls-tech-design.tex,v 1.2 2006/02/27 23:03:01 afanfani Exp $
+%  $Id: dm-dls-tech-design.tex,v 1.3 2006/03/05 21:03:52 afanfani Exp $
 
 \documentclass[pdftex]{cmspaper}
 \usepackage[bookmarksnumbered,bookmarksopen,bookmarksopenlevel=1,colorlinks,link
@@ -336,12 +336,12 @@ server plus a set of client libraries tools at each site hosting data.
 All the operations about replica management are left to production
 and data transfer system.
 
-The index ({\em block-replica}) will be a structure containing 
+The index ({\em block-replica} or {\em DLS entry} ) will be a structure containing 
 information like: 
 \begin{itemize}
 \item block identifier, blockID  (string)
 \item location, SE (string)
-\item creation timestamp  (high precision time)  {\bf FIXME: how is the creation timestamp supposed to be used?}
+%FIXME \item creation timestamp  (high precision time)  {\bf FIXME: how is the creation timestamp supposed to be used?}
 \item last update timestamp (high precision time)
 \item few state attributes, e.g. ``custodial'', ``accessibility'' (in general strings)
 %\item last query timestamp. The last query timestamp could implement a caching algorithm: if a file-block is not custodial and it is not queried since longtime it could be deleted. {\bf FIMXE: do we want that or not?}
@@ -352,7 +352,8 @@ For example a data structure like:
 \mbox{block-replica} = \{
      \mbox{blockID: fileblock1 } ,
      \mbox{location: cmsbose.bo.infn.it} ,
-     \mbox{creation time:   Thu Oct 6 09:00:00} ,
+%     \mbox{attribute : atributevalue },
+%     \mbox{creation time:   Thu Oct 6 09:00:00} ,
      \mbox{lastupdate time: Thu Oct 6 09:00:00} ,
      \mbox{custodial:       yes} ,
      \mbox{accessibility:   disk}
@@ -395,7 +396,9 @@ The client libraries will implement a simple API like:
 
 \item Get location (SEs) hosting a file-block:  
 
-      array$[$location$]$ = get-location(array$[$blockID$]$)
+%      array$[$location$]$ = get-location(array$[$blockID$]$)
+%       get-location(array$[$blockID$]$)
+       array$[${\em block-replica}$]$ = get-location(array$[$blockID$]$)
 
 %      return array$[$blockID$]$ or array$[${\em block-replica}$]$ ??
       This allows the Workload Management system to perform data location
@@ -403,8 +406,8 @@ The client libraries will implement a simple API like:
 
 \item Get file-blocks on a given location (SE):
 
-      array$[$blockID$]$ = get-block(array$[$location$]$)
-
+%      array$[$blockID$]$ = get-block(array$[$location$]$)
+       array$[${\em block-replica}$]$ = get-block(array$[$location$]$)
 %      return array$[$blockID$]$ or array$[${\em block-replica}$]$ ??
 
 \item {\bf FIXME: Add query on attribute:}  array$[${\em block-replica}$]$ = query(array$[$key attribute$]$)
@@ -477,7 +480,9 @@ $\mbox{ dls-get-datablock --se $<$SEname$>$ --host $<$serverhost$>$}$
 
    The protoptype is a placeholder for evaluation of Grid catalogues,
    such as the Local File Catalog (LFC),.... 
- 
+
+   The DLS CLI and python API is under specification \cite{DLSAPI}.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \begin{thebibliography}{9}
@@ -490,6 +495,8 @@ $\mbox{ dls-get-datablock --se $<$SEname$>$ --host $<$serverhost$>$}$
 
   \bibitem{CRAB} {\bf CRAB - CMS Remote Analysis Builder}, project homepage
                http://cmsoc.cern.ch/cms/ccs/wm/www/Crab
+  \bibitem{DLSAPI} {\bf DLS client API documentation} , project homepage 
+                   https://uimon.cern.ch/twiki/bin/view/CMS/DLS
 
   \bibitem {NOTE000} {\bf CMS Note 2005/000},
     X.Somebody et al.,
