@@ -1,28 +1,58 @@
 #
-# $Id$
+# $Id: README,v 1.1 2006/03/27 11:22:19 delgadop Exp $
 #
-# DliClient v 0.1
+# DliClient. $Name$.
 # Antonio Delgado Peris. CIEMAT. CMS.
 #
 
+Introduction
+------------
 This DliClient is based on the ZSI library to access web services from python.
 In this repository we include a (working) tarball with ZSI code, but ZSI is a
 different project, whose code (and more information, etc.) can be obtained from:
 http://pywebsvcs.sourceforge.net/.
 
-Other files here contained:
+Contents
+--------
+Files in this CVS module (apart from ZSI.tar.gz):
 
   dliClient_types.py:  some classes required to be able to talk to the DLI web server
   dliClient.py:  DliClient class, main API to be used
   dli-list:   tool that uses dli_client.py to query the DLI interface
 
+Setup
+-----
 If you just copy everything to the same dir, untar the ZSI.tar.gz, and execute:
    ./dli-list <lfn>
-You should get the locations.
+You should get the associated SEs.
 
 If you are not in the same dir where ZSI resides (or the dli_* files), then you need
 to setup PYTHONPATH. For the rest, only PyXML is required; no globus, no certificates,
 no LCG/LFC libraries... are needed.
 
-Right now (and to be improved), the default DLI endpoint (http://lfc-cms.cern.ch:8085),
-but that can be overriden when using the API.
+You also need to set the DLI endpoint to use, either as a command line option
+or a environmental variable, or as an argument to an API function. Please read
+the documentation.
+
+
+On documentation
+----------------
+All python modules and scripts (CLI tools) here contained are
+self-documented. This documentation can be accessed in the following ways:
+
+  - Online help for python modules, in the python interpreter:
+    >>> import my_module
+    >>> help(my_module)
+    
+  - Online help for scripts (CLI tools):
+    $> my_command -h
+
+  - HTML documentation for python modules:
+    It can by created with the "epydoc" package (from http://epydoc.sourceforge.net).
+    Copy the interesting modules in a directory, and run:
+       epydoc --html <modules_dir>/*
+    A folder called "html" will be created with the necessary files. The one called
+    "index.html" can be loaded in a browser and has links to the rest.
+
+  - Read the docstrings directly from the source files.
+
