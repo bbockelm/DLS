@@ -1,0 +1,12 @@
+#!/usr/bin/python
+
+# lfc-del-lfn
+# 11/05
+# Author: Antonio Delgado Peris. CERN, LCG.
+
+import lfc_del_lfn
+import sys
+
+if __name__ == "__main__":
+  sys.exit(lfc_del_lfn.main(sys.argv[1:]))
+
