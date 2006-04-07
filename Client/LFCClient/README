@@ -1,0 +1,83 @@
+#
+# $Id$
+#
+# DLS Client. $Name$.
+# Antonio Delgado Peris. CIEMAT. CMS.
+#
+
+Introduction
+------------
+This DLS Client is a set of python modules (API) and CLI tools that can be
+used to access a DLS server.
+
+The Data Location Service (DLS) is part of the CMS Data Management system and
+provides means to locate replicas of data in the distributed computing system,
+as described in: https://twiki.cern.ch/twiki/bin/view/CMS/DLS.
+
+The DLS API and CLI allow the user to add, update, delete, query entries in
+the DLS catalog.
+
+
+
+Contents
+--------
+
+ dlsApi.py: contains the DlsApi class, which defines the DLS Client API,
+ that other classes implement.
+
+ dlsDataObjects.py: contains essential data containers for all dlsApi.py
+ operations.
+
+ dlsClient.py: contains the DlsClient class, which defines a generic
+ interface to retrieve one of the DlsApi implementations (see next group
+ of files), depending on the DLS type defined by the user or the environment.
+ 
+ dlsLfcApi.py, dlsMySQLApi.py, dlsDliClient.py: contain the DlsLfcApi,
+ DlsMySQLApi and DlsDliClient classes, which implement the DlsApi methods,
+ for different back-end DLS implementations to be accessed: LFC-based,
+ MySQL-based and DLI-based.
+
+ dls-*: implement the CLI that uses one the API implementations
+ (retrieved using DlsClient). In principle, the CLI should work with either
+ API implementation, for the functionalities that each API implements.
+
+
+
+Setup
+-----
+You probably need to adjust your PYTHONPATH env variable to the modules
+mentioned before and to any other required by them (only for the implementation
+that is going to be used). Please refer to the documentation of the different
+API implementations for information on dependencies of each of them.
+
+For the LFC-based implementation, standard grid security installation and
+a valid grid proxy are required.
+
+You also need to set the DLS endpoint to use, either as a command line option
+or a environmental variable, or as an argument to an API function. Please read
+the documentation.
+
+
+On documentation
+----------------
+All python modules and scripts (CLI tools) here contained are
+self-documented. This documentation can be accessed in the following ways:
+
+  - Online help for python modules, in the python interpreter:
+    >>> import my_module
+    >>> help(my_module)
+    
+  - Online help for scripts (CLI tools):
+    $> my_command -h
+
+  - HTML documentation for python modules:
+    It can by created with the "epydoc" package (from http://epydoc.sourceforge.net).
+    Copy the interesting modules in a directory, and run:
+       epydoc --html <modules_dir>/*
+    A folder called "html" will be created with the necessary files. The one called
+    "index.html" can be loaded in a browser and has links to the rest.
+
+  - Read the docstrings directly from the source files.
+
+  - The CLI tools use the API, so please check the scripts source code for some
+    examples on API usage.
