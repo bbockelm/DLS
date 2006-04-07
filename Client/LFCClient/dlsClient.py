@@ -1,7 +1,7 @@
 #
-# $Id: dlsClient.py,v 1.2 2006/03/30 23:16:55 afanfani Exp $
+# $Id: dlsClient.py,v 1.3 2006/03/31 10:06:31 delgadop Exp $
 #
-# Dls Client v 0.1
+# DLS Client. $Name$.
 # Antonio Delgado Peris. CIEMAT. CMS.
 #
 
@@ -25,6 +25,7 @@
 # Imports 
 #########################################
 import dlsApi
+from os import environ
 
 
 #########################################
@@ -59,23 +60,21 @@ def getDlsApi(dls_type = None, dls_host = None, verbosity = dlsApi.DLS_VERB_WARN
   should be one of the supported values (defined in this module).
   
   Currently admitted values are:    
-    DLS_TYPE_LFC  =>  DlsLfcApi class (complete API with LFC back-end)
-    DLS_TYPE_DLI  =>  DlsDliClient class (getLocations only API with LFC back-end)
-    DLS_TYPE_MYSQL =>  DlsMySQLApi  class (complete API with MySQL proto back-end)
+   - DLS_TYPE_LFC  =>  DlsLfcApi class (complete API with LFC back-end)
+   - DLS_TYPE_DLI  =>  DlsDliClient class (getLocations only API with LFC back-end)
+   - DLS_TYPE_MYSQL =>  DlsMySQLApi  class (complete API with MySQL proto back-end)
 
   The other arguments (dls_host and verbosity) are passed to the constructor 
   of the DLS API as they are. See the dlsApi.DlsApi documentation for details.
+      
+  @exception dlsApi.ValueError: if the specified value is not one of the admitted ones
+  @exception SetupError (from the implementation class): on errors instantiating the interface
 
-  PARAMS: 
-    dls_type: the type of API that should be retrieved, see supported values
-    dls_host: the DLS server to be used, as a string with the form "hostname:port"
-    verbosity: value for the verbosity level, from the supported values
+  @param dls_type: the type of API that should be retrieved, see supported values
+  @param dls_host: the DLS server to be used, as a string with the form "hostname:port"
+  @param verbosity: value for the verbosity level, from the supported values
       
-  RETURN: a DLS API implementation object
-      
-  EXCEPTION:
-    dlsApi.ValueError: if the specified value is not one of the admitted ones
-    SetupError (from the implementation class): on errors instantiating the interface
+  @return: a DLS API implementation object
   """
 
   admitted_vals = [DLS_TYPE_LFC, DLS_TYPE_DLI, DLS_TYPE_MYSQL]
