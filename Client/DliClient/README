@@ -1,7 +1,7 @@
 #
-# $Id: README,v 1.1 2006/03/27 11:22:19 delgadop Exp $
+# $Id: README,v 1.2 2006/04/07 09:48:36 delgadop Exp $
 #
-# DliClient. $Name$.
+# DliClient. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
 #
 
@@ -55,4 +55,7 @@ self-documented. This documentation can be accessed in the following ways:
     "index.html" can be loaded in a browser and has links to the rest.
 
   - Read the docstrings directly from the source files.
+
+  - The CLI tools use the API, so please check the scripts source code for some
+    examples on API usage.
 
