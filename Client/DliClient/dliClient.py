@@ -1,7 +1,7 @@
 #
-# $Id: dliClient.py,v 1.1 2006/03/27 11:22:19 delgadop Exp $
+# $Id: dliClient.py,v 1.2 2006/03/31 09:30:45 delgadop Exp $
 #
-# DliClient v 0.1
+# DliClient. $Name$.
 # Antonio Delgado Peris. CIEMAT. CMS.
 #
 
@@ -9,6 +9,10 @@
  This module contains the Data Location Interface (DLI) client class.
  Using this class, an application may invoke the listReplica method of 
  a DLI web service.
+
+ This module requires the dliClient_types module, which is based on 
+ the Zolera SOAP Infrastructure (ZSI) (http://pywebsvcs.sourceforge.net/).
+ The ZSI infrastructure requires PyXML.
 """
 
 # NOTE: The exceptions must be defined before the import of dliClient_types
@@ -30,7 +34,7 @@ class DliClientError(Exception):
     self.msg = message
 
   def __str__(self):
-    return repr(self.msg)
+    return str(self.msg)
 
 
 class SoapError(DliClientError):
@@ -119,13 +123,11 @@ class DliClient:
  
     The verbosity level affects invocations of all methods in this object. See
     the setVerbosity method for information on accepted values.
-
-    PARAM:
-      dli_endpoint: the DLI endpoint to be used, as a string of form "hostname[:port]"
-      verbosity: value for the verbosity level
       
-    EXCEPTIONS:
-      SetupError: if no DLI endpoint can be found.
+    @exception SetupError: if no DLI endpoint can be found.
+
+    @param dli_endpoint: the DLI endpoint to be used, as a string of form "hostname[:port]"
+    @param verbosity: value for the verbosity level
     """
   
     self.endpoint = dli_endpoint
@@ -145,16 +147,14 @@ class DliClient:
 
     The queried DLI may support all or only some of the following file
     types: "lfn", "guid", "dataset"
-    
-    PARAMS: 
-      file: the LFN/GUID/DataSet Id of the file/dataset to query upon
-      fileType: the type of file identifier being used ("lfn"/"guid"/"dataset")
-      
-    RETURN: The list of SURLs, as a list of strings
 
-    EXCEPTIONS:
-       ZsiLibError: On error with ZSI library manipulation (other than SOAP)
-       SoapError: On reception of a SOAP fault in the interaction with the DLI 
+    @exception ZsiLibError: On error with ZSI library manipulation (other than SOAP)
+    @exception SoapError: On reception of a SOAP fault in the interaction with the DLI 
+    
+    @param file: the LFN/GUID/DataSet Id of the file/dataset to query upon
+    @param fileType: the type of file identifier being used ("lfn"/"guid"/"dataset")
+      
+    @return: The list of SURLs, as a list of strings
     """
 
 
@@ -169,16 +169,21 @@ class DliClient:
     request = dliClient_types.new_listReplicasRequest(file, fileType)
 
     try:
-       # Query (do not catch exceptions (the caller may be interested))
+       # Query
        response  = iface.listReplicas(request)
+       result = response.urlList
     except ZSIFaultException, inst:
-       f = inst.fault
-       msg = "Error when accessing the DLI: " + f.string
-       e = SoapError(msg, f.actor, f.code, f.detail)
-       raise e
+       # This hack is due to extrange behaviour of DLI when an LFN has no replica
+       if(inst.fault.string == "Out of memory"):
+          result = []
+       else:
+          f = inst.fault
+          msg = "Error when accessing the DLI for %s of type %s. %s, %s" % (file, fileType, f.code, f.string)
+          e = SoapError(msg, f.actor, f.code, f.detail, f.string)
+          raise e
 
     # Return
-    return response.urlList
+    return result
 
 
     
@@ -187,12 +192,13 @@ class DliClient:
     Returns the list of replica locations (SE hostnames).
     In order to do this, the listSurls method is used, and the hostnames
     extracted from the retrieved SURLs.
+
+    @exception XXXX: Those got from the listSurls method
     
-    PARAMS: Same of those of the listSurls method
+    @param file: the LFN/GUID/DataSet Id of the file/dataset to query upon
+    @param fileType: the type of file identifier being used ("lfn"/"guid"/"dataset")
 
-    RETURN: The list of locations (hostnames), as a list of strings
-
-    EXCEPTION: Same of those of the listSurls method
+    @return: The list of locations (hostnames), as a list of strings
     """
 
     # Get the surls (what DLI really returns)
@@ -214,15 +220,13 @@ class DliClient:
     Sets the verbosity level for all subsequent DliClient methods.
     
     Currently admitted values are:    
-      DLI_VERB_NONE => print nothing
-      DLI_VERB_WARN => print only warnings (to stdout)
-      DLI_VERB_HIGH => print warnings (stdout) and error messages (stderr)
+     - DLI_VERB_NONE => print nothing
+     - DLI_VERB_WARN => print only warnings (to stdout)
+     - DLI_VERB_HIGH => print warnings (stdout) and error messages (stderr)
 
-    PARAMS: 
-      value: the new value for the verbosity level 
+    @exception ValueError: if the specified value is not one of the admitted ones
 
-    EXCEPTION:
-      ValueError: if the specified value is not one of the admitted ones
+    @param value: the new value for the verbosity level 
     """
     admitted_vals = [DLI_VERB_NONE, DLI_VERB_WARN, DLI_VERB_HIGH]
     if(value not in admitted_vals):
