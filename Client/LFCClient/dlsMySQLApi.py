@@ -1,5 +1,5 @@
 #
-# $Id: dlsMySQLApi.py,v 1.2 2006/04/03 00:09:53 afanfani Exp $
+# $Id: dlsMySQLApi.py,v 1.3 2006/04/04 15:50:04 delgadop Exp $
 #
 # Dls Client v 0.1
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -207,7 +207,7 @@ class DlsMySQLApi(dlsApi.DlsApi):
     return
     
 
-  def getFileBlocks(self, locationList):
+  def getFileBlocks(self, locationList, **kwd):
     """
     Implementation of the dlsApi.DlsApi.getFileBlocks method.
     Refer to that method's documentation.
