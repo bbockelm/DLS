@@ -1,7 +1,7 @@
 #
-# $Id: dlsMySQLApi.py,v 1.3 2006/04/04 15:50:04 delgadop Exp $
+# $Id: dlsMySQLApi.py,v 1.4 2006/04/07 09:02:10 delgadop Exp $
 #
-# Dls Client v 0.1
+# Dls Client. $Name$. 
 # Antonio Delgado Peris. CIEMAT. CMS.
 # client for MySQL prototype : A. Fanfani  
 
