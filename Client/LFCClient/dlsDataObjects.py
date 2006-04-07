@@ -1,7 +1,7 @@
 #
-# $Id: dlsDataObjects.py,v 1.1 2006/03/29 13:34:11 delgadop Exp $
+# $Id: dlsDataObjects.py,v 1.2 2006/03/31 10:06:31 delgadop Exp $
 #
-# Dls Client v 0.1
+# DLS Client. $Name$.
 # Antonio Delgado Peris. CIEMAT. CMS.
 #
 
@@ -60,8 +60,9 @@ class DlsFileBlock(object):
 
   The FileBlock name is accessible on the data member "name". It is a string
   that can be read and set. The form of the string should be that imposed by
-  the DLS namespace. It does not make much sense that this member is set
-  as None.
+  the DLS namespace. In some DLS implementatios, this namespace may be
+  hierarchical (e.g. like a UNIX file system), while in others is flat.
+  It does not make much sense that this member is leave empty.
 
   The attribute list is accessible on the data member "attribs". It is a
   dictionary that can be read and set. Any attribute key and value can be set
@@ -86,19 +87,19 @@ class DlsFileBlock(object):
   # Methods defining the public interface
   ############################################
   
-  def __init__(self, name, attributes = None, guid = None):
+  def __init__(self, name, attributes = None, guid = ""):
     """
     Constructor of the class.
 
-    PARAMS:
-      name: the FileBlock name, as a string. Required.
-      attributes: the FileBlock attribute list, as a dictionary. May be set.
-      guid: the FileBlock GUID, as a string. Normally should not be set.
+    @param name: the FileBlock name, as a string. Required.
+    @param attributes: the FileBlock attribute list, as a dictionary. May be set.
+    @param guid: the FileBlock GUID, as a string. Normally should not be set.
     """
 
     self.name = name
-    self.attribs = attributes
+    self._setAttr(attributes)
     self.setGuid(guid)
+
 
 
   def setGuid(self, guid):
@@ -117,8 +118,7 @@ class DlsFileBlock(object):
     Universally Unique IDentifier (UUID). Do not include any prefix, such as
     "guid://".
 
-    PARAM:
-      guid: the GUID for the FileBlock, as a string
+    @param guid: the GUID for the FileBlock, as a string
     """
     
     self._guid = guid
@@ -139,7 +139,7 @@ class DlsFileBlock(object):
     The returned GUID is a string in the format defined for the Universally
     Unique IDentifier (UUID). It does not include any prefix, such as "guid://".
     
-    RETURN: the GUID of this FileBlock, as a string (or None, if not set)
+    @return: the GUID of this FileBlock, as a string (or "", if not set)
     """
     return self._guid
 
@@ -148,8 +148,26 @@ class DlsFileBlock(object):
     """
     Returns a (simplified) string representation of the object
     """
-    return self.name
- 
+    return self.name + str(self.attribs)
+    
+  ###################################################################
+  # Private: setters and getters (properties) for the shared {} issue
+  ###################################################################
+  def _getAttr(self): return self._attr
+    
+  def _setAttr(self, value):
+    if(value == None): self._attr = {}
+    else:
+       if(isinstance(value, dict)):  self._attr = value 
+       else:   raise TypeError("attribs data member should be a dictionary")
+    
+  def _delAttr(self): del self._attr
+
+  docstr = "Attributes of the FileBlock (python dictionary)"
+  attribs = property(_getAttr, _setAttr, _delAttr, docstr)
+
+
+
 
 
 #########################################
@@ -166,7 +184,7 @@ class DlsLocation(object):
   The name of the SE holding the copy is accessible on the data member "host".
   It is a string that can be read and set. The form of the string should be that
   of a hostname, something like "myhost.mydomain.es".
-  It does not make much sense that this member is set as None.
+  It does not make much sense that this member is left empty.
 
   The attribute list is accessible on the data member "attribs". It is a
   dictionary that can be read and set. Any attribute key and value can be set
@@ -193,14 +211,13 @@ class DlsLocation(object):
   # Methods defining the public interface
   ############################################
   
-  def __init__(self, host, attributes = None, surl = None):
+  def __init__(self, host, attributes = None, surl = ""):
     """
     Constructor of the class.
 
-    PARAMS:
-      host: the location holding a copy of a FileBlock, as a string. Required.
-      attributes: the location copy attribute list, as a dictionary. May be set.
-      surl: the copy SURL, as a string. Normally should not be set.
+    @param host: the location holding a copy of a FileBlock, as a string. Required.
+    @param attributes: the location copy attribute list, as a dictionary. May be set.
+    @param surl: the copy SURL, as a string. Normally should not be set.
     """
 
     self.host = host
@@ -224,8 +241,7 @@ class DlsLocation(object):
     is sometimes SE dependent). It is usually something like:
     "srm://SE_host/some_string".
     
-    PARAM:
-      surl: the SURL for the copy, as a string
+    @param surl: the SURL for the copy, as a string
     """
     
     self._surl = surl
@@ -245,7 +261,7 @@ class DlsLocation(object):
     The returned SURL is a string with a particular format (which is sometimes
     SE dependent). It is usually something like: "srm://SE_host/some_string".
     
-    RETURN: the SURL of this FileBlock, as a string (or None, if not set)
+    @return: the SURL of this FileBlock, as a string (or "", if not set)
     """
     return self._surl
 
@@ -254,8 +270,24 @@ class DlsLocation(object):
     """
     Returns a (simplified) string representation of the object
     """
-    return self.host
- 
+    return self.host + str(self.attribs)
+    
+  ###################################################################
+  # Private: setters and getters (properties) for the shared {} issue
+  ###################################################################
+  def _getAttr(self): return self._attr
+    
+  def _setAttr(self, value):
+    if(value == None): self._attr = {}
+    else:
+       if(isinstance(value, dict)):  self._attr = value 
+       else:   raise TypeError("attribs data member should be a dictionary")
+    
+  def _delAttr(self): del self._attr
+
+  docstr = "Attributes of the location (python dictionary)"
+  attribs = property(_getAttr, _setAttr, _delAttr, docstr)
+
 
 
 #########################################
@@ -289,31 +321,48 @@ class DlsEntry(object):
   # Methods defining the public interface
   ############################################
   
-  def __init__(self, dlsFileBlock, dlsLocationList = []):
+  def __init__(self, dlsFileBlock, dlsLocationList = None):
     """
     Constructor of the class.
-
-    PARAMS:
-      dlsFileBlock: the FileBlock, as a DlsFileBlock object. Required.
-      dlsLocationList: the locations of the copys, as a list of DlsLocation objects.
       
-    EXCEPTION:
-      TypeError: if the arguments are not of the required type
+    @exception TypeError: if the arguments are not of the required type
+
+    @param dlsFileBlock: the FileBlock, as a DlsFileBlock object. Required.
+    @param dlsLocationList: the locations of the copys, as a list of DlsLocation objects.
     """
     self._setFB(dlsFileBlock)
     self._setLoc(dlsLocationList)
 
-    
+
+  def getLocation(self, host):
+    """
+    Returns from the locations list the DlsLocation object matching the
+    specified location host (equal to the host field in the DlsLocation object).
+    If no location in the list matches, None is returned. If more than one
+    matching object is found (what should not normally happen), the first 
+    matching one is returned.
+
+    @param host: the location (SE name), as a string.
+
+    @return: the mathing DlsLocation object or None if there is no match.
+    """
+
+    for i in self.locations:
+       if(i.host == host):
+           return i
+
+    return None
+
+
   def removeLocation(self, host):
     """
     Removes from the locations list the DlsLocation object matching the
-    specified location host (equal to the SE name in the DlsLocation object).
+    specified location host (equal to the host field in the DlsLocation object).
     If no location in the list matches, no action is performed. If more than
     one matching object is found (what should not normally happen), each one
     is removed.
 
-    PARAMS:
-      host: the location (SE name), as a string.
+    @param host: the location (SE name), as a string.
     """
 
     for i in self.locations:
@@ -335,7 +384,6 @@ class DlsEntry(object):
 
     return result
  
-
 
   #############################################################
   # Private: setters and getters (properties) for type checking
@@ -363,14 +411,18 @@ class DlsEntry(object):
   def _getLoc(self): return self._loc
     
   def _setLoc(self, value):
-    # Check if it is a list, and its members are DlsLocation objects
-    if(isinstance(value, list)):
-       for i in value:
-         if(not isinstance(i, DlsLocation)):
-            raise TypeError("dlsLocationList should contain DlsLocation objects")
-       self._loc = value 
+    # None means empty list
+    if(value == None):
+       self._loc = []
     else:
-       raise TypeError("dlsLocationList argument should be a list")
+       # Check if it is a list, and its members are DlsLocation objects
+       if(isinstance(value, list)):
+          for i in value:
+            if(not isinstance(i, DlsLocation)):
+               raise TypeError("dlsLocationList should contain DlsLocation objects")
+          self._loc = value 
+       else:
+          raise TypeError("dlsLocationList argument should be a list")
     
   def _delLoc(self): del self._loc
 
