@@ -1,0 +1,237 @@
+#!/usr/bin/env python
+
+#
+# $Id$
+#
+# DLS Client. $Name$.
+# Antonio Delgado Peris. CIEMAT. CMS.
+# 
+
+#########################################
+# Imports 
+#########################################
+import dlsApi
+DLS_VERB_HIGH = dlsApi.DLS_VERB_HIGH
+DLS_VERB_WARN = dlsApi.DLS_VERB_WARN
+from dlsDataObjects import DlsLocation, DlsFileBlock, DlsEntry
+import dlsClient
+import time
+import sys
+import getopt
+# This is just for sessions/transactions...
+import lfc
+
+################## GLOBAL CONSTANTS ########################
+THIS_YEAR = time.localtime()[0]
+
+
+######################### FUNCTIONS ########################
+
+
+def notyet():
+  print "\nThis command is not yet implemented!"
+
+
+def usage():
+   """
+    Provides usage information
+   """
+   print "Usage: dls-list [-v, -e, -l] <fileblock>"
+   print "       dls-list [-v, -e, -l] -f <listing_file>"
+   print "       dls-list -u"
+   print "       dls-list -h"
+
+
+def options():
+   """
+    Provides some information regarding the available options
+   """
+   print """Options summary:
+   -h, --help
+   -u, --usage
+   -v, --verbose <verb_level>
+   -e, --endpoint <endpoint>
+   -l, --long
+   -f, --from-file <filename>
+   """
+def example():
+  """
+   Provides with an example of correct use of the script
+  """
+  print """
+  """
+
+def help():
+   """
+    Provides some help information
+   """
+   print """Prints FileBlocks information of the specified FileBlock
+or, for DLS implementations with hierarchical FileBlock namespace, 
+of FileBlocks in the specified FileBlock namespace directory.
+
+If "-l" is specified, some location attributes are printed after the
+FileBlock name. Printed attributes may depend on the DLS implementation.
+Currently, printed attributes (if supported by the implementation) are:
+file mode, number of files in a directory, owner, group owner, last
+modification date and name.
+
+The "-f" option can be used to retrieve FileBlock names from a file rather
+than from the given arguments. The file must contain one line per FileBlock
+to be listed.
+
+The "-e" option can be used to set the DLS endpoint to use. If not specified,
+the endpoint is retrieved from:
+    - DLS_ENDPOINT environmental variable
+If the DLS endpoint cannot be retrieved in any of this ways, the command fails. 
+
+The -v option sets the verbosity level for the command. Accepted values are:
+  -v 0 ==> print nothing else than error messages
+  -v 1 ==> print also warning messages (default)
+  -v 2 ==> print extra debug information
+
+If "-u" is specified, usage information is displayed.
+
+If "-h" is specified, help information is displayed.
+   """
+   options()
+   usage()
+   notyet()
+
+
+
+def showFileBlocks(iface, lineList, longlist, verbose):
+   """
+   Prints the specified FileBlocks information. lineList is a list
+   of string, each holding a FileBlock name.
+    
+    If longlist is True, some attributes are also printed.
+    Currently printed attributes are:
+    file mode, number of files in a directory, owner, group owner, last
+    modification date.
+    
+    Throws DlsLfcApiError if there is a problem in the DLS operation.
+   """
+   pass
+ 
+
+            
+
+###################### MAIN FUNCTION ########################
+
+def main(pArgs):
+   """
+    Performes the main task of the script (invoked directly).
+    For information on its functionality, please call the help function.
+   """
+
+   #TODO: Remove this when the API is there!:
+   notyet()
+   return -1
+
+ # Options and args... 
+ 
+   longoptions=["help", "usage", "long", "endpoint", "verbose","from-file"]
+   try:
+      optlist, args = getopt.getopt(pArgs, 'hule:v:f:', longoptions)
+   except getopt.GetoptError, inst:
+      sys.stderr.write("Bad usage: "+str(inst)+'\n')
+      usage()
+      sys.exit(-1)
+
+   err=0
+   longlist = False
+   admitted_verb_values = [0, 1, 2]
+   verbose = 1
+   endpoint = None
+   fromFile = False
+   fname=""
+   for opt, val in optlist:
+       if opt in ("-h", "--help"):
+           help()
+           return -1
+
+       elif opt in ("-u", "--usage"):
+           usage()
+           return -1
+           
+       elif opt in ("-l", "--long"):
+           longlist = True
+           
+       elif opt in ("-e","--endpoint"):
+           endpoint = val
+
+       elif opt in ("-v", "--verbose"):
+           try: 
+             val = int(val)
+           except ValueError, inst:
+             sys.stderr.write("Unsupported verbosity value: " + val + "\n")
+             return -1
+           if (not (val in admitted_verb_values)):
+              sys.stderr.write("Unsupported verbosity value: " + val + "\n")
+              return -1             
+           verbose = val
+
+       elif opt in ("-f","--from-file"):
+           fromFile = True
+           fname = val
+           
+  
+ # Build the arguments 
+
+   # From file
+   if(fromFile):
+      try:
+         file=open(fname, 'r')
+      except IOError, inst:
+         msg="The file "+fname+" could not be opened: "+str(inst)+"\n"
+         sys.stderr.write(msg)
+         return -1
+      lineList=file.readlines()
+      
+   # From command line options
+   else:
+      if(len(args)<1):
+         sys.stderr.write("Not enough input arguments\n")
+         usage()
+         return(-1)
+
+      line=""
+      for token in args:
+         line += token +" "
+      lineList = [line]
+
+ # Create the interface binding
+   try:
+      iface = dlsClient.getDlsApi(dls_host = endpoint)
+      if(verbose == 2):
+         iface.setVerbosity(dlsApi.DLS_VERB_HIGH)
+      else:
+         if(verbose == 0):
+            iface.setVerbosity(dlsApi.DLS_VERB_NONE)
+         else:
+            if(verbose == 1):
+               iface.setVerbosity(dlsApi.DLS_VERB_WARN)
+   except dlsApi.DlsApiError, inst:
+      msg = "Error when binding the DLS interface: " + str(inst)
+      sys.stderr.write(msg+"\n")
+      return -1
+
+   
+ # Do the query (under session)
+   try:
+     showFileBlocks(iface, lineList, longList, verbose)
+   except dlsApi.DlsApiError, inst:         
+      if(inst.rc):  err = inst.rc 
+      else:           err = -1
+      msg = "Error in the DLS query: %s." % str(inst)
+      sys.stderr.write(msg+'\n')
+
+ # Finally, return error code
+   return err
+
+
+
+######################### SCRIPT ###########################
+
+if __name__ == "__main__":
+  sys.exit(main(sys.argv[1:]))
