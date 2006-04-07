@@ -1,7 +1,7 @@
 #
-# $Id: dlsDliClient.py,v 1.1 2006/03/29 13:35:58 delgadop Exp $
+# $Id: dlsDliClient.py,v 1.2 2006/03/31 09:32:14 delgadop Exp $
 #
-# Dls Client v 0.1
+# DLS Client. $Name$.
 # Antonio Delgado Peris. CIEMAT. CMS.
 #
 
@@ -18,6 +18,8 @@
  than a complete DLS client API.
 
  To perform its function, it uses the dliClient.DliClient class.
+ That class uses the Zolera SOAP Infrastructure (ZSI)
+ (http://pywebsvcs.sourceforge.net/). ZSI requires PyXML.
  
  It also contains some exception classes to propagate error conditions
  when interacting with the DLS catalog.
@@ -30,6 +32,8 @@
 # Imports 
 #########################################
 import dlsApi
+DLS_VERB_HIGH = dlsApi.DLS_VERB_HIGH
+DLS_VERB_WARN = dlsApi.DLS_VERB_WARN
 from dlsDataObjects import *
 import dliClient
 from os import environ
@@ -88,13 +92,11 @@ class DlsDliClient(dlsApi.DlsApi):
  
     The verbosity level affects invocations of all methods in this object. See
     the dlsApi.DlsApi.setVerbosity method for information on accepted values.
-
-    PARAM:
-      dli_endpoint: the DLI endpoint to be used, as a string with the form "hostname:port"
-      verbosity: value for the verbosity level
       
-    EXCEPTIONS:
-      SetupError: if no DLI can be found.
+    @exception SetupError: if no DLI can be found.
+
+    @param dli_endpoint: the DLI endpoint to be used, as a string with the form "hostname:port"
+    @param verbosity: value for the verbosity level
     """
 
     # Let the parent set the server (if possible) and verbosity
@@ -102,9 +104,11 @@ class DlsDliClient(dlsApi.DlsApi):
    
     # Create the binding (that tries also DLI_ENDPOINT if server not yet set)
     try:    
-      self.iface = dliClient.DliClient(self.server)
+       if(self.verb >= DLS_VERB_HIGH):
+          print "--DliClient.init(%s)" % self.server
+       self.iface = dliClient.DliClient(self.server)
     except dliClient.SetupError, inst:
-      raise SetupError("Error creating the binding with the DLI interface: "+str(inst))
+       raise SetupError("Error creating the binding with the DLI interface: "+str(inst))
 
   ############################################
   # Methods defining the main public interface
@@ -124,8 +128,7 @@ class DlsDliClient(dlsApi.DlsApi):
     exception is raised. If the error is a SOAP fault, the code field 
     stores the SOAP "faultcode" element.
 
-    EXCEPTIONS:
-      DlsDliClientError: On errors in the interaction with the DLI interface
+    @exception DlsDliClientError: On errors in the interaction with the DLI interface
     """
 
     result = []
@@ -135,24 +138,38 @@ class DlsDliClient(dlsApi.DlsApi):
        theList = fileBlockList
     else:
        theList = [fileBlockList]
-    
+
     # Query the DLI
     try:    
       for fB in theList:
+        # Check what was passed (DlsFileBlock or string)
+        if(isinstance(fB, DlsFileBlock)):
+          lfn = fB.name
+        else:
+          lfn = fB
+        entry = DlsEntry(DlsFileBlock(lfn))
+
+        # Get the list of locations
         locList = []
-        for host in self.iface.listLocations(fB.name, fileType = "lfn"):
+        if(self.verb >= DLS_VERB_HIGH):
+           print "--DliClient.listLocations(%s)" % lfn
+        for host in self.iface.listLocations(lfn, fileType = "lfn"):
            locList.append(DlsLocation(host))
-        entry = DlsEntry(fB, locList)        
+        entry.locations = locList
         result.append(entry)
 
      # Return
       return result
 
     except dliClient.DliClientError, inst:
-      msg = "Error in DLI operation!: " + inst.msg + ". "
-      for i in [inst.actor, inst.faultcode, inst.detail, inst.faultstring]:
-         if(i):  msg += str(i) + ". "
+      msg = inst.msg
+      for i in [inst.actor, inst.detail]:
+         if(i):  msg += ". " + str(i)
       e = DlsDliClientError(msg)
-      if(inst.faultcode):  e.code = inst.faultcode
+      if(inst.faultcode):  
+         if(inst.faultstring):  e.code = inst.faultcode + ", " + inst.faultstring
+         else:                  e.code = inst.faultcode    
+      else:
+         if(inst.faultstring):  e.code = inst.faultstring
       raise e
 
