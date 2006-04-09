@@ -1,7 +1,7 @@
 #
-# $Id: dlsMySQLApi.py,v 1.5 2006/04/07 09:16:49 delgadop Exp $
+# $Id: dlsMySQLApi.py,v 1.6 2006/04/07 09:25:00 delgadop Exp $
 #
-# DLC Client. $Name$. 
+# DLC Client. $Name:  $. 
 # Antonio Delgado Peris. CIEMAT. CMS.
 # client for MySQL prototype : A. Fanfani  
 
@@ -24,8 +24,10 @@
 #########################################
 import dlsApi
 #AF adding:
-import dlsDataObjects
+#import dlsDataObjects
+from dlsDataObjects import *
 import socket
+import string
 #########################################
 # Module globals
 #########################################
@@ -97,9 +99,9 @@ class DlsMySQLApi(dlsApi.DlsApi):
 
     dlsApi.DlsApi.__init__(self, dls_endpoint, verbosity)    
     
-    if(self.server):
-      # Do whatever... 
-      print " Using server %s"%self.server
+    #if(self.server):
+    #  # Do whatever... 
+    #  print " Using server %s"%self.server
 
     if(not self.server):
        raise SetupError("Could not set the DLS server to use")
@@ -117,7 +119,13 @@ class DlsMySQLApi(dlsApi.DlsApi):
 
     No attribute are supported in the MySQL prototype
     """
-    for entry in dlsEntryList:
+    # Make sure the argument is a list
+    if (isinstance(dlsEntryList, list)):
+       theList = dlsEntryList
+    else:
+       theList = [dlsEntryList]
+
+    for entry in theList:
       fb=entry.fileBlock.name
       for location in entry.locations:
             se=location.host
@@ -125,12 +133,12 @@ class DlsMySQLApi(dlsApi.DlsApi):
             #print "ses %s"%se
             self.dls_connect()
             msg='add_replica#%s#%s'%(fb,se)
-            if ( self.verb >= 5 ) :
+            if ( self.verb > 10 ) :
                 print "Send:%s"%(msg)
             self.dls_send(msg)           
             msg=self.dls_receive()
             
-            if ( self.verb >= 5 ):
+            if ( self.verb > 10 ):
                 if msg=="0":
                     print "Replica Registered"
                 elif msg=="1":
@@ -143,9 +151,6 @@ class DlsMySQLApi(dlsApi.DlsApi):
 #TODO : error code
     return
 
-#not in DLS proto    
-#  def delete(self, dlsFileBlockList, **kwd):
-#
 
   def delete(self, dlsEntryList, **kwd):
     """
@@ -155,7 +160,13 @@ class DlsMySQLApi(dlsApi.DlsApi):
     Implementation specific remarks:
 
     """
-    for entry in dlsEntryList:
+    # Make sure the argument is a list
+    if (isinstance(dlsEntryList, list)):
+       theList = dlsEntryList
+    else:
+       theList = [dlsEntryList]
+
+    for entry in theList:
       fb=entry.fileBlock.name
       for location in entry.locations:
             se=location.host
@@ -163,12 +174,12 @@ class DlsMySQLApi(dlsApi.DlsApi):
             #print "ses %s"%se
             self.dls_connect()
             msg='remove_replica#%s#%s'%(fb,se)
-            if ( self.verb >= 5 ):
+            if ( self.verb > 10 ):
                 print "Send:%s"%(msg)
             self.dls_send(msg)
             msg=self.dls_receive()
             
-            if ( self.verb >= 5 ):
+            if ( self.verb > 10 ):
                 if msg=="0":
                     print "Replica Deleted"
                 elif msg=="1":
@@ -179,6 +190,7 @@ class DlsMySQLApi(dlsApi.DlsApi):
             
             self.__client.close()
             #return int(msg)
+#TODO : error code
     return
 
     
@@ -191,20 +203,39 @@ class DlsMySQLApi(dlsApi.DlsApi):
     
     No attribute are supported in the MySQL prototype
     """
+    # Make sure the argument is a list
+    if (isinstance(fileBlockList, list)):
+       theList = fileBlockList
+    else:
+       theList = [fileBlockList]
 
-    for fb in fileBlockList:
+    entryList = []
+    for fblock in theList:
+            # Check what was passed (DlsFileBlock or string)
+            if(isinstance(fblock, DlsFileBlock)):
+              fb = fblock.name
+            else:
+              fb = fblock
+            entry = DlsEntry(DlsFileBlock(fb))
             self.dls_connect()
             msg='show_replica_by_db#%s'%(fb)
             self.dls_send(msg)
-            if ( self.verb >= 5 ):
+            if ( self.verb > 10 ):
                 print "Send: %s"%(msg)
             msg=self.dls_receive()
-            if ( self.verb >= 5 ):
+            if ( self.verb > 10 ):
                 print "Received from server:"
-            print msg
+            #print msg
+            ses=string.split(msg,'\n')
+            locList = []
+            for se in ses: 
+             loc = DlsLocation(se)
+             locList.append(loc)
+            entry.locations = locList
+            entryList.append(entry)
             self.__client.close()
             #return 0
-    return
+    return entryList
     
 
   def getFileBlocks(self, locationList, **kwd):
@@ -216,19 +247,36 @@ class DlsMySQLApi(dlsApi.DlsApi):
     
     No attribute are supported in the MySQL prototype
     """ 
-    for se in locationList: 
+    # Make sure the argument is a list
+    if (isinstance(locationList, list)):
+       theList = locationList
+    else:
+       theList = [locationList]
+
+    entryList = []
+    for loc in theList:
+            # Check what was passed (DlsLocation or string)
+            if(isinstance(loc, DlsLocation)):
+              se = loc.host
+            else:
+              se = loc 
             self.dls_connect()
             msg='show_replica_by_se#%s'%(se)
             self.dls_send(msg)
-            if ( self.verb > 5 ):
-                print "send: %s"%(msg) 
+            if ( self.verb > 10 ):
+                print "Send: %s"%(msg) 
             msg=self.dls_receive()
-            if ( self.verb > 5 ):
+            if ( self.verb > 10 ):
                 print "Received from server:"
-            print msg
+            #print msg
+            fblocks=string.split(msg,'\n')
+            for fb in fblocks:
+              entry = DlsEntry(DlsFileBlock(fb),[DlsLocation(se)])
+              entryList.append(entry)
             self.__client.close()
             #return 0
-    return
+
+    return entryList
  
   ##################################
   # Other public methods (utilities)
@@ -242,24 +290,6 @@ class DlsMySQLApi(dlsApi.DlsApi):
 
     # Implement here...
     pass
-
-        
-## not in DLS proto
-#  def checkDlsHome(self, fileBlock, working_dir=None):
-#    """
-#    Implementation of the dlsApi.DlsApi.checkDlsHome method.
-#    Refer to that method's documentation.
-#
-#    Implementation specific remarks:
-#
-#    The DLS client working directory should be read from (in this order):
-#       - specified working_dir
-#       - DLS_HOME environmental variable
-#       - LFC_HOME environmental variable
-#    """
-#
-#    # Implement here...
-#    pass
 
 
   #########################
@@ -279,7 +309,7 @@ class DlsMySQLApi(dlsApi.DlsApi):
         if port==None:
            port=18080
 
-        if ( self.verb >= 5 ):
+        if ( self.verb > 10 ):
             print "Connecting to host: %s port: %d"%(host,int(port))
 
         self.clientsocket()
@@ -337,17 +367,21 @@ if __name__ == "__main__":
 ## use DLS server
    type="DLS_TYPE_MYSQL"
    server ="lxgate10.cern.ch:18081"
-   api = dlsClient.getDlsApi(dls_type=type,dls_host=server, verbosity=5)
+   api = dlsClient.getDlsApi(dls_type=type,dls_host=server)
                                                                                                                  
 ## get FileBlocks given a location
    se="cmsboce.bo.infn.it"
-   api.getFileBlocks([se])
-                                                                                                                 
+   entryList=api.getFileBlocks(se)
+   for entry in entryList:
+     print entry.fileBlock.name                                                                                                            
 ## get Locations given a fileblock
    fb="bt_DST871_2x1033PU_g133_CMS/bt03_tt_2tauj"
    #fb="testblock"
-   api.getLocations([fb])
-                                                                                                                 
+   entryList=api.getLocations([fb])
+   for entry in entryList:
+    for loc in entry.locations:
+     print loc.host
+
 ## add a DLS entry
    fileblock=DlsFileBlock("testblock")
    location=DlsLocation("testSE")
@@ -355,7 +389,11 @@ if __name__ == "__main__":
    api.add([entry])
                                                                                                                  
 ## check the inserted entry
-   api.getLocations([fb])
+   entryList=api.getLocations(fileblock)
+   #entryList=api.getLocations("testblock")
+   for entry in entryList:
+    for loc in entry.locations:
+     print loc.host
                                                                                                                  
 ## delete a DLS entry
    loc=DlsLocation("testSE")
