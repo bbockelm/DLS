@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #
-# $Id: dls-add,v 1.1 2006/04/07 10:35:43 delgadop Exp $
+# $Id: dls-add,v 1.2 2006/04/09 23:39:02 afanfani Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -19,7 +19,6 @@ import os
 import sys
 import commands
 import getopt
-import lfc
 
 
 ######################### FUNCTIONS ########################
@@ -41,11 +40,11 @@ def options():
    -h, --help
    -u, --usage
    -v, --verbose <verb_level>
-   -p, --create-parent
    -t, --transaction
    -e, --endpoint <endpoint>
    -f, --from-file <filename>
    """
+#   -p, --create-parent
 def example():
   """
    Provides with an example of correct use of the script
@@ -73,8 +72,8 @@ Currently understood fileblock attributes are:
 Currently understood replica attributes are:    
       sfn, f_type, ptime
 
-For hierarchical DLS catalogs, if "-p" is specified, then the parent directories
-of the specified FileBlock are checked for existence, and created if non existing.
+For hierarchical DLS catalogs, the parent directories of the specified FileBlock
+are checked for existence, and created if non existing.
 
 The "-f" option can be used to retrieve FileBlock names from a file rather than
 from the given arguments. The file must contain one line per FileBlock to be added,
@@ -107,6 +106,8 @@ If "-u" is specified, usage information is displayed.
 
 If "-h" is specified, help information is displayed.
    """
+#For hierarchical DLS catalogs, if "-p" is specified, then the parent directories
+#of the specified FileBlock are checked for existence, and created if non existing.
    options()
    usage()
 
@@ -197,16 +198,18 @@ def main(pArgs):
 
  # Options and args... 
  
-   longoptions=["help", "usage", "create-parent", "transaction", "endpoint", "verbose","from-file"]
+#   longoptions=["help", "usage", "create-parent", "transaction", "endpoint", "verbose","from-file"]
+   longoptions=["help", "usage", "transaction", "endpoint", "verbose","from-file"]
    try:
-      optlist, args = getopt.getopt(pArgs, 'hupte:v:f:', longoptions)
+#      optlist, args = getopt.getopt(pArgs, 'hupte:v:f:', longoptions)
+      optlist, args = getopt.getopt(pArgs, 'hute:v:f:', longoptions)
    except getopt.GetoptError, inst:
       sys.stderr.write("Bad usage: "+str(inst)+'\n')
       usage()
       sys.exit(-1)
 
    err=0
-   createParent = False
+   createParent = True
    trans = False
    admitted_verb_values = [0, 1, 2]
    verbose = 1
@@ -222,9 +225,9 @@ def main(pArgs):
            usage()
            return -1
            
-       elif opt in ("-p", "--create-parent"):
-           createParent = True
-           
+#       elif opt in ("-p", "--create-parent"):
+#           createParent = True
+#           
        elif opt in ("-t", "--transaction"):
            trans = True
 
