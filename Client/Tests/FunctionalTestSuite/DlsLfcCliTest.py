@@ -90,9 +90,59 @@ class TestDlsCli_FromArgs(TestDlsCli):
      st, out = run(cmd)
      msg = "Error in dls-get-se c1",out 
      self.assertEqual(st, 0, msg)
-     msg = "The results obtained with dls-get-se are not those expected",out
-     self.assertEqual(out, "CliTest_se4\nCliTest_se5\nCliTest_se6", msg)
+     expected = "CliTest_se4\nCliTest_se5\nCliTest_se6"
+     msg = "The results obtained with dls-get-se (%s) are not those expected (%s)" % (out, expected)
+     self.assertEqual(out, expected, msg)
      
+  # Test addition with non-existing parent directories using CLI args 
+  def testAdditionWithParent(self):
+     cmd = self.path + "/dls-add $LFC_HOME/dir1/dir2/c1 CliTest_se1 CliTest_se2"
+     st, out = run(cmd)
+     msg = "Error in dls-add $LFC_HOME/dir1/dir2/c1 CliTest_se1 CliTest_se2",out 
+     self.assertEqual(st, 0, msg)
+
+     cmd = self.path + "/dls-get-se dir1/dir2/c1"
+     st, out = run(cmd)
+     msg = "Error in dls-get-se dir1/dir2/c1",out 
+     self.assertEqual(st, 0, msg)
+     expected = "CliTest_se1\nCliTest_se2"
+     msg = "The results obtained with dls-get-se (%s) are not those expected (%s)" % (out, expected)
+     self.assertEqual(out, expected, msg)
+     
+  # Test erroneous addition for FileBlock and locations using CLI args 
+  def testErroneousAddition(self):
+     # Erroneous FileBlock name
+     cmd = self.path + "/dls-add /c1 CliTest_se4 CliTest_se5"
+     st, out = run(cmd)
+     msg = "Error in dls-add /c1 CliTest_se4 CliTest_se5",out 
+     self.assertEqual(st, 0, msg)
+     expected= "Warning: Error creating the FileBlock /c1: Permission denied"
+     msg = "Output obtained with dls-add /c1 (%s) is not that expected (%s)" % (out, expected)
+     self.assertEqual(out, expected, msg)
+
+     # Erroneous location (existing)
+     cmd = self.path + "/dls-add c1 CliTest_se4 CliTest_se5"
+     st, out = run(cmd)
+     msg = "Error in dls-add c1 CliTest_se4 CliTest_se5",out 
+     self.assertEqual(st, 0, msg)
+     cmd = self.path + "/dls-add c1 CliTest_se4 CliTest_se6"
+     st, out = run(cmd)
+     msg = "Error in dls-add c1 CliTest_se4 CliTest_se6",out 
+     self.assertEqual(st, 0, msg)
+     expected = "Warning: Error adding location (CliTest_se4) for FileBlock"
+     contains = out.find("Warning: Error adding location (CliTest_se4) for FileBlock") != -1
+     msg = "Output obtained with dls-add /c1 (%s) is not that expected (%s)" % (out, expected)
+     self.assert_(contains, msg)
+     cmd = self.path + "/dls-get-se c1"
+     st, out = run(cmd)
+     msg = "Error in dls-get-se c1",out 
+     self.assertEqual(st, 0, msg)
+     expected = "CliTest_se4\nCliTest_se5\nCliTest_se6"
+     msg = "The results obtained with dls-get-se (%s) are not those expected (%s)" % (out, expected)
+     self.assertEqual(out, expected, msg)
+     
+     
+    
   # Test deletion using command line arguments
   def testDeletion(self):
      # First add (already tested) 
