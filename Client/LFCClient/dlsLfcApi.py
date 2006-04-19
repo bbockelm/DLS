@@ -1,5 +1,5 @@
 #
-# $Id: dlsLfcApi.py,v 1.3 2006/04/07 10:34:51 delgadop Exp $
+# $Id: dlsLfcApi.py,v 1.4 2006/04/19 16:25:48 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -970,8 +970,11 @@ class DlsLfcApi(dlsApi.DlsApi):
     @param mode: the mode to be used in the directories creation
     """
     if(dir == "/"):
-       msg = "Cannot create the root directory"
-       raise DlsLfcApiError(msg)
+       # The root directory is already there
+       return
+#       msg = "Cannot create the root directory"
+#       raise DlsLfcApiError(msg)
+
     dir = dir.rstrip('/')
     
     fstat = lfc.lfc_filestatg()
