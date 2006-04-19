@@ -193,7 +193,7 @@ def deleteOneDir(pDir, pForce, pExtLinks, pExtLfns, pVerbose):
 
    # Remove all subdirectories in the list 
    for subdir in subdirlist:
-      err = deleteOneDir(subdir, force, extLinks, extLfns, verbose)
+      err = deleteOneDir(fulldir+'/'+subdir, force, extLinks, extLfns, verbose)
       if(err): rc=err
  
    # Finally, remove also the top directory itself 
