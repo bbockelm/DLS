@@ -1,7 +1,7 @@
 #
-# $Id: dlsLfcApi.py,v 1.2 2006/03/31 10:06:31 delgadop Exp $
+# $Id: dlsLfcApi.py,v 1.3 2006/04/07 10:34:51 delgadop Exp $
 #
-# DLS Client. $Name$.
+# DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
 #
 
@@ -211,7 +211,8 @@ class DlsLfcApi(dlsApi.DlsApi):
            if(session): self.endSession()
            if(trans):   inst.msg += ". Transaction operations rolled back"
            raise inst
-
+         else: # Can't add locations without guid, so go to next FileBlock
+           continue
       # Locations
       for loc in entry.locations:
          try:
@@ -983,7 +984,7 @@ class DlsLfcApi(dlsApi.DlsApi):
           print "--lfc.lfc_mkdirg(",dir,",",guid,",",mode,")"
        if(lfc.lfc_mkdirg(dir, guid, mode) < -1):
           code = lfc.cvar.serrno
-          msg = "Error creating parent directory: "+dir+": "+lfc.sstrerror(code)
+          msg = "Error creating parent directory %s: %s" % (dir, lfc.sstrerror(code))
           raise DlsLfcApiError(msg, code)
 
 
@@ -1015,7 +1016,7 @@ class DlsLfcApi(dlsApi.DlsApi):
     guid = dlsFileBlock.getGuid()
 
     # Keywords
-    createParent = False
+    createParent = True
     if(kwd.has_key("createParent")):
        createParent = kwd.get("createParent")
     
@@ -1071,7 +1072,9 @@ class DlsLfcApi(dlsApi.DlsApi):
           print "--lfc.lfc_creatg(\""+lfn+"\", \""+guid+"\",",mode,")"   
        if(lfc.lfc_creatg(lfn, guid, mode) < 0):
           code = lfc.cvar.serrno
-          msg = "Error creating the LFN: "+dir+": "+lfc.sstrerror(code)
+          msg = "Error creating the FileBlock %s: %s" % (lfn, lfc.sstrerror(code))
+          if(self.verb >= DLS_VERB_WARN):
+            print "Warning: " + msg
           raise DlsLfcApiError(msg, code)
           
        # And set the size and cksum
@@ -1079,7 +1082,7 @@ class DlsLfcApi(dlsApi.DlsApi):
           print "--lfc.lfc_setfsizeg(\""+guid+"\",",filesize,",",csumtype,",",csumvalue,")"
        if (lfc.lfc_setfsizeg(guid, filesize, csumtype, csumvalue)):
           code = lfc.cvar.serrno
-          msg = "Error setting the filesize/cksum for the LFN: "+dir+": "+lfc.sstrerror(code)
+          msg = "Error setting the filesize/cksum for the LFN %s: %s" % (lfn, lfc.sstrerror(code))
           raise DlsLfcApiError(msg, code)
  
     else:
@@ -1154,7 +1157,7 @@ class DlsLfcApi(dlsApi.DlsApi):
     if(ptime):
        if(lfc.lfc_setptime(sfn, ptime)<0):
           code = lfc.cvar.serrno
-          msg = "Error setting pin time for location (%s): " % (sfn, lfc.sstrerror(code))
+          msg = "Error setting pin time for location (%s): %s" % (sfn, lfc.sstrerror(code))
           raise DlsLfcApiError(msg, code)
  
     return(0)

@@ -1,7 +1,7 @@
 #
-# $Id: dlsApi.py,v 1.3 2006/03/31 10:06:31 delgadop Exp $
+# $Id: dlsApi.py,v 1.4 2006/04/07 10:30:22 delgadop Exp $
 #
-# DLS Client. $Name$.
+# DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
 #
 
@@ -177,7 +177,7 @@ class DlsApi(object):
 
     @param dlsEntryList: the DlsEntry object (or list of objects) to be added to the DLS
     @param kwd: Flags:
-      - createParent: boolean (default False) for parent directory creation
+      - createParent: boolean (default True) for parent directory creation
       - errorTolerant: boolean (default True) for raising an exception after failure
       - trans: boolean (default False) for using a transaction for the operations
       - session: boolean (default False) for using a session for the operations
