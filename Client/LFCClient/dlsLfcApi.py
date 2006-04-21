@@ -1,5 +1,5 @@
 #
-# $Id: dlsLfcApi.py,v 1.4 2006/04/19 16:25:48 delgadop Exp $
+# $Id: dlsLfcApi.py,v 1.5 2006/04/19 17:39:03 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -74,10 +74,13 @@ class ValueError(DlsLfcApiError):
 class SetupError(DlsLfcApiError):
   """
   Exception class for errors when setting up the system (configuration,
-  communication errors...)
+  communication errors...).
   """
 
-
+class NotAccessibleError(DlsLfcApiError):
+  """
+  Exception class for errors when trying to access a FileBlock (or directory).
+  """
 
 #########################################
 # DlsApì class
@@ -95,25 +98,27 @@ class DlsLfcApi(dlsApi.DlsApi):
 
   def __init__(self, dls_endpoint= None, verbosity = DLS_VERB_WARN):
     """
-    Constructor of the class. It sets the DLS (LFC) server to communicate with
-    and the verbosity level.
+    Constructor of the class. It sets the DLS (LFC) server to communicate
+    with, the path to the root directory of the server, and the verbosity level.
+    The server and root path are got from a string in the form
+    "hname[:port]/path/to/DLS".
     
-    It tries to retrieve that value from several sources (in this order):
+    It tries to retrieve that value value from several sources (in this order):
     
          - specified dls_endpoint 
          - DLS_ENDPOINT environmental variable
          - LFC_HOST environmental variable
          - DLS catalog advertised in the Information System (if implemented)
 
-    If the DLS server cannot be set in any of this ways, the instantiation is 
-    denied and a SetupError is raised.
+    If it cannot be obtained in any of these ways, the instantiation is denied
+    and a SetupError is raised.
  
     The verbosity level affects invocations of all methods in this object. See
     the dlsApi.DlsApi.setVerbosity method for information on accepted values.
       
     @exception SetupError: if no DLS server can be found.
 
-    @param dls_endpoint: the DLS server to be used, as a string of form "hostname[:port]"
+    @param dls_endpoint: the DLS server to be used, as a string "hname[:port]/path/to/DLS"
     @param verbosity: value for the verbosity level
     """
 
@@ -127,12 +132,30 @@ class DlsLfcApi(dlsApi.DlsApi):
     # If still not there, give up 
     if(not self.server):
        raise SetupError("Could not set the DLS server to use")
+
+    # Extract the root directory
+    dlsserver=self.server.split('/')[0]
+    dlspath=self.server.replace(dlsserver,'')
+
+    # Set the server for LFC API use
+    self.server=dlsserver
+    putenv("LFC_HOST", self.server)
+
+    # Set the root directory (required!)
+    if (not dlspath):
+       raise SetupError("No LFC's root directory specified for DLS use")    
     else:
-       # Set the server for LFC API use
-       putenv("LFC_HOST", self.server)
+       fstat = lfc.lfc_filestatg()
+       if(lfc.lfc_statg(dlspath, "", fstat)<0):
+          code = lfc.cvar.serrno
+          msg = "Specied LFC's root dir for DLS (%s) " % (dlspath)
+          msg += "not accessible: %s" % (lfc.sstrerror(code))
+          raise SetupError(msg, code)    
+    dlspath = dlspath.rstrip('/')
+    self.root = dlspath
+#    environ["LFC_HOME"]=dlspath
 
-
-
+    
 
   ############################################
   # Methods defining the main public interface
@@ -164,9 +187,6 @@ class DlsLfcApi(dlsApi.DlsApi):
     composing DlsLocation objects include the SURL of the FileBlock copies,
     that value is also used. Notice that both uses are discouraged as they may
     lead to catalog corruption if used without care.
-    
-    The specified FileBlock names may be relative or absolute (see the
-    _checkDlsHome method). 
     """
 
     # Keywords
@@ -216,7 +236,7 @@ class DlsLfcApi(dlsApi.DlsApi):
       # Locations
       for loc in entry.locations:
          try:
-            self._addLocationToGuid(guid, loc)
+            self._addLocationToGuid(guid, loc, entry.fileBlock.name)
          except DlsLfcApiError, inst:
             if(not errorTolerant):
                if(session): self.endSession()
@@ -236,9 +256,6 @@ class DlsLfcApi(dlsApi.DlsApi):
 
     Implementation specific remarks:
 
-    The specified FileBlock names may be relative or absolute (see the
-    _checkDlsHome method). 
-    
     For a given FileBlock, specified locations that are not registered in the
     catalog will be ignored.
 
@@ -293,6 +310,16 @@ class DlsLfcApi(dlsApi.DlsApi):
            if(session): self.endSession()
            if(trans):   inst.msg += ". Transaction operations rolled back"
            raise inst
+         else:
+           # For FileBlocks not accessible, go to next
+           if(isinstance(inst, NotAccessibleError)):
+              if(self.verb >= DLS_VERB_WARN):
+                 print "Warning: Not updating unaccessible FileBlock: %s" % (inst.msg)
+              continue
+           # For error on attributes, just warn and go on
+           else:
+              if(self.verb >= DLS_VERB_WARN):
+                 print "Warning: Error when updating FileBlock: %s" % (inst.msg)
 
       # Locations (must retrieve the SURLs from the catalog and compare)
       seList = []
@@ -300,6 +327,7 @@ class DlsLfcApi(dlsApi.DlsApi):
          seList.append(loc.host)
       lfn = entry.fileBlock.name
       lfn = self._checkDlsHome(lfn)
+      userlfn = self._removeRootPath(lfn)
       if(self.verb >= DLS_VERB_HIGH):
          print "--lfc.lfc_getreplica(\""+ lfn +"\", \"\",\"\")"
       err, repList = lfc.lfc_getreplica(lfn, "", "")
@@ -308,7 +336,7 @@ class DlsLfcApi(dlsApi.DlsApi):
            if(session): self.endSession()
            raise inst
            code = lfc.cvar.serrno
-           msg = "Error retrieving locations for(%s): %s" % (lfn, lfc.sstrerror(code))
+           msg = "Error retrieving locations for(%s): %s" % (userlfn, lfc.sstrerror(code))
            if(trans):   msg += ". Transaction operations rolled back"
            raise DlsLfcApiError(msg, code)
          else: continue
@@ -359,9 +387,6 @@ class DlsLfcApi(dlsApi.DlsApi):
     the original FileBlock will be removed from the DLS.
     NOTE: THIS FLAG IS NOT YET PROPERLY IMPLEMENTED!
 
-    The specified FileBlock names may be relative or absolute (see the
-    _checkDlsHome method). 
-    
     NOTE: It is not safe to use this method within a transaction.
     
     Additional parameters:
@@ -406,6 +431,7 @@ class DlsLfcApi(dlsApi.DlsApi):
       # Get the FileBlock name
       lfn = entry.fileBlock.name
       lfn = self._checkDlsHome(lfn)
+      userlfn = self._removeRootPath(lfn)
 
       # Get the specified locations
       seList = []
@@ -422,7 +448,7 @@ class DlsLfcApi(dlsApi.DlsApi):
       if(err):
          if(session): self.endSession()
          code = lfc.cvar.serrno
-         msg = "Error retrieving locations for FileBlock (%s): %s" % (lfn, lfc.sstrerror(code))
+         msg = "Error retrieving locations for FileBlock (%s): %s" % (userlfn, lfc.sstrerror(code))
          raise DlsLfcApiError(msg, code)
      
       # Make a copy of location list (to keep control of how many are left)
@@ -442,7 +468,7 @@ class DlsLfcApi(dlsApi.DlsApi):
             # But before removal, check if it is custodial
             if ((filerep.f_type == 'P') and (not force)):
                if(self.verb >= DLS_VERB_WARN):
-                  print "Warning: Not deleting custodial replica in",filerep.host,"of",lfn
+                  print "Warning: Not deleting custodial replica in",filerep.host,"of",userlfn
                continue
                
             # Perform the deletion
@@ -480,7 +506,7 @@ class DlsLfcApi(dlsApi.DlsApi):
             if(err):
                if(session): self.endSession()
                code = lfc.cvar.serrno
-               msg = "Error retrieving links for FileBlock (%s): %s" % (lfn, lfc.sstrerror(code))
+               msg = "Error retrieving links for FileBlock (%s): %s"%(userlfn,lfc.sstrerror(code))
                raise DlsLfcApiError(msg, code)
   
             for link in linkList:
@@ -511,9 +537,6 @@ class DlsLfcApi(dlsApi.DlsApi):
 
     Implementation specific remarks:
 
-    The specified FileBlock names may be relative or absolute (see the
-    _checkDlsHome method). 
-    
     If longList (**kwd) is set to true, some location attributes are also
     included in the returned DlsLocation objects. Those attributes are:
      - atime
@@ -560,7 +583,8 @@ class DlsLfcApi(dlsApi.DlsApi):
          else:
            lfn = fB
          lfn = self._checkDlsHome(lfn)
-         entry = DlsEntry(DlsFileBlock(lfn))
+         userlfn = self._removeRootPath(lfn)
+         entry = DlsEntry(DlsFileBlock(userlfn))
  
          # Get the locations for the given FileBlock
          if(self.verb >= DLS_VERB_HIGH):
@@ -569,7 +593,7 @@ class DlsLfcApi(dlsApi.DlsApi):
          if(err):
             if(session): self.endSession()
             code = lfc.cvar.serrno
-            msg = "Error retrieving locations for %s: %s" % (lfn, lfc.sstrerror(code))
+            msg = "Error retrieving locations for %s: %s" % (userlfn, lfc.sstrerror(code))
             raise DlsLfcApiError(msg, code)
          
          # Build the result
@@ -598,11 +622,12 @@ class DlsLfcApi(dlsApi.DlsApi):
            lfn = fB.name
          else:
            lfn = fB
-         dliList.append(self._checkDlsHome(lfn))
+#         dliList.append(self._checkDlsHome(lfn))
+         dliList.append(lfn)
          
-      # Create the binding (that tries also DLI_ENDPOINT if server not yet set)
+      # Create the binding 
       try:
-        dliIface = dlsDliClient.DlsDliClient(self.server, verbosity = self.verb)
+        dliIface = dlsDliClient.DlsDliClient(self.server+self.root, verbosity = self.verb)
       except dlsDliClient.SetupError, inst:
         raise DlsLfcApiError("Error creating the binding with the DLI interface: "+str(inst))
 
@@ -681,6 +706,7 @@ class DlsLfcApi(dlsApi.DlsApi):
              raise DlsLfcApiError(msg, code)
   
           # Build the result 
+          path = self._removeRootPath(path)
           entry = DlsEntry(DlsFileBlock(path), [DlsLocation(host, surl = filerep.sfn)])
           entryList.append(entry)
 
@@ -875,9 +901,6 @@ class DlsLfcApi(dlsApi.DlsApi):
     Notice that this method will only work if the FileBlock has already been
     registered with the DLS catalog.
 
-    The specified FileBlock name may be relative or absolute (see the
-    _checkDlsHome method). 
-
     @exception XXXX: On error with the DLS catalog (non-existing FileBlock, etc.)
     
     @param fileBlock: the FileBlock, as a string/DlsFileBlock object
@@ -899,9 +922,6 @@ class DlsLfcApi(dlsApi.DlsApi):
     in the specified DlsEntry object. It returns a reference to this completed
     object. 
 
-    The specified FileBlock name may be relative or absolute (see the
-    _checkDlsHome method). 
-
     @exception XXXX: On error with the DLS catalog (non-existing FileBlock, etc.)
     
     @param dlsEntry: the DlsEntry object for which the SURLs must be retrieved
@@ -920,35 +940,88 @@ class DlsLfcApi(dlsApi.DlsApi):
   
   def _checkDlsHome(self, fileBlock, working_dir=None):
     """
-    Checks if the specified FileBlock is relative (not starting by '/') and if so,
-    it tries to complete it with the DLS client working directory.
+    It completes the specified FileBlock name, by prepending the fixed 
+    root path (starting point for the DLS server in the LFC's namespace).
 
-    This method is required to support the use of relative FileBlocks by client 
-    applications (like the CLI for example).
+    This method is required to hide the first LFC directories to the users.
 
-    The DLS client working directory should be read from (in this order):
-       - specified working_dir
-       - DLS_HOME environmental variable
-       - LFC_HOME environmental variable
-
-    If this DLS client working directory cannot be read, or if the specified
-    FileBlock is an absolute path, the original FileBlock is returned.
+    Further specification of working directory (on top of the root path)
+    could be supported but it is not implemented at the moment (for the
+    sake of simplicity).
 
     @param fileBlock: the FileBlock to be changed, as a string
-    @param working_dir: the DLS client working directory (FileBlock), as a string
+    @param working_dir: Ignored at the moment 
       
-    @return: the FileBlock name (possibly with a path prepended) as a string
+    @return: the FileBlock name (with the root path prepended) as a string
     """
-    if(not fileBlock.startswith('/')):
+    
+    # Current functionality just pre-prends the LFC's root path
+    # Remove next block to allow for relative fileblocks support (LFC_HOME...)
+    if(fileBlock.startswith('/')):
+       return self.root + fileBlock
+    else:
+       return self.root + '/' + fileBlock
+
+    # This makes the whole thing
+#    Checks if the specified FileBlock is relative (not starting by '/') and if so,
+#    it tries to complete it with the DLS client working directory.
+#
+#    This method is required to support the use of relative FileBlocks by client 
+#    applications (like the CLI for example).
+#
+#    The DLS client working directory should be read from (in this order):
+#       - specified working_dir
+#       - DLS_HOME environmental variable
+#       - LFC_HOME environmental variable
+#
+#    If this DLS client working directory cannot be read, or if the specified
+#    FileBlock is an absolute path, the original FileBlock is returned.
+#
+#    @param fileBlock: the FileBlock to be changed, as a string
+#    @param working_dir: the DLS client working directory (FileBlock), as a string
+#      
+#    @return: the FileBlock name (possibly with a path prepended) as a string
+    if(fileBlock.startswith('/')):
+       absFB = fileBlock
+    else:
        lfc_home = working_dir
        if(not lfc_home):
           lfc_home = environ.get("DLS_HOME")
        if(not lfc_home):
           lfc_home = environ.get("LFC_HOME")          
        if(lfc_home):
-          fileBlock = lfc_home + '/' + fileBlock
-  
-    return fileBlock
+          if(not lfc_home.startswith('/')):
+            lfc_home = '/' + lfc_home
+          absFB = lfc_home + '/' + fileBlock
+       else:
+          absFB = '/' + fileBlock
+
+    return self.root + absFB
+
+
+
+  def _removeRootPath(self, fileBlock):
+    """
+    Returns a FileBlock name with the leading root path (self.root) removed.
+    If fileBlock does not start with the root path, the name is returned
+    without modification, and a warning is printed.
+ 
+    This method is used to hide the LFC's root path of DLS in the FileBlock
+    names that are shown to users (since LFC's API gets and returns them in
+    an absolute form).
+    
+    @param fileBlock: the FileBlock to be changed, as a string
+      
+    @return: the FileBlock name (with the root path removed) as a string
+    """
+    if(fileBlock.startswith(self.root+'/')):
+       return fileBlock.replace(self.root+'/', "", 1)
+    else:
+       if(self.verb >= DLS_VERB_WARN):
+          msg = "Warning: Error when adapting name. FileBlock %s " % (fileBlock)
+          msg += "does not start with root path (%s)." % (self.root+'/')
+          print msg
+       return fileBlock
 
 
 
@@ -969,15 +1042,14 @@ class DlsLfcApi(dlsApi.DlsApi):
     @param dir: the directory tree to be created, as a string
     @param mode: the mode to be used in the directories creation
     """
-    if(dir == "/"):
+    dir = dir.rstrip('/')
+
+    if(dir == ""):
        # The root directory is already there
        return
 #       msg = "Cannot create the root directory"
 #       raise DlsLfcApiError(msg)
-
-    dir = dir.rstrip('/')
     
-    fstat = lfc.lfc_filestatg()
     parentdir = dir[0:dir.rfind('/')+1]  
     fstat = lfc.lfc_filestatg()
     if(lfc.lfc_statg(dir, "", fstat)<0):
@@ -1015,6 +1087,7 @@ class DlsLfcApi(dlsApi.DlsApi):
     # Exctract interesting values 
     lfn = dlsFileBlock.name
     lfn = self._checkDlsHome(lfn)
+    userlfn = self._removeRootPath(lfn)
     attrList = dlsFileBlock.attribs
     guid = dlsFileBlock.getGuid()
 
@@ -1053,7 +1126,7 @@ class DlsLfcApi(dlsApi.DlsApi):
           continue
        else:
           if(self.verb >= DLS_VERB_WARN):
-             print "Warning: Attribute %s of FileBlock (%s) unknown." % (attr, lfn)
+             print "Warning: Attribute %s of FileBlock (%s) unknown." % (attr, userlfn)
  
   # Check if entry exists
     fstat=lfc.lfc_filestatg()
@@ -1061,7 +1134,7 @@ class DlsLfcApi(dlsApi.DlsApi):
     
        # If it does not exist...
  
-       # First, check parents (only for absolute paths!, and if asked for)
+       # First, check parents only for absolute paths (always the case!), and if asked for
        if(createParent and lfn.startswith('/')):
           if(self.verb >= DLS_VERB_HIGH):
              print "--Checking parents of requested file: "+lfn
@@ -1075,7 +1148,7 @@ class DlsLfcApi(dlsApi.DlsApi):
           print "--lfc.lfc_creatg(\""+lfn+"\", \""+guid+"\",",mode,")"   
        if(lfc.lfc_creatg(lfn, guid, mode) < 0):
           code = lfc.cvar.serrno
-          msg = "Error creating the FileBlock %s: %s" % (lfn, lfc.sstrerror(code))
+          msg = "Error creating the FileBlock %s: %s" % (userlfn, lfc.sstrerror(code))
           if(self.verb >= DLS_VERB_WARN):
             print "Warning: " + msg
           raise DlsLfcApiError(msg, code)
@@ -1085,7 +1158,7 @@ class DlsLfcApi(dlsApi.DlsApi):
           print "--lfc.lfc_setfsizeg(\""+guid+"\",",filesize,",",csumtype,",",csumvalue,")"
        if (lfc.lfc_setfsizeg(guid, filesize, csumtype, csumvalue)):
           code = lfc.cvar.serrno
-          msg = "Error setting the filesize/cksum for the LFN %s: %s" % (lfn, lfc.sstrerror(code))
+          msg = "Error setting filesize/cksum for LFN %s: %s" % (userlfn, lfc.sstrerror(code))
           raise DlsLfcApiError(msg, code)
  
     else:
@@ -1097,7 +1170,7 @@ class DlsLfcApi(dlsApi.DlsApi):
 
 
 
-  def _addLocationToGuid(self, guid, dlsLocation):  
+  def _addLocationToGuid(self, guid, dlsLocation, fileBlock = None):  
     """
     Adds the specified location to the FileBlock identified by the specified
     GUID in the DLS.
@@ -1120,10 +1193,13 @@ class DlsLfcApi(dlsApi.DlsApi):
 
     @param guid: the GUID for the FileBlock, as a string
     @param dlsLocation: the DlsLocation objects to be added as location
+    @param fileBlock: the FileBlock name matching the guid (for messages only)
     """
     se = dlsLocation.host 
     sfn = dlsLocation.getSurl()
     attrList = dlsLocation.attribs
+    if(fileBlock): userfile = fileBlock
+    else:          userfile = guid
 
     # Default values
     if(not sfn):
@@ -1143,7 +1219,7 @@ class DlsLfcApi(dlsApi.DlsApi):
           continue
        else:
           if(self.verb >= DLS_VERB_WARN):
-             print "Warning: Attribute %s of location (%s) unknown." % (attr, sfn)
+             print "Warning: Attribute %s of location %s of %s unknown." % (attr, sfn, userfile)
  
   # Register location 
     if(self.verb >= DLS_VERB_HIGH):
@@ -1151,7 +1227,7 @@ class DlsLfcApi(dlsApi.DlsApi):
               se+"\", \""+sfn+"\",'-',\""+f_type+"\", \"\", \"\")"
     if(lfc.lfc_addreplica(guid, None, se, sfn, '-', f_type, "", "") < 0):
        code = lfc.cvar.serrno
-       msg = "Error adding location (%s) for FileBlock (%s): %s" % (se, guid, lfc.sstrerror(code))
+       msg = "Error adding location %s for FileBlock %s: %s" % (se, userfile, lfc.sstrerror(code))
        if(self.verb >= DLS_VERB_WARN):
          print "Warning: " + msg
        raise DlsLfcApiError(msg, code)
@@ -1160,7 +1236,8 @@ class DlsLfcApi(dlsApi.DlsApi):
     if(ptime):
        if(lfc.lfc_setptime(sfn, ptime)<0):
           code = lfc.cvar.serrno
-          msg = "Error setting pin time for location (%s): %s" % (sfn, lfc.sstrerror(code))
+          codestr = lfc.sstrerror(code)
+          msg = "Error setting pin time for location %s of %s: %s" % (sfn, userfile, codestr)
           raise DlsLfcApiError(msg, code)
  
     return(0)
@@ -1188,6 +1265,7 @@ class DlsLfcApi(dlsApi.DlsApi):
  
     lfn = dlsFileBlock.name 
     lfn = self._checkDlsHome(lfn)
+    userlfn = self._removeRootPath(lfn)
     guid = dlsFileBlock.getGuid()
     attrList = dlsFileBlock.attribs
        
@@ -1200,12 +1278,12 @@ class DlsLfcApi(dlsApi.DlsApi):
       if(lfc.lfc_statg("", guid, fstat) <0):
         code = lfc.cvar.serrno
         msg = "Error accessing FileBlock(%s): %s" % (guid, lfc.sstrerror(code))
-        raise DlsLfcApiError(msg, code)
+        raise NotAccessibleError(msg, code)
     else:
       if(lfc.lfc_statg(lfn, "", fstat) <0):
         code = lfc.cvar.serrno
-        msg = "Error accessing FileBlock(%s): %s" % (lfn, lfc.sstrerror(code))
-        raise DlsLfcApiError(msg, code)
+        msg = "Error accessing FileBlock(%s): %s" % (userlfn, lfc.sstrerror(code))
+        raise NotAccessibleError(msg, code)
  
     # Get current guid, filesize, csumtype, csumvalue
     guid = fstat.guid
@@ -1327,12 +1405,13 @@ class DlsLfcApi(dlsApi.DlsApi):
     """
  
     lfn = fileBlock
+    userlfn = self._removeRootPath(lfn)
    
     if(self.verb >= DLS_VERB_HIGH):
        print "--lfc.lfc_unlink(\""+lfn+"\")"
     if(lfc.lfc_unlink(lfn)<0):
        code = lfc.cvar.serrno
-       msg = "Error deleting FileBlock (%s): %s" % (lfn, lfc.sstrerror(code))
+       msg = "Error deleting FileBlock (%s): %s" % (userlfn, lfc.sstrerror(code))
        raise DlsLfcApiError(msg, code)
 
 
