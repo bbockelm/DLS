@@ -1,7 +1,7 @@
 #
-# $Id: dlsClient.py,v 1.3 2006/03/31 10:06:31 delgadop Exp $
+# $Id: dlsClient.py,v 1.4 2006/04/07 10:32:57 delgadop Exp $
 #
-# DLS Client. $Name$.
+# DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
 #
 
@@ -44,7 +44,7 @@ DLS_TYPE_MYSQL = "DLS_TYPE_MYSQL"
 # getDlsApi function 
 #########################################
 
-def getDlsApi(dls_type = None, dls_host = None, verbosity = dlsApi.DLS_VERB_WARN):
+def getDlsApi(dls_type = None, dls_endpoint = None, verbosity = dlsApi.DLS_VERB_WARN):
   """
   Returns a usable DLS API object, implementing (some of) the methods defined
   in the dlsApi.DlsApi class.
@@ -64,14 +64,14 @@ def getDlsApi(dls_type = None, dls_host = None, verbosity = dlsApi.DLS_VERB_WARN
    - DLS_TYPE_DLI  =>  DlsDliClient class (getLocations only API with LFC back-end)
    - DLS_TYPE_MYSQL =>  DlsMySQLApi  class (complete API with MySQL proto back-end)
 
-  The other arguments (dls_host and verbosity) are passed to the constructor 
+  The other arguments (dls_endpoint and verbosity) are passed to the constructor 
   of the DLS API as they are. See the dlsApi.DlsApi documentation for details.
       
   @exception dlsApi.ValueError: if the specified value is not one of the admitted ones
   @exception SetupError (from the implementation class): on errors instantiating the interface
 
   @param dls_type: the type of API that should be retrieved, see supported values
-  @param dls_host: the DLS server to be used, as a string with the form "hostname:port"
+  @param dls_endpoint: the DLS server, as a string "hname[:port][/path/to/DLS]"
   @param verbosity: value for the verbosity level, from the supported values
       
   @return: a DLS API implementation object
@@ -107,4 +107,4 @@ def getDlsApi(dls_type = None, dls_host = None, verbosity = dlsApi.DLS_VERB_WARN
      from dlsMySQLApi import DlsMySQLApi as api
                                                                                                  
 
-  return api(dls_host, verbosity)
+  return api(dls_endpoint, verbosity)
