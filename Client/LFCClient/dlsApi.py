@@ -1,5 +1,5 @@
 #
-# $Id: dlsApi.py,v 1.4 2006/04/07 10:30:22 delgadop Exp $
+# $Id: dlsApi.py,v 1.5 2006/04/19 16:25:48 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -80,13 +80,10 @@ class DlsApi(object):
   directly, but all instantiable API implementations should provide the code
   for the methods listed here.
   
-  Since, some DLS implementations may support hierarchy in the FileBlock
-  namespace, the methods accepting FileBlock names as arguments will usually 
-  support (unless specified) both relative (to a defined client working directory)
-  or absolute paths. Check each particular implementation in order to know how
-  to set this client working directory. In the case that this directory is not
-  set or for a DLS implementation with flat FileBlock namespace, the names are
-  all considered to be absolute.
+  Some DLS implementations may support hierarchy in the FileBlock namespace.
+  Some others may have a flat FileBlock namespace. This should not affect use of
+  the methods. Every method accepting FileBlock names as argument should require
+  them in their complete form (that is including any subdirectories). 
 
   Unless specified, in the instantiable implementations, all methods that can raise
   an exception will raise one derived from DlsApiError, but further information
@@ -98,6 +95,11 @@ class DlsApi(object):
     This constructor is used as a general data members initialiser.
     But remember that this class should not be instantiated, since no method
     here is implemented!
+
+    The variables set are the DLS server endpoint (optionally with a port
+    number, otherwise a default is used) and the verbosity. For some
+    implementations, also a path to the DLS root directory is required.
+    Implementations not using this path should accept it and just ignore it.
  
     Notice that this method allows to have an empty DLS endpoint, but instantiable
     DLS API classes should not allow this. They should deny instantiation if no
@@ -113,7 +115,7 @@ class DlsApi(object):
     The verbosity level affects invocations of all methods in this object. See
     the setVerbosity method for information on accepted values.
 
-    @param dls_endpoint: the DLS server to be used, as a string with the form "hostname:port"
+    @param dls_endpoint: the DLS server, as a string "hostname[:port][/path/to/DLS]"
     @param verbosity: value for the verbosity level
     """
 
@@ -138,11 +140,10 @@ class DlsApi(object):
     are also registered. For the DlsEntry objects with an already registered FileBlock,
     only the locations are added.
 
-    For DLS implementations with hierarchical FileBlock namespace, both relative
-    or absolute FileBlock names are supported. Also, they may support a flag,
-    createParent (**kwd), that, if true, will cause the check for existence of the
-    specified FileBlock parent directory tree, and the creation of that tree 
-    if it does not exist. The default for this flag is True.
+    For DLS implementations with hierarchical FileBlock namespace, they method may
+    support a flag, createParent (**kwd), that, if true, will cause the check for
+    existence of the specified FileBlock parent directory tree, and the creation of
+    that tree if it does not exist. The default for this flag is True.
 
     The supported attributes of the FileBlocks and of the locations, which are not null
     are also set for all the new registrations. Unsupported attributes are just ignored.
@@ -195,9 +196,6 @@ class DlsApi(object):
     For each specified DlsEntry, the supported not null attributes of the composing
     DlsFileBlock object and the supported not null attributes of the DlsLocation
     objects of the composing locations list are updated.
-
-    For DLS implementations with hierarchical FileBlock namespace, both relative
-    or absolute FileBlock names are supported. 
 
     Check the documentation of the concrete DLS client API implementation for
     supported attributes.
@@ -257,9 +255,6 @@ class DlsApi(object):
     A location will not be removed if it is custodial (f_type  == "P"), unless
     force (*kwd) is set to True.
 
-    For DLS implementations with hierarchical FileBlock namespace, both relative
-    or absolute FileBlock names are supported. 
-
     The method will not raise an exception for every error, but will try to go on
     with all the asked deletions.
     
@@ -305,9 +300,6 @@ class DlsApi(object):
     The FileBlocks may be specified as simple strings (hostnames) or as DlsFileBlock
     objects.
     
-    For DLS implementations with hierarchical FileBlock namespace, both relative
-    or absolute FileBlock names are supported. 
-
     If longList (**kwd) is set to true, some location attributes are also included
     in the returned DlsLocation objects. Check the documentation of the concrete
     DLS client API implementation for the list of attributes.
