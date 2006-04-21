@@ -1,5 +1,5 @@
 #
-# $Id: dlsDliClient.py,v 1.3 2006/04/07 09:29:20 delgadop Exp $
+# $Id: dlsDliClient.py,v 1.1 2006/04/07 09:36:00 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -79,6 +79,9 @@ class DlsDliClient(dlsApi.DlsApi):
     """
     Constructor of the class. It sets the DLI endpoint to communicate with
     and the verbosity level, and creates the binding with the DLI interface.
+    The DLI endpoint may include a path to the DLS root, since this is 
+    necessary for some back-ends. Notice that if this is not correctly
+    set the queries will probably fail.
     
     It tries to retrieve that value from several sources (in this order):
     
@@ -87,7 +90,7 @@ class DlsDliClient(dlsApi.DlsApi):
          - DLI_ENDPOINT environmental variable
          - DLI endpoint advertised in the Information System (if implemented)
 
-    If the DLI endpoint cannot be set in any of this ways, the instantiation is 
+    If the DLI endpoint cannot be set in any of these ways, the instantiation is 
     denied and a SetupError is raised.
  
     The verbosity level affects invocations of all methods in this object. See
@@ -95,20 +98,40 @@ class DlsDliClient(dlsApi.DlsApi):
       
     @exception SetupError: if no DLI can be found.
 
-    @param dli_endpoint: the DLI endpoint to be used, as a string with the form "hostname:port"
+    @param dli_endpoint: the DLI endpoint, as a string "hname[:port][/path/to/DLS]"
     @param verbosity: value for the verbosity level
     """
 
     # Let the parent set the server (if possible) and verbosity
     dlsApi.DlsApi.__init__(self, dli_endpoint, verbosity)
    
-    # Create the binding (that tries also DLI_ENDPOINT if server not yet set)
+     # If the server is not there yet, try from DLI_ENDPOINT
+    if(not self.server):
+      self.server = environ.get("DLI_ENDPOINT")
+
+    # If still not there, give up 
+    if(not self.server):
+       raise SetupError("Could not set the DLS server to use")
+      
+    # Extract the root directory
+    dlsserver=self.server.split('/')[0]
+    dlspath=self.server.replace(dlsserver,'')
+    dlspath = dlspath.rstrip('/')
+
+    # Set the server for LFC API use
+    self.server=dlsserver
+
+    # Set the root directory (might be empty, since DLI back-end may be other than LFC)
+    self.root = dlspath
+
+    # Create the binding 
     try:    
        if(self.verb >= DLS_VERB_HIGH):
           print "--DliClient.init(%s)" % self.server
        self.iface = dliClient.DliClient(self.server)
     except dliClient.SetupError, inst:
        raise SetupError("Error creating the binding with the DLI interface: "+str(inst))
+
 
   ############################################
   # Methods defining the main public interface
@@ -140,36 +163,133 @@ class DlsDliClient(dlsApi.DlsApi):
        theList = [fileBlockList]
 
     # Query the DLI
-    try:    
-      for fB in theList:
-        # Check what was passed (DlsFileBlock or string)
-        if(isinstance(fB, DlsFileBlock)):
-          lfn = fB.name
-        else:
-          lfn = fB
-        entry = DlsEntry(DlsFileBlock(lfn))
-
-        # Get the list of locations
-        locList = []
-        if(self.verb >= DLS_VERB_HIGH):
-           print "--DliClient.listLocations(%s)" % lfn
-        for host in self.iface.listLocations(lfn, fileType = "lfn"):
-           locList.append(DlsLocation(host))
-        entry.locations = locList
-        result.append(entry)
-
-     # Return
-      return result
-
-    except dliClient.DliClientError, inst:
-      msg = inst.msg
-      for i in [inst.actor, inst.detail]:
-         if(i):  msg += ". " + str(i)
-      e = DlsDliClientError(msg)
-      if(inst.faultcode):  
-         if(inst.faultstring):  e.code = inst.faultcode + ", " + inst.faultstring
-         else:                  e.code = inst.faultcode    
+    for fB in theList:
+      # Check what was passed (DlsFileBlock or string)
+      if(isinstance(fB, DlsFileBlock)):
+        lfn = fB.name
       else:
-         if(inst.faultstring):  e.code = inst.faultstring
-      raise e
+        lfn = fB
+      lfn = self._checkDlsHome(lfn)
+      userlfn = self._removeRootPath(lfn)
+      entry = DlsEntry(DlsFileBlock(userlfn))
+
+      # Get the list of locations
+      locList = []
+      if(self.verb >= DLS_VERB_HIGH):
+         print "--DliClient.listLocations(%s)" % lfn
+      try:    
+         for host in self.iface.listLocations(lfn, fileType = "lfn"):
+            locList.append(DlsLocation(host))
+      except dliClient.DliClientError, inst:
+        msg = inst.msg
+        msg = "Error querying for %s: %s" % (userlfn, inst.msg)
+        e = DlsDliClientError(msg)
+        if(isinstance(inst, dliClient.SoapError)):
+           for i in [inst.actor, inst.detail]:
+              if(i):  e.msg += ". " + str(i)
+           if(inst.faultcode):  
+              if(inst.faultstring):  e.code = inst.faultcode + ", " + inst.faultstring
+              else:                  e.code = inst.faultcode    
+           else:
+              if(inst.faultstring):  e.code = inst.faultstring
+        raise e
+
+      entry.locations = locList
+      result.append(entry)
+
+    # Return
+    return result
+
+
+
+
+
+  #########################
+  # Internal methods 
+  #########################
+  
+
+  def _checkDlsHome(self, fileBlock, working_dir=None):
+    """
+    It completes the specified FileBlock name, by prepending the fixed 
+    root path (starting point for the DLS server in the LFC's namespace).
+
+    This method is required to hide the first LFC directories to the users.
+
+    Further specification of working directory (on top of the root path)
+    could be supported but it is not implemented at the moment (for the
+    sake of simplicity).
+
+    @param fileBlock: the FileBlock to be changed, as a string
+    @param working_dir: Ignored at the moment 
+      
+    @return: the FileBlock name (with the root path prepended) as a string
+    """
+    
+    # Current functionality just pre-prends the LFC's root path
+    # Remove next block to allow for relative fileblocks support (LFC_HOME...)
+    if(fileBlock.startswith('/')):
+       return self.root + fileBlock
+    else:
+       return self.root + '/' + fileBlock
+
+    # This makes the whole thing
+#    Checks if the specified FileBlock is relative (not starting by '/') and if so,
+#    it tries to complete it with the DLS client working directory.
+#
+#    This method is required to support the use of relative FileBlocks by client 
+#    applications (like the CLI for example).
+#
+#    The DLS client working directory should be read from (in this order):
+#       - specified working_dir
+#       - DLS_HOME environmental variable
+#       - LFC_HOME environmental variable
+#
+#    If this DLS client working directory cannot be read, or if the specified
+#    FileBlock is an absolute path, the original FileBlock is returned.
+#
+#    @param fileBlock: the FileBlock to be changed, as a string
+#    @param working_dir: the DLS client working directory (FileBlock), as a string
+#      
+#    @return: the FileBlock name (possibly with a path prepended) as a string
+    if(fileBlock.startswith('/')):
+       absFB = fileBlock
+    else:
+       lfc_home = working_dir
+       if(not lfc_home):
+          lfc_home = environ.get("DLS_HOME")
+       if(not lfc_home):
+          lfc_home = environ.get("LFC_HOME")          
+       if(lfc_home):
+          if(not lfc_home.startswith('/')):
+            lfc_home = '/' + lfc_home
+          absFB = lfc_home + '/' + fileBlock
+       else:
+          absFB = '/' + fileBlock
+
+    return self.root + absFB
+
+
+  def _removeRootPath(self, fileBlock):
+    """
+    Returns a FileBlock name with the leading root path (self.root) removed.
+    If fileBlock does not start with the root path, the name is returned
+    without modification, and a warning is printed.
+ 
+    This method is used to hide the LFC's root path of DLS in the FileBlock
+    names that are shown to users (since LFC's API gets and returns them in
+    an absolute form).
+    
+    @param fileBlock: the FileBlock to be changed, as a string
+      
+    @return: the FileBlock name (with the root path removed) as a string
+    """
+    if(fileBlock.startswith(self.root+'/')):
+       return fileBlock.replace(self.root+'/', "", 1)
+    else:
+       if(self.verb >= DLS_VERB_WARN):
+          msg = "Warning: Error when adapting name. FileBlock %s " % (fileBlock)
+          msg += "does not start with root path (%s)." % (self.root+'/')
+          print msg
+       return fileBlock
 
