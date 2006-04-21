@@ -27,8 +27,8 @@ def usage():
    """
     Provides usage information
    """
-   print "Usage: dls-add [-v, -t, -p, -e ] <fileblock> [attr=val ..] [<SE> [attr=val ..] ..]"
-   print "       dls-add [-v, -t, -p, -e ] -f <listing_file>"
+   print "Usage: dls-add [-v, -t, -p, -e, -i] <fileblock> [attr=val ..] [<SE> [attr=val ..] ..]"
+   print "       dls-add [-v, -t, -p, -e, -i] -f <listing_file>"
    print "       dls-add -u"
    print "       dls-add -h"
 
@@ -42,6 +42,7 @@ def options():
    -v, --verbose <verb_level>
    -t, --transaction
    -e, --endpoint <endpoint>
+   -i, --interface-type <iface_type>
    -f, --from-file <filename>
    """
 #   -p, --create-parent
@@ -95,9 +96,22 @@ into several invocations of the command.
 The "-e" option can be used to set the DLS endpoint to use. If not specified,
 the endpoint is retrieved from:
     - DLS_ENDPOINT environmental variable
-If the DLS endpoint cannot be retrieved in any of this ways, the command fails. 
+If the DLS endpoint cannot be retrieved in any of these ways the command fails.
+The endpoint should be of the form: "hname[:port][/path/to/DLS]", where a
+default port is used if not specified, and the path to DLS may be required for
+some DLS implementations (and ignored otherwise).
 
-The -v option sets the verbosity level for the command. Accepted values are:
+The "-i" option specifies the type of interface that should be used (which
+depends on the DLS backend to access). If not specified, the interface type
+is retrieved from:
+    - DLS_TYPE environmental variable
+If the interface type cannot be retrieved in any of these ways, the command fails.
+Currently accepted values are:
+    - DLS_TYPE_LFC  =>  DlsLfcApi class (complete API with LFC back-end)
+    - DLS_TYPE_DLI  =>  DlsDliClient class (getLocations only API with LFC back-end)
+    - DLS_TYPE_MYSQL =>  DlsMySQLApi  class (complete API with MySQL proto back-end) 
+
+The "-v" option sets the verbosity level for the command. Accepted values are:
   -v 0 ==> print nothing else than error messages
   -v 1 ==> print also warning messages (default)
   -v 2 ==> print extra debug information
@@ -198,11 +212,11 @@ def main(pArgs):
 
  # Options and args... 
  
-#   longoptions=["help", "usage", "create-parent", "transaction", "endpoint", "verbose","from-file"]
-   longoptions=["help", "usage", "transaction", "endpoint", "verbose","from-file"]
+#   longoptions=["help", "usage", "create-parent", "transaction", "endpoint", "interface-type", "verbose","from-file"]
+   longoptions=["help", "usage", "transaction", "endpoint", "interface-type", "verbose","from-file"]
    try:
-#      optlist, args = getopt.getopt(pArgs, 'hupte:v:f:', longoptions)
-      optlist, args = getopt.getopt(pArgs, 'hute:v:f:', longoptions)
+#      optlist, args = getopt.getopt(pArgs, 'hupte:i:v:f:', longoptions)
+      optlist, args = getopt.getopt(pArgs, 'hute:i:v:f:', longoptions)
    except getopt.GetoptError, inst:
       sys.stderr.write("Bad usage: "+str(inst)+'\n')
       usage()
@@ -214,6 +228,8 @@ def main(pArgs):
    admitted_verb_values = [0, 1, 2]
    verbose = 1
    endpoint = None
+   iface_type = None
+   admitted_iface_types = ["DLS_TYPE_LFC", "DLS_TYPE_DLI", "DLS_TYPE_MYSQL"]
    fromFile = False
    fname=""
    for opt, val in optlist:
@@ -233,6 +249,17 @@ def main(pArgs):
 
        elif opt in ("-e","--endpoint"):
            endpoint = val
+
+       elif opt in ("-i", "--interface-type"):
+           if (not (val in admitted_iface_types)):
+              sys.stderr.write("Unsupported interface type: " + val + "\n")
+              return -1
+           if(val == "DLS_TYPE_LFC"):
+              iface_type = dlsClient.DLS_TYPE_LFC
+           if(val == "DLS_TYPE_DLI"):
+              iface_type = dlsClient.DLS_TYPE_DLI
+           if(val == "DLS_TYPE_MYSQL"):
+              iface_type = dlsClient.DLS_TYPE_MYSQL
 
        elif opt in ("-v", "--verbose"):
            try: 
@@ -277,7 +304,7 @@ def main(pArgs):
 
  # Create the interface binding
    try:
-      iface = dlsClient.getDlsApi(dls_host = endpoint)
+      iface = dlsClient.getDlsApi(iface_type, endpoint)
       if(verbose == 2):
          iface.setVerbosity(dlsApi.DLS_VERB_HIGH)
       else:
