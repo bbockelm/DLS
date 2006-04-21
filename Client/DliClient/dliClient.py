@@ -1,7 +1,7 @@
 #
-# $Id: dliClient.py,v 1.2 2006/03/31 09:30:45 delgadop Exp $
+# $Id: dliClient.py,v 1.3 2006/04/07 09:26:30 delgadop Exp $
 #
-# DliClient. $Name$.
+# DliClient. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
 #
 
@@ -161,9 +161,12 @@ class DliClient:
     try:
        # Get the SOAP binding
        iface = dliClient_types.DliSOAP(self.endpoint)       
-    except ZSIException, inst:
+    except Exception, inst:
        msg = "ZLI error when creating the SOAP binding: " + str(inst)
-       raise ZsiLibError(msg)
+       if(isinstance(inst, ZSIException)):
+          raise ZsiLibError(msg)
+       else:
+          raise DliClientError(msg)
  
     # Build the SOAP request 
     request = dliClient_types.new_listReplicasRequest(file, fileType)
@@ -178,9 +181,13 @@ class DliClient:
           result = []
        else:
           f = inst.fault
-          msg = "Error when accessing the DLI for %s of type %s. %s, %s" % (file, fileType, f.code, f.string)
+          msg = "Error accessing DLI %s for %s of " % (self.endpoint, file)
+          msg += "type %s. %s, %s" % (fileType, f.code, f.string)
           e = SoapError(msg, f.actor, f.code, f.detail, f.string)
           raise e
+    except Exception, inst:
+       msg="Error accessing DLI %s for %s of type %s: %s"%(self.endpoint, file, fileType, str(inst))
+       raise DliClientError(msg)
 
     # Return
     return result

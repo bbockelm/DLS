@@ -1,7 +1,7 @@
 #
-# $Id: dliClient_types.py,v 1.2 2006/03/31 09:30:13 delgadop Exp $
+# $Id: dliClient_types.py,v 1.3 2006/04/07 09:27:23 delgadop Exp $
 #
-# DliClient. $Name$.
+# DliClient. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
 #
 
@@ -23,6 +23,7 @@ from ZSI import client
 from ZSI.TCcompound import Struct
 import urlparse, types
 from dliClient import TypeError
+from dliClient import ValueError
 
 
 #########################################
@@ -52,15 +53,19 @@ class DliSOAP:
         """
         
         # Parse the service endpoint (extract host, port, url, for the Binding)
-        if(addr.find("://") == -1):
-          addr = "http://" + addr
-        netloc = (urlparse.urlparse(addr)[1]).split(":") + [8085,]
-        if not kw.has_key("host"):
-            kw["host"] = netloc[0]
-        if not kw.has_key("port"):
-            kw["port"] = int(netloc[1])
-        if not kw.has_key("url"):
-            kw["url"] =  urlparse.urlparse(addr)[2]
+        try:
+           if(addr.find("://") == -1):
+             addr = "http://" + addr
+           netloc = (urlparse.urlparse(addr)[1]).split(":") + [8085,]
+           if not kw.has_key("host"):
+               kw["host"] = netloc[0]
+           if not kw.has_key("port"):
+               kw["port"] = int(netloc[1])
+           if not kw.has_key("url"):
+               kw["url"] =  urlparse.urlparse(addr)[2]
+        except Exception, inst:
+           msg = "Incorrect format of specified DLI endpoint (%s): %s" % (addr, str(inst))
+           raise ValueError(msg)
 
         # Create the Binding (connect to the web service)
         self.binding = client.Binding(**kw)
