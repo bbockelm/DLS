@@ -1,6 +1,6 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
-# $Id: dls-get-datablock,v 1.2 2006/01/02 20:53:13 afanfani Exp $
+# $Id: dls-get-datablock,v 1.3 2006/01/06 17:46:30 afanfani Exp $
 
 import socket
 import pdb

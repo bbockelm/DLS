@@ -1,5 +1,5 @@
-#!/usr/bin/python
-# $Id: dls-server,v 1.4 2005/12/11 16:19:29 afanfani Exp $
+#!/usr/bin/env python
+# $Id: dls-server,v 1.5 2006/01/06 17:44:34 afanfani Exp $
 
 import Queue
 import socket
