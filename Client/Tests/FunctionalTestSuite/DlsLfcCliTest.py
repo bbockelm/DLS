@@ -252,7 +252,55 @@ class TestDlsCli_FromArgs(TestDlsCli):
      msg = "Error in dls-delete -a c1",out 
      self.assertEqual(st, 0, msg)
 
-# Test addition and get-se, for attributes using command line arguments
+
+  # Test deletion of a directory using CL args
+  def testDeletionDir(self):
+     # Create a non-empty dir
+     cmd = self.path + "/dls-add dir1/f1 CliTest_se1"
+     st, out = run(cmd)
+     msg = "Error in dls-add dir1/f1 CliTest_se1",out 
+     self.assertEqual(st, 0, msg)
+
+     # Test wrong arguments
+     cmd = self.path + "/dls-delete dir1 CliTest_se_XXX"
+     st, out = run(cmd)
+     msg = "Error in dls-delete dir1 CliTest_se_XXX",out 
+     self.assertEqual(st, 0, msg)
+     expected = "Warning: Without \"all\" option, skipping directory dir1"
+     msg = "The results obtained with dls-delete (%s) are not those expected (%s)" % (out, expected)
+     self.assertEqual(out, expected, msg)
+     
+     # Test trying to remove non-empty 
+     cmd = self.path + "/dls-delete -a dir1"
+     st, out = run(cmd)
+     msg = "Error in dls-delete -a dir1",out 
+     self.assertEqual(st, 0, msg)
+     expected = "Warning: Error deleting FileBlock directory dir1: File exists"
+     msg = "The results obtained with dls-delete (%s) are not those expected (%s)" % (out, expected)
+     self.assertEqual(out, expected, msg)
+     
+
+     # Now delete the file and remove the dir correctly
+     cmd = self.path + "/dls-delete -a dir1/f1"
+     st, out = run(cmd)
+     msg = "Error in dls-delete -a dir1/f1",out 
+     self.assertEqual(st, 0, msg)
+     cmd = self.path + "/dls-delete -a dir1"
+     st, out = run(cmd)
+     msg = "Error in dls-delete -a dir1 (empty)",out 
+     self.assertEqual(st, 0, msg)
+
+     # Test the dir went away
+     cmd = self.path + "/dls-get-se -l dir1"
+     st, out = run(cmd)
+     expected = "Error in the DLS query: Error retrieving locations for dir1: "
+     expected += "No such file or directory."
+     msg = "The results obtained with dls-delete (%s) are not those expected (%s)" % (out, expected)
+     self.assertEqual(out, expected, msg)
+
+
+
+  # Test addition and get-se, for attributes using command line arguments
   def testAttrsAdditionGetSE(self):
 
      # TODO: This should not be necessary when dls-list is there
