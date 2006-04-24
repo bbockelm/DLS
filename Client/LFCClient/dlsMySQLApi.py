@@ -1,5 +1,5 @@
 #
-# $Id: dlsMySQLApi.py,v 1.6 2006/04/07 09:25:00 delgadop Exp $
+# $Id: dlsMySQLApi.py,v 1.7 2006/04/09 23:31:59 afanfani Exp $
 #
 # DLC Client. $Name:  $. 
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -72,6 +72,15 @@ class SetupError(DlsMySQLApiError):
 #########################################
 # DlsApi class
 #########################################
+
+class DlsMySQLApiError(dlsApi.DlsApiError):
+  """
+  Exception class for the interaction with the DLS catalog using the DlsMySQLApi
+  class. It normally contains a string message (empty by default), and optionally
+  an  error code (e.g.: if such is returned from the DLS).
+                                                                                                     
+  The exception may be printed directly, or its data members accessed.
+  """
 
 class DlsMySQLApi(dlsApi.DlsApi):
   """
@@ -149,8 +158,7 @@ class DlsMySQLApi(dlsApi.DlsApi):
             self.__client.close()
             #return int(msg)
 #TODO : error code
-    return
-
+    return 
 
   def delete(self, dlsEntryList, **kwd):
     """
@@ -228,6 +236,10 @@ class DlsMySQLApi(dlsApi.DlsApi):
             #print msg
             ses=string.split(msg,'\n')
             locList = []
+            if ses == ['']:
+              msg=" No locations found for %s"%fb
+              code=4
+              raise DlsMySQLApiError(msg, code)
             for se in ses: 
              loc = DlsLocation(se)
              locList.append(loc)
@@ -270,12 +282,15 @@ class DlsMySQLApi(dlsApi.DlsApi):
                 print "Received from server:"
             #print msg
             fblocks=string.split(msg,'\n')
+            if fblocks == ['']:
+              msg=" No fileblocks found for %s"%se
+              code=4
+              raise DlsMySQLApiError(msg, code)
             for fb in fblocks:
               entry = DlsEntry(DlsFileBlock(fb),[DlsLocation(se)])
               entryList.append(entry)
             self.__client.close()
             #return 0
-
     return entryList
  
   ##################################
@@ -305,7 +320,11 @@ class DlsMySQLApi(dlsApi.DlsApi):
         """
         """       
         host=self.server.split(':')[0]
-        port=self.server.split(':')[1]
+        try:
+          port=self.server.split(':')[1]
+        except:
+          port=18080
+          pass
         if port==None:
            port=18080
 
@@ -317,8 +336,9 @@ class DlsMySQLApi(dlsApi.DlsApi):
         try:
             self.__client.connect ( (host, int(port)) )
         except:
-            print "DLS Server don't respond"
-            return 3
+            msg="DLS Server don't respond. Server host: %s port: %d "%(host,int(port))
+            code=3
+            raise DlsMySQLApiError(msg, code)
 
   def dls_send(self,msg):
         """
@@ -367,7 +387,7 @@ if __name__ == "__main__":
 ## use DLS server
    type="DLS_TYPE_MYSQL"
    server ="lxgate10.cern.ch:18081"
-   api = dlsClient.getDlsApi(dls_type=type,dls_host=server)
+   api = dlsClient.getDlsApi(dls_type=type,dls_endpoint=server)
                                                                                                                  
 ## get FileBlocks given a location
    se="cmsboce.bo.infn.it"
