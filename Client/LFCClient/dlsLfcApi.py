@@ -1,5 +1,5 @@
 #
-# $Id: dlsLfcApi.py,v 1.5 2006/04/19 17:39:03 delgadop Exp $
+# $Id: dlsLfcApi.py,v 1.6 2006/04/21 11:51:36 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -381,6 +381,10 @@ class DlsLfcApi(dlsApi.DlsApi):
 
     Implementation specific remarks:
 
+    The LFC-based DLS supports a hierarchical FileBlock namespace. This 
+    method, in the case that all (**kwd) is set to True, will delete empty
+    directories in the hierarchy.
+
     The LFC-based DLS supports symlinks to a FileBlock. This method accepts both
     original FileBlocks or symlinks. Only the specified one will be deleted,
     unless removeLinks (**kwd) is set to True; in that case, all the symlinks and
@@ -397,24 +401,23 @@ class DlsLfcApi(dlsApi.DlsApi):
 
     # Keywords
     force = False 
-    if(kwd.has_key("force")):
-       force = kwd.get("force")
+    if(kwd.has_key("force")):    force = kwd.get("force")
        
     all = False 
-    if(kwd.has_key("all")):
-       all = kwd.get("all")
+    if(kwd.has_key("all")):      all = kwd.get("all")
 
     removeLinks = False 
-    if(kwd.has_key("removeLinks")):
-       removeLinks = kwd.get("removeLinks")
+    if(kwd.has_key("removeLinks")):    removeLinks = kwd.get("removeLinks")
 
     keepFileBlock = False 
-    if(kwd.has_key("keepFileBlock")):
-       keepFileBlock = kwd.get("keepFileBlock")
+    if(kwd.has_key("keepFileBlock")):  keepFileBlock = kwd.get("keepFileBlock")
 
     session = False
-    if(kwd.has_key("session")):
-       session = kwd.get("session")
+    if(kwd.has_key("session")):  session = kwd.get("session")
+
+    errorTolerant = True 
+    if(kwd.has_key("errorTolerant")):  errorTolerant = kwd.get("errorTolerant")
+
        
     # Make sure the argument is a list
     if (isinstance(dlsEntryList, list)):
@@ -438,7 +441,42 @@ class DlsLfcApi(dlsApi.DlsApi):
       if(not all):
          for loc in entry.locations:
             seList.append(loc.host)
-  
+
+
+
+      ###### Directory part #####
+
+      # Check if the entry is a directory
+      S_IFDIR = 0x4000
+      fstat = lfc.lfc_filestatg()
+      if(lfc.lfc_statg(lfn, "", fstat)<0):
+         code = lfc.cvar.serrno
+         msg = "Error accessing file %s: %s" % (userlfn, lfc.sstrerror(code))
+         if(not errorTolerant): 
+            if(session): self.endSession()
+            raise DlsLfcApiError(msg, code)
+         else: 
+            if(self.verb >= DLS_VERB_WARN):
+               print "Warning: Skipping file. %s" % (msg)
+            continue
+
+      if(fstat.filemode & S_IFDIR):
+         # If all was specified, remove it, otherwise go on     
+         if(all):
+            try:
+               self._deleteDir(lfn)            
+            except DlsLfcApiError, inst:
+               if(not errorTolerant):
+                  if(session): self.endSession()
+                  raise inst
+            continue
+         else:
+            if(self.verb >= DLS_VERB_WARN):
+               print "Warning: Without \"all\" option, skipping directory %s" %(userlfn)
+            continue
+
+
+
       ###### Locations part #####
 
       # Retrieve the existing associated locations (from the catalog)
@@ -446,10 +484,16 @@ class DlsLfcApi(dlsApi.DlsApi):
          print "--lfc.lfc_getreplica(\""+lfn+"\", \"\",\"\")"
       err, locList = lfc.lfc_getreplica(lfn, "", "")
       if(err):
-         if(session): self.endSession()
-         code = lfc.cvar.serrno
-         msg = "Error retrieving locations for FileBlock (%s): %s" % (userlfn, lfc.sstrerror(code))
-         raise DlsLfcApiError(msg, code)
+            code = lfc.cvar.serrno
+            msg = "Error retrieving locations for FileBlock (%s): %s"%(userlfn, lfc.sstrerror(code))
+            if(not errorTolerant): 
+               if(session): self.endSession()
+               raise DlsLfcApiError(msg, code)
+            else: 
+               if(self.verb >= DLS_VERB_WARN):
+                  print "Warning: Skipping file. %s" % (msg)
+               continue
+
      
       # Make a copy of location list (to keep control of how many are left)
       remainingLocs = []
@@ -499,7 +543,7 @@ class DlsLfcApi(dlsApi.DlsApi):
          if(removeLinks):
   
             if(self.verb >= DLS_VERB_HIGH):
-            # TODO: Have to check this call... lxplus UI conf issue
+            # TODO: Have to check this call... never did the typemap
                print "--lfc.lfc_getlinks(\""+lfn+"\", \"\",\"\")"
             err, linkList = lfc.lfc_getlinks(lfn, "", "")
   
@@ -554,12 +598,10 @@ class DlsLfcApi(dlsApi.DlsApi):
     
     # Keywords
     longlist = False 
-    if(kwd.has_key("longlist")):
-       longlist = kwd.get("longlist")
+    if(kwd.has_key("longlist")):   longlist = kwd.get("longlist")
 
     session = False
-    if(kwd.has_key("session")):
-       session = kwd.get("session")
+    if(kwd.has_key("session")):    session = kwd.get("session")
 
     # Make sure the argument is a list
     if (isinstance(fileBlockList, list)):
@@ -1411,7 +1453,9 @@ class DlsLfcApi(dlsApi.DlsApi):
        print "--lfc.lfc_unlink(\""+lfn+"\")"
     if(lfc.lfc_unlink(lfn)<0):
        code = lfc.cvar.serrno
-       msg = "Error deleting FileBlock (%s): %s" % (userlfn, lfc.sstrerror(code))
+       msg = "Error deleting FileBlock %s: %s" % (userlfn, lfc.sstrerror(code))
+       if(self.verb >= DLS_VERB_WARN):
+          print "Warning: "+msg
        raise DlsLfcApiError(msg, code)
 
 
@@ -1437,5 +1481,39 @@ class DlsLfcApi(dlsApi.DlsApi):
        print "--lfc.lfc_delreplica(\"\", None, \""+sfn+"\")"   
     if(lfc.lfc_delreplica("", None, sfn) < 0):   
        code = lfc.cvar.serrno
-       msg = "Error deleting location (%s): %s" % (sfn, lfc.sstrerror(code))
+       msg = "Error deleting location %s: %s" % (sfn, lfc.sstrerror(code))
+       if(self.verb >= DLS_VERB_WARN):
+          print "Warning: "+msg
        raise DlsLfcApiError(msg, code)
+
+
+  def _deleteDir(self, dir):  
+    """
+    Removes the specified directory from FileBlock namespace in the DLS
+    catalog, if the directory is empty.
+
+    The directory is specified as a string.
+
+    The method will raise an exception in the case that there is an
+    error removing the directory (e.g. if it is not empty, or it does
+    exist). 
+
+    @exception DlsLfcApiError: On error with the DLS catalog
+    
+    @param dir: the directory to be removed, as a string
+    """
+ 
+    lfn = dir
+    userlfn = self._removeRootPath(lfn)
+   
+    if(self.verb >= DLS_VERB_HIGH):
+       print "--lfc.lfc_rmdir(\""+lfn+"\")"
+    if(lfc.lfc_rmdir(lfn)<0):
+       code = lfc.cvar.serrno
+       msg = "Error deleting FileBlock directory %s: %s" % (userlfn, lfc.sstrerror(code))
+       if(self.verb >= DLS_VERB_WARN):
+          print "Warning: "+msg
+       raise DlsLfcApiError(msg, code)
+
+
+

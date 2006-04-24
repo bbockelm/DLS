@@ -1,5 +1,5 @@
 #
-# $Id: dlsApi.py,v 1.5 2006/04/19 16:25:48 delgadop Exp $
+# $Id: dlsApi.py,v 1.6 2006/04/21 11:49:04 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -252,11 +252,17 @@ class DlsApi(object):
     specified FileBlock is deleted, the FileBlock itself is also removed, 
     unless keepFileBlock (**kwd) is set to true.
 
-    A location will not be removed if it is custodial (f_type  == "P"), unless
-    force (*kwd) is set to True.
+    For DLS implementations with a hierarchical FileBlock namespace, in the
+    all==True case, the method will also delete empty directories in the
+    hierarchy. Non empty directories will refuse to be removed (raising 
+    an exception or printing a warning).
 
-    The method will not raise an exception for every error, but will try to go on
-    with all the asked deletions.
+    A location will not be removed if it is custodial (f_type  == "P"),
+    unless force (*kwd) is set to True.
+
+    The method will not raise an exception for every error, but will try to
+    go on with all the asked deletions, unless errorTolerant (**kwd) is set 
+    to False. 
     
     If session(**kwd) is set to True, the whole operation of the method is
     performed within a session (if the DLS implementation supports it).
@@ -279,6 +285,7 @@ class DlsApi(object):
       - all: boolean (default False) for removing all locations 
       - keepFileBlock: boolean (default False) for not deleting empty Fileblocks
       - force: boolean (default False) for removing custodial locations 
+      - errorTolerant: boolean (default True) for raising an exception after failure
       - session: boolean (default False) for using a session for the operations
     """
 
