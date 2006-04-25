@@ -18,16 +18,32 @@ setup:
 lfc-mysql:
 	/bin/cp $(PYTHON_SRC)/LFCClient/dls* $(LIB_DIR)/.
 	/bin/cp $(PYTHON_SRC)/DliClient/dli* $(LIB_DIR)/.
+	/bin/cp -r $(PYTHON_SRC)/DliClient/ZSI.tar.gz $(LIB_DIR)/.
+	cd $(LIB_DIR) && tar xvzf ZSI.tar.gz > /dev/null && /bin/rm $(LIB_DIR)/ZSI.tar.gz
 
 lfc:
 	/bin/cp $(PYTHON_SRC)/LFCClient/dls* $(LIB_DIR)/.
 	/bin/cp $(PYTHON_SRC)/DliClient/dli* $(LIB_DIR)/.
 	/bin/rm $(LIB_DIR)/dlsMySQLApi.py
+	/bin/cp -r $(PYTHON_SRC)/DliClient/ZSI.tar.gz $(LIB_DIR)/.
+	cd $(LIB_DIR) && tar xvzf ZSI.tar.gz > /dev/null && /bin/rm $(LIB_DIR)/ZSI.tar.gz
+
+dli:
+	/bin/cp $(PYTHON_SRC)/LFCClient/dls* $(LIB_DIR)/.
+	/bin/cp $(PYTHON_SRC)/DliClient/dli* $(LIB_DIR)/.
+	/bin/rm $(LIB_DIR)/dls-add
+	/bin/rm $(LIB_DIR)/dls-delete
+	/bin/rm $(LIB_DIR)/dls-update
+	/bin/rm $(LIB_DIR)/dlsMySQLApi.py
+	/bin/rm $(LIB_DIR)/dlsLfcApi.py
+	/bin/cp -r $(PYTHON_SRC)/DliClient/ZSI.tar.gz $(LIB_DIR)/.
+	cd $(LIB_DIR) && tar xvzf ZSI.tar.gz > /dev/null && /bin/rm $(LIB_DIR)/ZSI.tar.gz
 
 mysql:
 	/bin/cp $(PYTHON_SRC)/LFCClient/dls* $(LIB_DIR)/.
 	/bin/rm $(LIB_DIR)/dlsLfcApi.py
 	/bin/rm $(LIB_DIR)/dlsDliClient.py
+
 
 clean:
 	/bin/rm -rf $(LIB_DIR)/*
