@@ -1,5 +1,5 @@
 #
-# $Id: dlsLfcApi.py,v 1.6 2006/04/21 11:51:36 delgadop Exp $
+# $Id: dlsLfcApi.py,v 1.7 2006/04/24 13:03:48 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -1515,5 +1515,34 @@ class DlsLfcApi(dlsApi.DlsApi):
           print "Warning: "+msg
        raise DlsLfcApiError(msg, code)
 
+##################################################333
+# Unit testing                                                                                                   
+if __name__ == "__main__":
+                                                                                    
+   import dlsClient
+   from dlsDataObjects import *                                                                                                   
+## use DLS server
+   type="DLS_TYPE_LFC"
+   server ="lfc-cms-test.cern.ch/grid/cms/DLS/LFCProto"
+   try:
+     api = dlsClient.getDlsApi(dls_type=type,dls_endpoint=server)
+   except dlsApi.DlsApiError, inst:
+      msg = "Error when binding the DLS interface: " + str(inst)
+      print msg
+      sys.exit()
+
+## get Locations given a fileblock
+   fb="bt_DST871_2x1033PU_g133_CMS/bt03_tt_2tauj"
+   try:
+     entryList=api.getLocations([fb])
+   except dlsApi.DlsApiError, inst:
+     msg = "Error in the DLS query: %s." % str(inst)
+     print msg
+     sys.exit()
+   if(not isinstance(entryList, list)):
+     entryList = [entryList]
+   for entry in entryList:
+    for loc in entry.locations:
+     print loc.host
 
 

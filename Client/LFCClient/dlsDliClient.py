@@ -1,5 +1,5 @@
 #
-# $Id: dlsDliClient.py,v 1.1 2006/04/07 09:36:00 delgadop Exp $
+# $Id: dlsDliClient.py,v 1.2 2006/04/21 11:50:13 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -120,6 +120,9 @@ class DlsDliClient(dlsApi.DlsApi):
 
     # Set the server for LFC API use
     self.server=dlsserver
+
+    if (not dlspath):
+       raise SetupError("No LFC's root directory specified for DLS use")
 
     # Set the root directory (might be empty, since DLI back-end may be other than LFC)
     self.root = dlspath

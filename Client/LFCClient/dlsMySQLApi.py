@@ -1,5 +1,5 @@
 #
-# $Id: dlsMySQLApi.py,v 1.7 2006/04/09 23:31:59 afanfani Exp $
+# $Id: dlsMySQLApi.py,v 1.8 2006/04/24 23:47:53 afanfani Exp $
 #
 # DLC Client. $Name:  $. 
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -387,17 +387,34 @@ if __name__ == "__main__":
 ## use DLS server
    type="DLS_TYPE_MYSQL"
    server ="lxgate10.cern.ch:18081"
-   api = dlsClient.getDlsApi(dls_type=type,dls_endpoint=server)
+   try:
+     api = dlsClient.getDlsApi(dls_type=type,dls_endpoint=server)
+   except dlsApi.DlsApiError, inst:
+      msg = "Error when binding the DLS interface: " + str(inst)
+      print msg
+      sys.exit()
                                                                                                                  
 ## get FileBlocks given a location
    se="cmsboce.bo.infn.it"
-   entryList=api.getFileBlocks(se)
+   try:
+     entryList=api.getFileBlocks(se)
+   except dlsApi.DlsApiError, inst:
+     msg = "Error in the DLS query: %s." % str(inst)
+     print msg
+     sys.exit()
    for entry in entryList:
-     print entry.fileBlock.name                                                                                                            
+      print entry.fileBlock.name
+
+
 ## get Locations given a fileblock
    fb="bt_DST871_2x1033PU_g133_CMS/bt03_tt_2tauj"
    #fb="testblock"
-   entryList=api.getLocations([fb])
+   try:
+     entryList=api.getLocations([fb])
+   except dlsApi.DlsApiError, inst:
+     msg = "Error in the DLS query: %s." % str(inst)
+     print msg
+     sys.exit()
    for entry in entryList:
     for loc in entry.locations:
      print loc.host
