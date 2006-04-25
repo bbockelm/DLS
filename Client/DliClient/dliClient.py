@@ -1,5 +1,5 @@
 #
-# $Id: dliClient.py,v 1.3 2006/04/07 09:26:30 delgadop Exp $
+# $Id: dliClient.py,v 1.4 2006/04/21 11:39:04 delgadop Exp $
 #
 # DliClient. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -137,7 +137,7 @@ class DliClient:
 
     if (not self.endpoint):
        raise SetupError("Could not set the DLI endpoint to use")
-       
+
 
 
   def listSurls(self, file, fileType = "lfn"):
@@ -241,3 +241,33 @@ class DliClient:
       raise ValueError(msg)
 
     self.verb = value
+
+
+##################################################333
+# Unit testing                                                                                          
+if __name__ == "__main__":
+                                                                                         
+   import dlsClient
+   from dlsDataObjects import *                                                                                          
+## use DLS server
+   type="DLS_TYPE_DLI"
+   server ="lfc-cms-test.cern.ch/grid/cms/DLS/LFCProto"
+   try:
+     api = dlsClient.getDlsApi(dls_type=type,dls_endpoint=server)
+   except dlsApi.DlsApiError, inst:
+      msg = "Error when binding the DLS interface: " + str(inst)
+      print msg
+      sys.exit()
+                                                                                         
+## get Locations given a fileblock
+   fb="bt_DST871_2x1033PU_g133_CMS/bt03_tt_2tauj"
+   try:
+     entryList=api.getLocations([fb])
+   except dlsApi.DlsApiError, inst:
+     msg = "Error in the DLS query: %s." % str(inst)
+     print msg
+     sys.exit()
+   for entry in entryList:
+    for loc in entry.locations:
+     print loc.host
+
