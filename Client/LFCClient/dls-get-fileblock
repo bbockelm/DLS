@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #
-# $Id: dls-get-fileblock,v 1.3 2006/04/21 11:43:44 delgadop Exp $
+# $Id: dls-get-fileblock,v 1.4 2006/04/24 23:47:53 afanfani Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -184,7 +184,7 @@ def main(pArgs):
 
        elif opt in ("-i", "--interface-type"):
            if (not (val in admitted_iface_types)):
-              sys.stderr.write("Unsupported interface type: " + val + "\n")
+              sys.stderr.write("Unsupported interface type: " + val + "\nSuppported values: %s\n"%admitted_iface_types)
               return -1
            if(val == "DLS_TYPE_LFC"):
               iface_type = dlsClient.DLS_TYPE_LFC
@@ -207,14 +207,7 @@ def main(pArgs):
        elif opt in ("-f","--from-file"):
            fromFile = True
            fname = val
-           
-   if endpoint==None:
-      sys.stderr.write("error: -e --endpoint is required\n")
-      return -1
-   if iface_type==None:
-      sys.stderr.write("error: -i --iface_type is required\nSuppported values: %s"%admitted_iface_types)
-      return -1
-  
+
  # Build the arguments 
 
    # From file

@@ -1,5 +1,5 @@
 #
-# $Id: dlsClient.py,v 1.4 2006/04/07 10:32:57 delgadop Exp $
+# $Id: dlsClient.py,v 1.5 2006/04/21 11:48:21 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -54,7 +54,6 @@ def getDlsApi(dls_type = None, dls_endpoint = None, verbosity = dlsApi.DLS_VERB_
     - The specified dls_type argument
     - The DLS_TYPE environmental variable
     - DLS catalog type advertised in the Information System (if implemented)
-    - The default value defined in this class (currently DLS_LFC)
 
   If specified, the dls_type argument (or the contents of the DlsType variable)
   should be one of the supported values (defined in this module).
@@ -78,8 +77,6 @@ def getDlsApi(dls_type = None, dls_endpoint = None, verbosity = dlsApi.DLS_VERB_
   """
 
   admitted_vals = [DLS_TYPE_LFC, DLS_TYPE_DLI, DLS_TYPE_MYSQL]
-  default = DLS_TYPE_LFC
-  #default = DLS_TYPE_MYSQL
   candidate = None
  
   # First set the candidate from the arguments or environment
@@ -88,13 +85,9 @@ def getDlsApi(dls_type = None, dls_endpoint = None, verbosity = dlsApi.DLS_VERB_
   else:
     candidate = environ.get("DLS_TYPE")
 
-  # If not set, use the default
-  if(not candidate):
-    candidate = default
-
   # Check value is supported
   if(candidate not in admitted_vals):
-    msg = "The specified value (%s) is not one of the admitted ones" % candidate
+    msg = "The specified value (%s) is not one of the admitted ones: %s" % (candidate,admitted_vals)
     raise dlsApi.ValueError(msg)
 
 
