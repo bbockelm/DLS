@@ -1,5 +1,5 @@
 #
-# $Id: dlsLfcApi.py,v 1.7 2006/04/24 13:03:48 delgadop Exp $
+# $Id: dlsLfcApi.py,v 1.8 2006/04/25 18:27:03 afanfani Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -38,13 +38,11 @@ import commands
 import time
 import getopt
 from os import environ, putenv
-
+from stat import S_IFDIR
 #########################################
 # Module globals
 #########################################
-#DLS_VERB_NONE = 0    # print nothing
-#DLS_VERB_WARN = 10   # print only warnings (to stdout)
-#DLS_VERB_HIGH = 20   # print warnings (stdout) and error messages (stderr)
+#S_IFDIR = 0x4000
 
 #########################################
 # DlsLfcApiError class
@@ -334,7 +332,6 @@ class DlsLfcApi(dlsApi.DlsApi):
       if(err):
          if(not errorTolerant):
            if(session): self.endSession()
-           raise inst
            code = lfc.cvar.serrno
            msg = "Error retrieving locations for(%s): %s" % (userlfn, lfc.sstrerror(code))
            if(trans):   msg += ". Transaction operations rolled back"
@@ -365,7 +362,7 @@ class DlsLfcApi(dlsApi.DlsApi):
    
       # For the SEs specified, warn if they were not all updated 
       if(seList and (self.verb >= DLS_VERB_WARN)):
-         print "Warning: Not all locations could be found and updated"
+         print "Warning: FileBlock %s - Not all locations could be found and updated"%(userlfn)
 
     # End transaction/session
     if(trans): self.endTrans()
@@ -447,17 +444,16 @@ class DlsLfcApi(dlsApi.DlsApi):
       ###### Directory part #####
 
       # Check if the entry is a directory
-      S_IFDIR = 0x4000
       fstat = lfc.lfc_filestatg()
       if(lfc.lfc_statg(lfn, "", fstat)<0):
          code = lfc.cvar.serrno
-         msg = "Error accessing file %s: %s" % (userlfn, lfc.sstrerror(code))
+         msg = "Error accessing FileBlock %s: %s" % (userlfn, lfc.sstrerror(code))
          if(not errorTolerant): 
             if(session): self.endSession()
             raise DlsLfcApiError(msg, code)
          else: 
             if(self.verb >= DLS_VERB_WARN):
-               print "Warning: Skipping file. %s" % (msg)
+               print "Warning: Skipping FileBlock. %s" % (msg)
             continue
 
       if(fstat.filemode & S_IFDIR):
@@ -491,7 +487,7 @@ class DlsLfcApi(dlsApi.DlsApi):
                raise DlsLfcApiError(msg, code)
             else: 
                if(self.verb >= DLS_VERB_WARN):
-                  print "Warning: Skipping file. %s" % (msg)
+                  print "Warning: Skipping FileBlock. %s" % (msg)
                continue
 
      
@@ -778,8 +774,6 @@ class DlsLfcApi(dlsApi.DlsApi):
 
   def listFileBlocks(self, fileBlockList, **kwd):
     """
-    THIS METHOD IS NOT YET IMPLEMENTED.
-
     Implementation of the dlsApi.DlsApi.listFileBlocks method.
     Refer to that method's documentation.
 
@@ -792,16 +786,56 @@ class DlsLfcApi(dlsApi.DlsApi):
     If longList (**kwd) is set to true, the attributes returned with
     the FileBlock are the following:
      - filemode
-     - nbfiles (number of files in a directory)
-     - owner
-     - group (group owner)
+     - nlink (number of files in a directory, 1 for a FileBlock)
+     - uid (owner)
+     - gid (group owner)
+     - filesize
      - mtime (last modification date)
 
     NOTE: Normally, it makes no sense to use this method within a transaction,
     so please avoid it. 
     """
-    msg += "Not yet implemented"
-    raise NotImplementedError(msg)
+    # Keywords
+    longList = True 
+    if(kwd.has_key("longList")):   longList = kwd.get("longList")
+
+    session = False
+    if(kwd.has_key("session")):    session = kwd.get("session")
+
+    # Start session
+    if(session): self.startSession()
+
+    # Check if the argument is list / single fB / single dir
+    if (not isinstance(fileBlockList, list)):
+       lfn = fileBlockList
+       try:
+          result = self._listFileBlock(lfn, True) 
+          if(result.attribs["filemode"] & S_IFDIR):
+             if(self.verb >= DLS_VERB_HIGH):
+                 print "--listDir(%s)" % (lfn)
+             result = self._listDir(lfn, longList)
+          else:
+             if(not longList):
+                result = DlsFileBlock(userlfn)
+       except DlsLfcApiError, inst:
+          if(session): self.endSession() 
+          raise
+
+    # It is a list (fileBlocks), loop on the entries
+    else: 
+      result = []
+      for fB in fileBlockList:
+         try:
+            result.append(self._listFileBlock(fB, longList))
+         except DlsLfcApiError, inst:
+            if(session): self.endSession() 
+            raise
+
+    # End session
+    if(session): self.endSession()
+
+    # Return what we got
+    return result
 
 
   def startSession(self):
@@ -929,8 +963,6 @@ class DlsLfcApi(dlsApi.DlsApi):
 
   def getGUID(self, fileBlock):
     """
-    THIS METHOD IS NOT YET IMPLEMENTED.
-
     Returns the GUID used in the DLS for the specified FileBlock, by querying
     the DLS.
 
@@ -949,16 +981,42 @@ class DlsLfcApi(dlsApi.DlsApi):
 
     @return: the GUID, as a string or the DlsFileBlock object with the GUID set
     """
-    
-    # Implement here...
-    msg += "Not yet implemented"
-    raise NotImplementedError(msg)
+    # Check what was passed and extract the FileBlock name
+    if(isinstance(fileBlock, DlsFileBlock)):
+       objectPassed = True
+       lfn = fileBlock.name
+    else:
+       objectPassed = False
+       lfn = fileBlock
+
+    # Adapt name... 
+    lfn = self._checkDlsHome(lfn)
+    userlfn = self._removeRootPath(lfn)
+   
+    # Query the DLS
+    fstat=lfc.lfc_filestatg()
+    if(self.verb >= DLS_VERB_HIGH):
+       print "--lfc.lfc_statg(%s)" % (lfn)
+    if(lfc.lfc_statg(lfn, "", fstat) <0):
+       code = lfc.cvar.serrno
+       msg = "Error accessing FileBlock %s: %s" % (userlfn, lfc.sstrerror(code))
+       if(self.verb >= DLS_VERB_WARN):
+         print "Warning: " + msg
+       raise DlsLfcApiError(msg, code)
+    else:
+       guid=fstat.guid
+
+    # Return the result
+    if(objectPassed):
+       fileBlock.setGuid(guid)
+       return fileBlock
+    else:
+       return guid
+ 
 
     
   def getSURL(self, dlsEntry):
     """
-    THIS METHOD IS NOT YET IMPLEMENTED.
-
     Gets the SURLs associated with the specified DlsEntry object. It querys the
     DLS and sets the SURLs (one per each location in the composing location list)
     in the specified DlsEntry object. It returns a reference to this completed
@@ -968,13 +1026,47 @@ class DlsLfcApi(dlsApi.DlsApi):
     
     @param dlsEntry: the DlsEntry object for which the SURLs must be retrieved
 
-    @return: the DlsEntry object with the SURLs added for each location
+    @return: a reference to the same DlsEntry object with the SURLs added for
+    each location
     """
+    # Extract and adapt FileBlock name
+    lfn = self._checkDlsHome(dlsEntry.fileBlock.name)
+    userlfn = self._removeRootPath(lfn)
 
-    # Implement here...
-    msg += "Not yet implemented"
-    raise NotImplementedError(msg)
+    # Now the locations (must compate with those of the catalog)
+    seList = []
+    for loc in dlsEntry.locations:
+       seList.append(loc.host)
+   
+    # Query the DLS
+    if(self.verb >= DLS_VERB_HIGH):
+       print "--lfc.lfc_getreplica(\""+ lfn +"\", \"\",\"\")"
+    err, repList = lfc.lfc_getreplica(lfn, "", "")
+    if(err):
+      code = lfc.cvar.serrno
+      msg = "Error retrieving locations for(%s): %s" % (userlfn, lfc.sstrerror(code))
+      raise DlsLfcApiError(msg, code)
+    
+    for filerep in repList:
 
+       # Set the SURL in the passed object
+       if (filerep.host in seList):
+          loc = dlsEntry.getLocation(filerep.host)
+          loc.setSurl(filerep.sfn)
+       
+          # Don't look for this SE further
+          seList.remove(filerep.host)            
+          
+          # And if no more SEs, exit
+          if(not seList):
+             break
+   
+    # For the SEs specified, warn if they were not all found
+    if(seList and (self.verb >= DLS_VERB_WARN)):
+       print "Warning: FileBlock %s - not all locations could be found and their SURL set"%(userlfn)
+
+    # Return the result
+    return dlsEntry 
 
   #########################
   # Internal methods 
@@ -998,7 +1090,7 @@ class DlsLfcApi(dlsApi.DlsApi):
     """
     
     # Current functionality just pre-prends the LFC's root path
-    # Remove next block to allow for relative fileblocks support (LFC_HOME...)
+    # Remove next block to allow for relative FileBlocks support (LFC_HOME...)
     if(fileBlock.startswith('/')):
        return self.root + fileBlock
     else:
@@ -1057,7 +1149,10 @@ class DlsLfcApi(dlsApi.DlsApi):
     @return: the FileBlock name (with the root path removed) as a string
     """
     if(fileBlock.startswith(self.root+'/')):
-       return fileBlock.replace(self.root+'/', "", 1)
+       result = fileBlock.replace(self.root+'/', "", 1)
+       result = result.rstrip('/')
+       if(not result): result = '/'
+       return result       
     else:
        if(self.verb >= DLS_VERB_WARN):
           msg = "Warning: Error when adapting name. FileBlock %s " % (fileBlock)
@@ -1179,7 +1274,7 @@ class DlsLfcApi(dlsApi.DlsApi):
        # First, check parents only for absolute paths (always the case!), and if asked for
        if(createParent and lfn.startswith('/')):
           if(self.verb >= DLS_VERB_HIGH):
-             print "--Checking parents of requested file: "+lfn
+             print "--Checking parents of requested FileBlock: "+lfn
           parentdir = lfn[0:lfn.rfind('/')+1]
           self._checkAndCreateDir(parentdir, mode)
  
@@ -1514,6 +1609,145 @@ class DlsLfcApi(dlsApi.DlsApi):
        if(self.verb >= DLS_VERB_WARN):
           print "Warning: "+msg
        raise DlsLfcApiError(msg, code)
+
+       
+  def _listFileBlock(self, lfn, longList = True):
+    """
+    Returns a FileBlock object with information regarding the specified FileBlock.
+
+    The FileBlock is specified as a DlsFileBlock object or as a string with
+    its name.
+
+    If longList is specified, the returned object contains some attributes as
+    specifed in the listFileBlocks method.
+
+    The method will raise an exception in the case that there is an error
+    listing the FileBlock. 
+
+    @exception DlsLfcApiError: On error with the DLS catalog
+    
+    @param lfn: the FileBlock to be listed, as a string or DlsFileBlock object
+    @param longList: boolean (default True) for adding attrs to the FileBlock
+    """
+    # Check what was passed (DlsFileBlock or string)
+    if(isinstance(lfn, DlsFileBlock)):
+      lfn = lfn.name
+    else:
+      lfn = lfn
+    lfn = self._checkDlsHome(lfn)
+    userlfn = self._removeRootPath(lfn)
+
+    # Get info
+    fstat = lfc.lfc_filestatg()
+    if(self.verb >= DLS_VERB_HIGH):
+       print "--lfc.lfc_statg(%s)" % (lfn)
+    if(lfc.lfc_statg(lfn, "", fstat)<0):
+       code = lfc.cvar.serrno
+       msg = "Error accessing FileBlock %s: %s" % (userlfn, lfc.sstrerror(code))
+       if(self.verb >= DLS_VERB_WARN):
+          print "Warning: %s" % (msg)
+       raise DlsLfcApiError(msg, code)
+
+    # Just the name    
+    if(not longList):
+       return DlsFileBlock(userlfn)
+
+    # Long listing
+    result = DlsFileBlock(userlfn)
+    result.attribs["filemode"] =  fstat.filemode
+    result.attribs["nlink"] =  fstat.nlink
+    result.attribs["uid"] =  fstat.uid
+    result.attribs["gid"] =  fstat.gid
+    result.attribs["filesize"] =  fstat.filesize
+    result.attribs["mtime"] =  fstat.mtime
+
+    # Return
+    return result
+
+
+  def _listDir(self, dir, longList = False):
+    """
+    Returns the entries of the specified directory from FileBlock namespace in
+    the DLS catalog, as a list of FileBlock objects.
+
+    The directory is specified as a string.
+
+    If longList is specified, each returned object contains some attributes as
+    specifed in the listFileBlocks method.
+
+    The method will raise an exception in the case that there is an error
+    listing the directory. 
+
+    @exception DlsLfcApiError: On error with the DLS catalog
+    
+    @param dir: the directory to be listed, as a string
+    @param longList: boolean (default False) for adding attrs to the FileBlocks
+    """
+    # Check what was passed (DlsFileBlock or string)
+    if(isinstance(dir, DlsFileBlock)):
+      lfn = dir.name
+    else:
+      lfn = dir
+    dir = self._checkDlsHome(lfn)
+    userdir = self._removeRootPath(dir)
+
+    # Open dir 
+    dir_p = lfc.lfc_DIR()
+    dir_entry = lfc.lfc_direnstatg()
+    if(self.verb >= DLS_VERB_HIGH):
+       print "--lfc.lfc_opendirg(%s, \"\")"  % (dir)
+    dir_p = lfc.lfc_opendirg(dir , "")
+    if(not dir_p):
+       code = lfc.cvar.serrno
+       msg = "Error opening specified dir %s: %s" % (userdir, lfc.sstrerror(code))
+       raise DlsLfcApiError(msg, code)
+#    lfc.lfc_rewinddir(dir_p)
+
+    # Loop on dir
+    fBList = []
+    dir_entry = lfc.lfc_readdirg(dir_p)
+    if(not dir_entry):
+       code = lfc.cvar.serrno
+       if(code != 0):
+          msg = "Error reading dir %s: %s" % (userdir, lfc.sstrerror(code))
+          raise DlsLfcApiError(msg, code)
+       
+    while(dir_entry):
+      # Just the name    
+      if(not longList):
+         fBList.append(DlsFileBlock(dir_entry.d_name))
+      else:
+         # Long listing
+         fB = DlsFileBlock(dir_entry.d_name)
+         fB.attribs["filemode"] =  dir_entry.filemode
+         fB.attribs["nlink"] =  dir_entry.nlink
+         fB.attribs["uid"] =  dir_entry.uid
+         fB.attribs["gid"] =  dir_entry.gid
+         fB.attribs["filesize"] =  dir_entry.filesize
+         fB.attribs["mtime"] =  dir_entry.mtime
+       
+         # Append
+         fBList.append(fB)
+                 
+      # Next entry
+      dir_entry = lfc.lfc_readdirg(dir_p)
+      if(not dir_entry):
+         code = lfc.cvar.serrno
+         if(code != 0):
+            msg = "Error reading dir %s: %s" % (userdir, lfc.sstrerror(code))
+            raise DlsLfcApiError(msg, code)
+           
+    # Close the directory
+    if(lfc.lfc_closedir(dir_p) < 0):
+       code = lfc.cvar.serrno
+       msg = "Error closing dir %s: %s" % (userdir, lfc.sstrerror(code))
+       if(self.verb >= DLS_VERB_WARN):
+          print "Warning: %s" % (msg)
+#       raise DlsLfcApiError(msg, code)
+
+    # Return
+    return fBList
+
 
 ##################################################333
 # Unit testing                                                                                                   
