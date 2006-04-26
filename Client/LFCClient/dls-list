@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #
-# $Id: dls-list,v 1.2 2006/04/19 16:24:41 delgadop Exp $
+# $Id: dls-list,v 1.3 2006/04/21 11:43:44 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -18,6 +18,7 @@ import dlsClient
 import time
 import sys
 import getopt
+from stat import *
 # This is just for sessions/transactions...
 
 
@@ -26,12 +27,6 @@ THIS_YEAR = time.localtime()[0]
 
 
 ######################### FUNCTIONS ########################
-
-
-def notyet():
-  print "\nThis command is not yet implemented!"
-
-
 def usage():
    """
     Provides usage information
@@ -118,17 +113,121 @@ def showFileBlocks(iface, lineList, longlist, verbose):
    Prints the specified FileBlocks information. lineList is a list
    of string, each holding a FileBlock name.
     
-    If longlist is True, some attributes are also printed.
-    Currently printed attributes are:
-    file mode, number of files in a directory, owner, group owner, last
-    modification date.
-    
-    Throws DlsLfcApiError if there is a problem in the DLS operation.
+   If longlist is True, some attributes are also printed.
+   Currently printed attributes are:
+   file mode, number of files in a directory, owner, group owner, last
+   modification date.
+   
+   Throws DlsLfcApiError if there is a problem in the DLS operation.
    """
-   pass
- 
+   fbList = []
+   for line in lineList:
 
-            
+      # Split
+      line = (line.strip()).split()
+      if(not line):
+         continue
+
+      # Get LFN
+      lfn = line.pop(0)
+
+      # Store all the FileBlocks 
+      fbList.append(lfn)
+
+   if(verbose >= 2):
+      print "--DlsApi.listFileBlocks(",
+      for i in fbList: print i, ";",
+      print ")"
+
+   # Get the locations (and let the caller deal with the exception...)
+   if(len(fbList) == 1):
+      # Need this for the directory listing (if in a list is like ls -d)
+      resList = iface.listFileBlocks(fbList[0], longList = longlist, session = True)
+   else:
+      resList = iface.listFileBlocks(fbList, longList = longlist, session = True)
+
+   # Make sure the obtained result is a list
+   if(not isinstance(resList, list)):
+     resList = [resList]
+
+   # Print the entries
+   for fB in resList:
+      if(not longlist):
+         print fB.name
+      else:
+         values = []
+         for i in ["filemode", "nlink", "uid", "gid", "filesize", "mtime"]:
+            try:
+                values.append(fB.attribs[i])
+            except KeyError, inst:
+                values.append("UNKNOWN")
+
+         # Interpret the filemode to print it as a string
+         if(not (values[0] == "UNKNOWN")):
+            modestr = [""] * 10
+            if (values[0] & S_IFDIR):
+               modestr[0] = 'd'
+            else:
+               if ((values[0] & S_IFLNK) == S_IFLNK):
+                  modestr[0] = 'l';
+               else:
+                  modestr[0] = '-';
+            if (values[0] & S_IRUSR):  modestr[1] = 'r'
+            else:                      modestr[1] = '-'
+            if (values[0] & S_IWUSR):  modestr[2] = 'w'
+            else:                      modestr[2] = '-'
+            if (values[0] & S_IXUSR):
+               if (values[0] & S_ISUID):
+                  modestr[3] = 's'
+               else:
+                  modestr[3] = 'x'
+            else:
+               modestr[3] = '-'
+            if (values[0] & S_IRGRP):  modestr[4] = 'r'
+            else:                      modestr[4] = '-'
+            if (values[0] & S_IWGRP):  modestr[5] = 'w'
+            else:                      modestr[5] = '-'
+            if (values[0] & S_IXGRP):
+               if (values[0] & S_ISGID):
+                  modestr[6] = 's'
+               else:
+                  modestr[6] = 'x'
+            else:
+               modestr[6] = '-'
+            if (values[0] & S_IROTH):  modestr[7] = 'r'
+            else:                      modestr[7] = '-'
+            if (values[0] & S_IWOTH):  modestr[8] = 'w'
+            else:                      modestr[8] = '-'
+            if (values[0] & S_IXOTH):
+               if (values[0] & S_ISVTX):
+                  modestr[9] = 't'
+               else:
+                  modestr[9] = 'x'
+            else:
+               modestr[9] = '-'
+
+            values[0] = ""
+            for char in modestr:
+               values[0] += char
+
+         print str(values[0]) + "\t" + str(values[1]),
+         print str(values[2]) + "\t" + str(values[3]) + "\t" + str(values[4]) + "\t",
+
+         # Format the time 
+         if(not (values[5] == "UNKNOWN")):
+            time_tuple = time.localtime(fB.attribs["mtime"])
+            if(time_tuple[0] != THIS_YEAR):
+               fmt = "%b %d %Y"
+            else:
+               fmt = "%b %d %H:%M"
+            print '\t', time.strftime(fmt, time_tuple), '\t',
+         else:
+            print '\t', values[5], '\t'
+   
+         # Name and go to next line
+         print fB.name
+
+
 
 ###################### MAIN FUNCTION ########################
 
@@ -137,10 +236,6 @@ def main(pArgs):
     Performes the main task of the script (invoked directly).
     For information on its functionality, please call the help function.
    """
-
-   #TODO: Remove this when the API is there!:
-   notyet()
-   return -1
 
  # Options and args... 
  
@@ -246,7 +341,7 @@ def main(pArgs):
    
  # Do the query (under session)
    try:
-     showFileBlocks(iface, lineList, longList, verbose)
+     showFileBlocks(iface, lineList, longlist, verbose)
    except dlsApi.DlsApiError, inst:         
       if(inst.rc):  err = inst.rc 
       else:           err = -1
