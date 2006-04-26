@@ -1,7 +1,7 @@
 #
-# $Id: dlsDataObjects.py,v 1.2 2006/03/31 10:06:31 delgadop Exp $
+# $Id: dlsDataObjects.py,v 1.3 2006/04/07 10:32:20 delgadop Exp $
 #
-# DLS Client. $Name$.
+# DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
 #
 
@@ -336,15 +336,15 @@ class DlsEntry(object):
 
   def getLocation(self, host):
     """
-    Returns from the locations list the DlsLocation object matching the
-    specified location host (equal to the host field in the DlsLocation object).
-    If no location in the list matches, None is returned. If more than one
-    matching object is found (what should not normally happen), the first 
-    matching one is returned.
+    Returns from the locations list a reference to the DlsLocation object matching
+    the specified location host (equal to the host field in the DlsLocation
+    object). If no location in the list matches, None is returned. If more than
+    one matching object is found (what should not normally happen), a reference
+    to the first matching one is returned.
 
     @param host: the location (SE name), as a string.
 
-    @return: the mathing DlsLocation object or None if there is no match.
+    @return: a reference to the matching DlsLocation object or None (no match).
     """
 
     for i in self.locations:
