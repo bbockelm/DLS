@@ -1,5 +1,5 @@
 #
-# $Id: dlsApi.py,v 1.6 2006/04/21 11:49:04 delgadop Exp $
+# $Id: dlsApi.py,v 1.7 2006/04/24 13:03:48 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -426,9 +426,10 @@ class DlsApi(object):
 
     @exception XXXX: On error with the DLS catalog
 
-    @param fileBlockList: the FileBlock, as string or DlsLocation object (or list
-    of those), or a FileBlock namespace directory, as a string
+    @param fileBlockList: the FileBlock, as string or DlsFileBlock object (or
+    list of those), or a FileBlock namespace directory, as a string
     @param kwd: Flags:
+     - longList: boolean (default True) for the listing of location attributes
      - session: boolean (default False) for using a session for the operations
 
     @return: a DlsFileBlock object (or list of objects) containing the FileBlock
