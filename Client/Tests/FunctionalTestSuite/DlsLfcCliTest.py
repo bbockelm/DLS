@@ -406,7 +406,15 @@ class TestDlsCli_FromArgs_AddGetSEList(TestDlsCli):
      msg = "Error in dls-list /",out 
      self.assertEqual(st, 0, msg)
      expected = "c1\nc2"
-     msg = "The results obtained with dls-get-se (%s) are not those expected (%s)" % (out, expected)
+     msg = "The results obtained with dls-list (%s) are not those expected (%s)" % (out, expected)
+     self.assertEqual(out, expected, msg)
+
+     cmd = self.path + "/dls-list c2"
+     st, out = run(cmd)
+     msg = "Error in dls-list c2",out 
+     self.assertEqual(st, 0, msg)
+     expected = "c2"
+     msg = "The results obtained with dls-list (%s) are not those expected (%s)" % (out, expected)
      self.assertEqual(out, expected, msg)
      
   # Test addition with non-existing parent directories using CLI args 
@@ -486,6 +494,14 @@ class TestDlsCli_FromArgs_AddGetSEList(TestDlsCli):
      msg = "Error in dls-list -l c2",out 
      self.assertEqual(st, 0, msg)
      contains = (out.find("rwx--x--x") != -1) and (out.find("400") != -1)
+     msg = "The listing of attributes is not as expected",out 
+     self.assert_(contains, msg)
+     
+     cmd = self.path + "/dls-list -l /"
+     st, out = run(cmd)
+     msg = "Error in dls-list -l /",out 
+     self.assertEqual(st, 0, msg)
+     contains = (out.find("c2")!=-1) and (out.find("rwx--x--x")!=-1) and (out.find("400")!=-1) 
      msg = "The listing of attributes is not as expected",out 
      self.assert_(contains, msg)
      
@@ -945,7 +961,7 @@ def usage():
 
 def main():
   if(len(sys.argv) < 2):
-     msg = "Not enought input arguments!\n"
+     msg = "Not enought input arguments!\n\n"
      msg += "You need to specify the configuration file as argument.\n"
      msg += "Probably you can use DlsLfcCliTest.conf, but please check it out first.\n"
      sys.stderr.write(msg+"\n")
