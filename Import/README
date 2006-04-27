@@ -3,6 +3,6 @@ Note that it require python 2.4 because it relies on logging module.
 
 Example o usage:
 ##Fill DLS protototype on lxgate10.cern.ch
-./DumpRefDBPubDB_to_DLS.py -t proto -d -c /bohome/fanfani/COMP/DLS/Client/SimpleClient
-##Fill DLS-LFC instance on 
-./DumpRefDBPubDB_to_DLS.py -t lfc -d -c /bohome/fanfani/LFC/COMP/DLS/Client/LFCClient
+python DumpRefDBPubDB_to_DLS.py -i DLS_TYPE_MYSQL -c /bohome/fanfani/testdls/COMP/DLS/Client/lib
+##Fill DLS-LFC instance on lfc-cms-test.cern.ch
+python DumpRefDBPubDB_to_DLS.py -i DLS_TYPE_LFC -c /bohome/fanfani/testdls/COMP/DLS/Client/lib

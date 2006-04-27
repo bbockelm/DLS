@@ -18,7 +18,7 @@ def usage():
   print "Options"
   print "-h,--help \t\t Show this usage"
   print "-d,--debug \t\t set debug logging"
-  print "-t,--typedls <type> \t type of DLS client (lfc or proto)"
+  print "-i,--iface_type <type> \t type of DLS client (DLS_TYPE_MYSQL or DLS_TYPE_LFC)"
   print "-c,--clientdir <dir>   For example /bohome/fanfani/LFC/COMP/DLS/Client/LFCClient , /bohome/fanfani/COMP/DLS/Client/SimpleClient \n"
 # #########################################################################
 def checkPubDBversion(baseurl):
@@ -229,47 +229,50 @@ class RefDBError:
     pass
 
 # ####################################
-class DLSproto:
-        """
-        interface to DLS prototype instance
-        """
-        def __init__(self):
-            self.serverhost='lxgate10.cern.ch'
-            self.serverport='18081'
-        def add(self,clientdir,block,location):
-            if os.path.exists(clientdir+'/dls-add-replica'):
-              add_cmd=clientdir+'/dls-add-replica --datablock '+block+' --se '+location+' --host '+self.serverhost+' --port '+self.serverport
-              logging.debug(add_cmd)
-              os.system(add_cmd)
-            else:
-              logging.error('No DLS CLI %s/dls-add-replica found'%clientdir)
- 
+class DLSSetupError:
+  def __init__(self, msg):
+    logging.error(msg)
+    pass
+
 # ####################################
-class DLSlfc:
+class DLS:
         """
-        interface to DLS-LFC instance
+        interface to DLS instance
         """
-        def __init__(self):
-            self.serverhost='lfc-cms.cern.ch'
-            self.serverhome='/grid/cms/DLS/LFCProto'
-            os.putenv("LFC_HOST",self.serverhost)
-            os.putenv("LFC_HOME",self.serverhome)
-            os.putenv("LCG_CATALOG_TYPE","lfc")
-                                                                                                     
-        def add(self,clientdir,block,location):
-            if os.path.exists(clientdir+'/dlslfc-add'):
-              add_cmd=clientdir+'/dlslfc-add -p '+block+' '+location
-              logging.debug(add_cmd)
-              os.system(add_cmd)
-            else: 
-              logging.error('No DLS CLI %s/dlslfc-add found'%clientdir)                                                                                         
-#######################################################
+        def __init__(self, type):
+            if type=="DLS_TYPE_LFC":
+               endpoint="lfc-cms-test.cern.ch/grid/cms/DLS/LFCProto"
+            elif type=="DLS_TYPE_MYSQL":
+               endpoint="lxgate10.cern.ch:18081"
+            else:
+               msg = "DLS type %s not among the supported DLS ( DLS_TYPE_LFC and DLS_TYPE_MYSQL ) "%type
+               raise DLSSetupError(msg)
+
+            try:
+              self.api = dlsClient.getDlsApi(dls_type=type,dls_endpoint=endpoint)
+            except dlsApi.DlsApiError, inst:
+              raise DLSSetupError('Error when binding the DLS interface: %s'%str(inst))
+            except:
+              raise DLSSetupError(msg)
+
+
+        def add(self,block,loc):
+            fileblock=DlsFileBlock(block)
+            location=DlsLocation(loc)
+            entry=DlsEntry(fileblock,[location])
+            try:
+             self.api.add([entry])
+             #logging.info("adding block: %s location: %s"%(block,loc))
+            except dlsApi.DlsApiError, inst:
+               logging.error('Error adding in DLS : %s .' % str(inst))
+
+#####################################################################
 if __name__ == '__main__':
      """
      Script to extract info from RefDB/PubDBs an fill DLS
      """
-     long_options=["help","typedls=","clientdir=","debug"]
-     short_options="ht:c:d"
+     long_options=["help","interface-type=","clientdir=","debug"]
+     short_options="hi:c:d"
      try:
          opts, args = getopt.getopt(sys.argv[1:],short_options,long_options)
      except getopt.GetoptError:
@@ -281,7 +284,8 @@ if __name__ == '__main__':
          usage()
          sys.exit(1)
                                                                                                      
-     dlstype='proto'
+     admitted_iface_types=["DLS_TYPE_LFC","DLS_TYPE_MYSQL"]
+     dlstype='DLS_TYPE_MYSQL'
      loglevel=logging.INFO
      clientdir=None
                                                                                                      
@@ -289,7 +293,7 @@ if __name__ == '__main__':
             if o in ("-h", "--help"):
                 usage()
                 sys.exit(1)
-            if o in ("-t", "--typedls"):
+            if o in ("-i", "--interface-type"):
                 dlstype=a
             if o in ("-c", "--clientdir"):
                 clientdir=a
@@ -302,16 +306,16 @@ if __name__ == '__main__':
                                                                                                      
      if dlstype==None:
             usage()
-            print "Error: --dlstype <lfc or proto> is required"
+            print "Error: --iface_dlstype is required \nSuppported values: %s\n"%admitted_iface_types
             sys.exit(1)
-     if clientdir==None:
-            usage()
-            print "Error: --clientdir <DLS clientdir> is required"
-            sys.exit(1)
+#     if clientdir==None:
+#            usage()
+#            print "Error: --clientdir <DLS clientdir> is required"
+#            sys.exit(1)
 
  
      ## Set log file
-     logfilename='DumpRefDBPubDBs_toDLS%s.log'%dlstype
+     logfilename='DumpRefDBPubDBs_to%s.log'%dlstype
      logging.basicConfig(level=loglevel,
                     format='%(asctime)s %(levelname)s %(message)s',
                     filename=logfilename,
@@ -319,29 +323,53 @@ if __name__ == '__main__':
 
      ### Extract info from RefDB/PubDBs
      logging.info('Start extracting info from RefBD/PubDBs')
+     #test:
+     #blockreplica_file="blockreplica.txt.one"
      blockreplica_file='blockreplica.txt'
      getDataFromRefDB2PubDBs(blockreplica_file)
      logging.info('End extracting info from RefBD/PubDBs')
      logging.info('Extracted info are in file: '+blockreplica_file)
 
-     ### Fill the DBS 
+     ### Fill the DLS 
      # select the DLS server
-     if (dlstype=='lfc'):
-       dls = DLSlfc()
-     elif (dlstype=='proto'):
-       dls = DLSproto()
+     try:
+        import dlsApi
+        import dlsClient
+        from dlsDataObjects import *
+     except:
+        sys.path.append(clientdir)
+        try:  
+         import dlsApi
+         import dlsClient
+         from dlsDataObjects import *
+        except:
+          msg="Environment for DLS API not properly set: check the PYTHONPATH or use the -c option"
+          print msg
+          logging.error(msg)
+          sys.exit(1)
 
-     #TEST: blockreplica_file="blockreplica.txt.one"     
-     logging.info('Start filling DLS of type: '+dlstype+' reading file: '+blockreplica_file)                                                                                                
+     try: 
+         dls=DLS(dlstype)
+     except:
+         print "Failed to contact DLS"
+         sys.exit(1)
+
+    
+     logging.info('Start filling '+dlstype+' reading file: '+blockreplica_file)                                                                                                
+     if not os.path.exists(blockreplica_file):
+          msg="File %s not found "%blockreplica_file
+          print msg
+          sys.exit(1)
+
      br_file_r = open(blockreplica_file,'r')
      for line in br_file_r.readlines():
        blockreplica=string.split(string.strip(line),':')
        block=blockreplica[0]
        location=blockreplica[1]
        if ( location != 'Null' ):
-         dls.add(clientdir,block,location)
+          dls.add(block,location)
                                                                                                      
      br_file_r.close()
-     logging.info('End filling DLS of type: '+dlstype) 
+     logging.info('End filling '+dlstype) 
                                                                                                      
      sys.exit(0)
