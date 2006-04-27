@@ -1,5 +1,5 @@
 #
-# $Id: dlsLfcApi.py,v 1.8 2006/04/25 18:27:03 afanfani Exp $
+# $Id: dlsLfcApi.py,v 1.9 2006/04/26 11:52:09 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -816,7 +816,7 @@ class DlsLfcApi(dlsApi.DlsApi):
              result = self._listDir(lfn, longList)
           else:
              if(not longList):
-                result = DlsFileBlock(userlfn)
+                result = DlsFileBlock(lfn)
        except DlsLfcApiError, inst:
           if(session): self.endSession() 
           raise
