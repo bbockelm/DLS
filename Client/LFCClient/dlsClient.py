@@ -1,5 +1,5 @@
 #
-# $Id: dlsClient.py,v 1.5 2006/04/21 11:48:21 delgadop Exp $
+# $Id: dlsClient.py,v 1.6 2006/04/25 10:43:41 afanfani Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -87,9 +87,8 @@ def getDlsApi(dls_type = None, dls_endpoint = None, verbosity = dlsApi.DLS_VERB_
 
   # Check value is supported
   if(candidate not in admitted_vals):
-    msg = "The specified value (%s) is not one of the admitted ones: %s" % (candidate,admitted_vals)
+    msg = "Specified DLS type (%s) is not one of the admitted values: %s" %(candidate,admitted_vals)
     raise dlsApi.ValueError(msg)
-
 
   # If everything ok, return corresponding API
   if(candidate == DLS_TYPE_LFC):
