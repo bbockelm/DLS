@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #
-# $Id: dls-get-se,v 1.4 2006/04/24 23:47:53 afanfani Exp $
+# $Id: dls-get-se,v 1.5 2006/04/25 10:43:41 afanfani Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -138,8 +138,9 @@ def showLocations(iface, lineList, longlist, verbose):
    # Get the locations (and let the caller deal with the exception...)
    entryList = iface.getLocations(fbList, longlist = longlist, session = longlist)
 
-   if(not isinstance(entryList, list)):
-     entryList = [entryList]
+   # The api MUST return a list in this case (as we have passed a list) 
+#   if(not isinstance(entryList, list)):
+#     entryList = [entryList]
 
    # Print the entries
    for entry in entryList:

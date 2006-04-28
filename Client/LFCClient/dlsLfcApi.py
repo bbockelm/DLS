@@ -1,5 +1,5 @@
 #
-# $Id: dlsLfcApi.py,v 1.9 2006/04/26 11:52:09 delgadop Exp $
+# $Id: dlsLfcApi.py,v 1.10 2006/04/27 12:15:42 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -602,8 +602,10 @@ class DlsLfcApi(dlsApi.DlsApi):
     # Make sure the argument is a list
     if (isinstance(fileBlockList, list)):
        theList = fileBlockList 
+       wasList = True
     else:
        theList = [fileBlockList]
+       wasList = False
 
     entryList = []
     
@@ -677,10 +679,10 @@ class DlsLfcApi(dlsApi.DlsApi):
 
 
     # Return what we got
-    if(len(entryList) == 1):
-      return entryList[0]
-    else:
+    if(wasList):
       return entryList
+    else:
+      return entryList[0]
 
       
   
@@ -706,8 +708,10 @@ class DlsLfcApi(dlsApi.DlsApi):
     # Make sure the argument is a list
     if (isinstance(locationList, list)):
        theList = locationList 
+       wasList = True
     else:
        theList = [locationList]
+       wasList = False
 
     listList = []
 
@@ -744,6 +748,7 @@ class DlsLfcApi(dlsApi.DlsApi):
              raise DlsLfcApiError(msg, code)
   
           # Build the result 
+          path = path.split('\x00')[0]   # Remove LFC method tail (should be done in typemap)
           path = self._removeRootPath(path)
           entry = DlsEntry(DlsFileBlock(path), [DlsLocation(host, surl = filerep.sfn)])
           entryList.append(entry)
@@ -766,10 +771,10 @@ class DlsLfcApi(dlsApi.DlsApi):
     if(session): self.endSession()
 
     # Return what we got
-    if(len(listList) == 1):
-      return listList[0]
-    else:
+    if(wasList):
       return listList
+    else:
+      return listList[0]
 
 
   def listFileBlocks(self, fileBlockList, **kwd):
