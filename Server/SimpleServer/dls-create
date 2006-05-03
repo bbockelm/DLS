@@ -25,7 +25,7 @@ def help():
 
 if __name__ == "__main__":
    
-   long_options=["help","verbose","host=","user=","passwd=","database=","dlsuser=","dlspasswd="]
+   long_options=["help","verbose","host=","user=","passwd=","database=","dlsuser=","dlspasswd=","dbport=","dbsocket="]
    short_options=""
    try:
       opts, args = getopt.getopt(sys.argv[1:],short_options,long_options)
@@ -41,6 +41,7 @@ if __name__ == "__main__":
    host = None
    host_db = None
    port = None
+   socket = None
    verbose = False
    user=None
    passwd=None
@@ -57,7 +58,7 @@ if __name__ == "__main__":
       if o=="--host":
          host=a
       if o=="--dlsuser":
-         host_dls=a
+         user_dls=a
       if o=="--database":
          database=a
       if o=="--passwd":
@@ -66,7 +67,10 @@ if __name__ == "__main__":
          user=a    
       if o=="--dlspasswd":
          passwd_dls=a    
-         
+      if o=="--dbport":
+         port=int(a)
+      if o=="--dbsocket":
+         socket=a
 
 
    if host==None:
@@ -88,7 +92,15 @@ if __name__ == "__main__":
    
 
    try:
-       conn = MySQLdb.connect (host,user,passwd)
+       if socket==None:
+        conn = MySQLdb.connect (host = host,
+                               user = user,
+                               passwd = passwd)
+       else:
+         conn = MySQLdb.connect (host = host,
+                               user = user,
+                               passwd = passwd,
+                               unix_socket = socket )
        cursor = conn.cursor()
    except MySQLdb.Error, e:
          print  ("DLS_db Connection error: %s  %s"%(e.args[0], e.args[1]))

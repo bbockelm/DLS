@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# $Id: dls-server,v 1.5 2006/01/06 17:44:34 afanfani Exp $
+# $Id: dls-server,v 1.6 2006/04/24 18:32:35 elmer Exp $
 
 import Queue
 import socket
@@ -9,6 +9,8 @@ import sys
 import time
 import pdb
 import getopt
+import logging
+from logging.handlers import RotatingFileHandler
 
 class ClientThread ( threading.Thread ):
 
@@ -26,7 +28,7 @@ class ClientThread ( threading.Thread ):
       
    # Note that we do not override Thread's __init__ method.
    # The Queue module makes this not necessary.
-   def __init__(self,clientPool,host,user,passwd,database,verbose):
+   def __init__(self,clientPool,host,user,passwd,database,dbsocket,verbose):
 
       """ Initialize the thread and remember the pool. """
    
@@ -34,7 +36,7 @@ class ClientThread ( threading.Thread ):
       self.__isDying = False
       self.__clientPool=clientPool
       self.__verbose=verbose
-      self.__conn = DLS_db(host,user,passwd,database,verbose)      
+      self.__conn = DLS_db(host,user,passwd,database,dbsocket,verbose)      
       self.__isConnected=False
       self.__isWaiting=False
 
@@ -53,7 +55,7 @@ class ClientThread ( threading.Thread ):
       except DLS_db.Error, e:
          msg= "Thread: "+self.getName()+" -> "+str(e)
          self.__isDying == True
-         
+         logging.error(msg)
          raise ClientThread.Internal_Error(msg,False)
          
 
@@ -73,15 +75,18 @@ class ClientThread ( threading.Thread ):
             
             
             if self.__client=="Stop":
-               
-               print "Stopping Thread=%s"%(self.getName())
+               logging.info("Stopping Thread=%s"%(self.getName()))             
+               #print "Stopping Thread=%s"%(self.getName())
                self.__isDying = True
                self.__client [ 0 ].close()
-               print 'Closed connection:', self.__client [ 1 ] [ 0 ]
+               logging.info("Closed connection: %s"%self.__client [ 1 ] [ 0 ])
+               #print 'Closed connection:', self.__client [ 1 ] [ 0 ]
                break
             elif self.__client != None:
-               print 'Received connection:', self.__client [ 1 ] [ 0 ]
-               print "Thread",self.getName()
+               logging.info("Received connection:%s"%self.__client[ 1 ] [ 0 ])
+               #print 'Received connection:', self.__client [ 1 ] [ 0 ]
+               logging.info("Thread %s"%self.getName())
+               #print "Thread",self.getName()
 
 
                
@@ -93,26 +98,30 @@ class ClientThread ( threading.Thread ):
                except:
                   msg=None
                
-               if  self.__verbose:
-                  print  msg
+               #if  self.__verbose:
+               #   print  msg
 
                if msg:
                 
                   command=msg.split("#")
                   if self.__verbose:
-                     print command
-                     #pdb.set_trace()
+                     logging.info(command)
+                     #print command
+                     ##pdb.set_trace()
             
                   if command[0]=="add_replica":
-                     print "add_replica"
+                     #logging.debug("add_replica")
+                     #print "add_replica"
                      msg=self.__conn.add_replica(command[1],command[2])
                      self.dls_send(str(msg))
                   elif command[0]=="remove_replica":
-                     print "remove_replica"
+                     #logging.debug("remove_replica")
+                     #print "remove_replica"
                      msg=self.__conn.del_replica(command[1],command[2])
                      self.dls_send(str(msg))
                   elif command[0]=="show_replica_by_db":
-                     print "show_replica_by_db"
+                     #logging.debug("show_replica_by_db")
+                     #print "show_replica_by_db"
                      self.__conn.get_se_from_db(command[1])
                      rows=self.__conn.fetchall()
                      msg=""
@@ -125,7 +134,8 @@ class ClientThread ( threading.Thread ):
                            msg=msg+'\n'+row[0]
                      self.dls_send(msg)
                   elif command[0]=="show_replica_by_se":
-                     print "show_replica_by_db"
+                     #logging.debug("show_replica_by_db")
+                     #print "show_replica_by_db"
                      self.__conn.get_db_from_se(command[1])
                      rows=self.__conn.fetchall()
                      msg=""
@@ -138,11 +148,11 @@ class ClientThread ( threading.Thread ):
                            msg=msg+'\n'+row[0]
                      self.dls_send(msg)
                   
-
-                  
             if self.__client:
                self.__client [ 0 ].close()
-               print 'Closed connection:', self.__client [ 1 ] [ 0 ]
+               logging.info("Closed connection: %s"%self.__client [ 1 ] [ 0 ])
+               #print 'Closed connection:', self.__client [ 1 ] [ 0 ]
+
          except:
             self.__isDying = True
          
@@ -156,16 +166,19 @@ class ClientThread ( threading.Thread ):
             
             MSGLEN=len(msg)
             sent=self.__client [ 0 ].send(str(MSGLEN).zfill(16))
-
-            print "Sent %s"%(str(MSGLEN).zfill(16))
+            #logging.debug("Sent %s"%(str(MSGLEN).zfill(16)))
+            #print "Sent %s"%(str(MSGLEN).zfill(16))
             
             if sent == 0:
+               logging.error("Socket connection broken")
                raise RuntimeError,"Socket connection broken"
             else:
                while totalsent < MSGLEN:
                   sent = self.__client [ 0 ].send(msg[totalsent:])
-                  print "Sent %s"%(msg[totalsent:])
+                  logging.info("Sent %s"%(msg[totalsent:]))
+                  #print "Sent %s"%(msg[totalsent:])
                   if sent == 0:
+                     logging.error("Socket connection broken")
                      raise RuntimeError,"Socket connection broken"
                   totalsent = totalsent + sent
 
@@ -176,11 +189,14 @@ class ClientThread ( threading.Thread ):
          chunk =  self.__client [ 0 ].recv(16)
       except:
          if self.__verbose:
+            logging.error("Connection Timeout")
             print "Connection Timeout"
             return None
-      
-      print "Recived %s"%(chunk)
+
+      #logging.debug("Recieved %s"%(chunk))
+      #print "Recieved %s"%(chunk)
       if chunk == '':
+         logging.error("Socket connection broken") 
          raise RuntimeError,"Socket connection broken"
       MSGLEN= int(chunk)
       msg = ''
@@ -188,11 +204,14 @@ class ClientThread ( threading.Thread ):
          try:
             chunk =  self.__client [ 0 ].recv(MSGLEN-len(msg))
          except:
+            logging.error("Connection Timeout")
             print "Connection Timeout"
             return None
-            
-         print "Recived %s"%(chunk)
+
+         logging.info("Recieved %s"%(chunk))   
+         #print "Recieved %s"%(chunk)
          if chunk == '':
+            logging.error("Socket connection broken")
             raise RuntimeError,"Socket connection broken"
          msg = msg + chunk
       return msg
@@ -222,24 +241,34 @@ class DLS_db:
       def __str__(self):
          return repr(self.value)
 
-   def __init__(self,host,user,passwd,database,verbose):
+   def __init__(self,host,user,passwd,database,dbsocket,verbose):
       self.__host=host
       self.__user=user
       self.__passwd=passwd
       self.__database=database
+      self.__dbsocket=dbsocket
       self.__verbose=verbose
       self.__cursor= None
       self.__conn=None
       #self.__transacion_query="START TRANSACTION"
 
+
    def connect(self):
       #pdb.set_trace()
       try:
-         self.__conn = MySQLdb.connect (self.__host,self.__user,self.__passwd,self.__database)
+         if self.__dbsocket==None:
+           self.__conn = MySQLdb.connect (self.__host,self.__user,self.__passwd,self.__database)
+         else:
+           self.__conn = MySQLdb.connect (host = self.__host,
+                               user = self.__user,
+                               passwd = self.__passwd,
+                               db = self.__database,
+                               unix_socket = self.__dbsocket )
          ## enable autocommit (by default it is disabled)
          self.__conn.autocommit(1)
          self.__cursor = self.__conn.cursor()
       except MySQLdb.Error, e:
+         logging.error("DLS_db Connection error: %s  %s"%(e.args[0], e.args[1]))
          raise DLS_db.Error("DLS_db Connection error: %s  %s"%(e.args[0], e.args[1]))
 
    def disconnect(self):
@@ -249,6 +278,7 @@ class DLS_db:
          if self.__conn:
             self.__conn.close()
       except MySQLdb.Error, e:
+         logging.error("DLS_db Disconnection error:%s %s"%(e.args[0], e.args[1]))
          raise DLS_db.Error("DLS_db Disconnection error:%s %s"%(e.args[0], e.args[1]))
 
    def fetchone(self):
@@ -284,12 +314,14 @@ class DLS_db:
    
    def execute_query(self,query):
       if self.__verbose:
-         print query
+         logging.debug(query)
+         #print query
       try:
            self.__cursor.execute(query)
       except MySQLdb.Error, e:
          if self.__in_transaction_begined:
             self.rollback_transaction()
+         logging.error("DLS_db Query:'%s' error:%s"%(query,e.args[0], e.args[1]))
          raise DLS_db.Error("DLS_db Query:'%s' error:%s"%(query,e.args[0], e.args[1]))
 
    def select_id(self,table,field_id,field,value):
@@ -404,11 +436,12 @@ class DLS_db:
     
 
 class DLS_Server:
-   def __init__(self,ThreadPool,host,host_db,port,user,passwd,database,verbose):
+   def __init__(self,ThreadPool,host,host_db,port,user,passwd,database,socket_db,verbose):
       self.__host=host
       self.__port=port
       self.__user=user
       self.__database=database
+      self.__socket_db=socket_db
       self.__verbose=verbose
       self.__passwd=passwd
       self.__host_db=host_db
@@ -418,11 +451,21 @@ class DLS_Server:
       self.__Pool = []
       self.__startPool=True
 
+# rotating file when the file hits 5MB size, 3 most recent files are kept
+      logHandler = RotatingFileHandler('DLSServer.log',"a", 5000000, 3)
+      logFormatter = logging.Formatter("%(asctime)s:%(module)s:%(levelname)s:%(message)s")
+      logHandler.setFormatter(logFormatter)
+      logging.getLogger().addHandler(logHandler)
+      logging.getLogger().setLevel(logging.INFO)
+                                                                                                              
+      logging.info("DLS Server Started with host:%s port:%s  db_host:%s db_socket:%s"%(host,port,self.__host_db,self.__socket_db))
+
  
    def checkConnections(self):
       for thread in self.__Pool:
          if self.__verbose:
-            print "Thread %s isConnected=%s"%(thread.getName(),thread.isConnected())
+            logging.info("Thread %s isConnected=%s"%(thread.getName(),thread.isConnected()))
+            #print "Thread %s isConnected=%s"%(thread.getName(),thread.isConnected())
          if  not thread.isConnected():
             return False
 
@@ -442,21 +485,21 @@ class DLS_Server:
       #pdb.set_trace()
       
       for x in xrange (self.__ThreadPool):
-         thread=ClientThread(self.__clientPool,self.__host_db,self.__user,self.__passwd,self.__database,self.__verbose)
+         thread=ClientThread(self.__clientPool,self.__host_db,self.__user,self.__passwd,self.__database,self.__socket_db,self.__verbose)
          try:
             thread.start()
             self.__Pool.append(thread)
             while not thread.isWaiting():
                #print "Thread %s %s %s"%(thread.getName(),thread.isConnected(),thread.isWaiting())
                pass
-         
-            
-
+        
             if self.__verbose:
-               print "Thread %s Started"%(thread.getName())
+               logging.info("Thread %s Started"%(thread.getName()))
+               #print "Thread %s Started"%(thread.getName())
          except ClientThread.Internal_Error,e:
             self.close()
-            print "Thread Aborted"
+            logging.error("Thread Aborted")
+            #print "Thread Aborted"
          
 
 
@@ -474,24 +517,27 @@ class DLS_Server:
             # Set Timeout to 10 Seconds 
             #server.settimeout(10.0)
             if self.__verbose:
-               print "Start Listening"
+               logging.info("Start Listening")
+               #print "Start Listening"
                server.listen ( 5 )
             try:
                while True:
                   self.__clientPool.put ( server.accept() )
-                  print "Server:",self.__clientPool
+                  #print "Server:%s"%self.__clientPool
             except KeyboardInterrupt:
                self.stop()
                server.close()
          except:
-            print "Port Binded"
+            logging.error("Port Binded")
+            #print "Port Binded"
             self.stop()
             server.close()
 
       else:
           self.stop()
-      
-      print "Server Close"
+
+      logging.info("Server Close")
+      #print "Server Close"
 
    def stop(self):
         for thread in self.__Pool:
@@ -511,6 +557,7 @@ def help():
    print "--user \t\t\t\t Username of SQL database"
    print "--passwd \t\t\t Password of SQL database"
    print "--database \t\t\t Database name"
+   print "--socket_db \t\t\t Database socket"
    print "--num_thread \t\t\t Number of dls Server Client manager threads" 
 
    print "--generate Create new DLS database "                
@@ -518,7 +565,7 @@ def help():
 
 if __name__ == "__main__":
    
-   long_options=["help","verbose","host=","host_db=","port=","user=","passwd=","database=","num_thread="]
+   long_options=["help","verbose","host=","host_db=","port=","user=","passwd=","database=","num_thread=","socket_db="]
    # short_options="Hv:o:s:p:u:w:d:t:"
    short_options=""
 
@@ -535,6 +582,7 @@ if __name__ == "__main__":
    #pdb.set_trace()     
    host = None
    host_db = None
+   socket_db = None
    port = None
    verbose = False
    user=None
@@ -562,6 +610,8 @@ if __name__ == "__main__":
          num_thread=a    
       if o=="--host_db":
          host_db=a    
+      if o=="--socket_db":
+         socket_db=a
 
 
    if host==None:
@@ -590,7 +640,7 @@ if __name__ == "__main__":
          sys.exit(2)
 
    
-   server=DLS_Server(nt,host,host_db,port,user,passwd,database,1)
+   server=DLS_Server(nt,host,host_db,port,user,passwd,database,socket_db,1)
    server.start()
 
          
