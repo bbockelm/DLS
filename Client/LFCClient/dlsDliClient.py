@@ -1,5 +1,5 @@
 #
-# $Id: dlsDliClient.py,v 1.2 2006/04/21 11:50:13 delgadop Exp $
+# $Id: dlsDliClient.py,v 1.3 2006/04/25 18:27:03 afanfani Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -288,11 +288,23 @@ class DlsDliClient(dlsApi.DlsApi):
     @return: the FileBlock name (with the root path removed) as a string
     """
     if(fileBlock.startswith(self.root+'/')):
-       return fileBlock.replace(self.root+'/', "", 1)
+       result = fileBlock.replace(self.root+'/', "", 1)
+       result = result.strip('/')
+       if(not result): result = '/'
+       return result       
     else:
        if(self.verb >= DLS_VERB_WARN):
           msg = "Warning: Error when adapting name. FileBlock %s " % (fileBlock)
           msg += "does not start with root path (%s)." % (self.root+'/')
           print msg
        return fileBlock
+
+#    if(fileBlock.startswith(self.root+'/')):
+#       return fileBlock.replace(self.root+'/', "", 1)
+#    else:
+#       if(self.verb >= DLS_VERB_WARN):
+#          msg = "Warning: Error when adapting name. FileBlock %s " % (fileBlock)
+#          msg += "does not start with root path (%s)." % (self.root+'/')
+#          print msg
+#       return fileBlock
 
