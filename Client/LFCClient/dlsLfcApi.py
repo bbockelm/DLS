@@ -1,5 +1,5 @@
 #
-# $Id: dlsLfcApi.py,v 1.10 2006/04/27 12:15:42 delgadop Exp $
+# $Id: dlsLfcApi.py,v 1.11 2006/04/28 08:35:38 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -602,10 +602,10 @@ class DlsLfcApi(dlsApi.DlsApi):
     # Make sure the argument is a list
     if (isinstance(fileBlockList, list)):
        theList = fileBlockList 
-       wasList = True
+#       wasList = True
     else:
        theList = [fileBlockList]
-       wasList = False
+#       wasList = False
 
     entryList = []
     
@@ -679,10 +679,11 @@ class DlsLfcApi(dlsApi.DlsApi):
 
 
     # Return what we got
-    if(wasList):
-      return entryList
-    else:
-      return entryList[0]
+    return entryList
+#    if(wasList):
+#      return entryList
+#    else:
+#      return entryList[0]
 
       
   
@@ -708,10 +709,10 @@ class DlsLfcApi(dlsApi.DlsApi):
     # Make sure the argument is a list
     if (isinstance(locationList, list)):
        theList = locationList 
-       wasList = True
+#       wasList = True
     else:
        theList = [locationList]
-       wasList = False
+#       wasList = False
 
     listList = []
 
@@ -771,10 +772,11 @@ class DlsLfcApi(dlsApi.DlsApi):
     if(session): self.endSession()
 
     # Return what we got
-    if(wasList):
-      return listList
-    else:
-      return listList[0]
+    return listList
+#    if(wasList):
+#      return listList
+#    else:
+#      return listList[0]
 
 
   def listFileBlocks(self, fileBlockList, **kwd):
@@ -822,6 +824,7 @@ class DlsLfcApi(dlsApi.DlsApi):
           else:
              if(not longList):
                 result = DlsFileBlock(lfn)
+             result = [result]
        except DlsLfcApiError, inst:
           if(session): self.endSession() 
           raise
@@ -1155,7 +1158,7 @@ class DlsLfcApi(dlsApi.DlsApi):
     """
     if(fileBlock.startswith(self.root+'/')):
        result = fileBlock.replace(self.root+'/', "", 1)
-       result = result.rstrip('/')
+       result = result.strip('/')
        if(not result): result = '/'
        return result       
     else:

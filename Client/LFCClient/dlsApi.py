@@ -1,5 +1,5 @@
 #
-# $Id: dlsApi.py,v 1.7 2006/04/24 13:03:48 delgadop Exp $
+# $Id: dlsApi.py,v 1.8 2006/04/26 11:49:37 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -296,17 +296,18 @@ class DlsApi(object):
     
   def getLocations(self, fileBlockList, **kwd):
     """
-    Returns a DlsEntry object holding the locations in which the specified FileBlock
-    is stored. If a list of FileBlocks is used as argument, then the method returns
-    a list of DlsEntry objects; one object per location specified (in the same order).
+    Returns a list of DlsEntry objects holding the locations in which the specified
+    FileBlocks are stored.
+    
+    A single FileBlock or a list of those may be used as argument. Each FileBlock may
+    be specified as simple strings (hostnames) or as DlsFileBlock objects. The
+    returned list contains a DlsEntry object per specified FileBlock, in the same
+    order as in the argument.
 
-    The returned object(s) will have a composing DlsFileBlock object containing
+    The returned objects will have a composing DlsFileBlock object containing
     the specified FileBlock name, and a composing DlsLocation object list holding
     the corresponding retrieved locations.
 
-    The FileBlocks may be specified as simple strings (hostnames) or as DlsFileBlock
-    objects.
-    
     If longList (**kwd) is set to true, some location attributes are also included
     in the returned DlsLocation objects. Check the documentation of the concrete
     DLS client API implementation for the list of attributes.
@@ -336,7 +337,7 @@ class DlsApi(object):
      - longList: boolean (default false) for the listing of location attributes
      - session: boolean (default False) for using a session for the operations
 
-    @return: a DlsEntry object (or list of objects) containing the locations
+    @return: a list of DlsEntry objects containing the locations
     """
 
     msg = "This is just a base class!"
@@ -346,17 +347,18 @@ class DlsApi(object):
 
   def getFileBlocks(self, locationList, **kwd):
     """
-    Returns a list of DlsEntry objects holding the FileBlocks stored in the
-    specified location. If a list of locations is used as argument, then the method
-    returns a list of DlsEntry lists; one list per location specified (in the same
-    order).
+    Returns a list of DlsEntry objects lists holding the FileBlocks stored in the
+    specified locations.
+    
+    A single location or a list of those may be used as argument. The locations
+    may  be specified as simple strings (hostnames) or as DlsLocation objects.
+    The returned list contains a list of DlsEntry objects per specified location
+    (holding all the FileBlocks in that location), in the same order as in the
+    argument.
 
-    The returned object will have a composing DlsFileBlock object containing the
+    The returned objects will have a composing DlsFileBlock object containing the
     interesting FileBlock name, and a composing DlsLocation object holding the 
     corresponding specified location.
-
-    The locations may be specified as simple strings (hostnames) or as DlsLocation
-    objects.
 
     The method may raise an exception if an error in the DLS operation occurs.
 
@@ -383,7 +385,7 @@ class DlsApi(object):
     @param kwd: Flags:
      - session: boolean (default False) for using a session for the operations
 
-    @return: a DlsEntry object list (or list of lists) containing the FileBlocks
+    @return: a list of DlsEntry object lists containing the FileBlocks
     """
     msg = "This is just a base class!"
     msg += " This method should be implemented in an instantiable DLS API class"
@@ -392,21 +394,22 @@ class DlsApi(object):
 
   def listFileBlocks(self, fileBlockList, **kwd):
     """
-    Returns a DlsFileBlock object holding the information of the specified
-    FileBlock; or a list of DlsFileBlock objects if a FileBlock list is
-    specified instead. For DLS implementations with a hierarchical FileBlock
-    namespace, a FileBlock directory name (not a list) can also be used as
-    argument, and, in that case, information on the FileBlocks under that
-    directory is returned as a list of DlsFileBlock objects. 
+    Returns a list of DlsFileBlock objects holding the information of the
+    specified FileBlocks, or, for implementations with hierarchical FileBlock
+    namespace, of the FileBlocks under the specified FileBlock directory.
 
+    A single FileBlock, or a list of those, or a single Fileblock directory (not 
+    a list) may be used as argument. In the case of FileBlocks, they may be
+    specified as simple strings (FileBlock names) or as DlsFileBlock objects,
+    and the returned list will contain a DlsFileBlock object per specified
+    FileBlock, in the same order. In the case of directories, the argument
+    should be a string holding the directory name, and the returned list will
+    hold a DlsFileBlock object per FileBlock under that directory.
+    
     The returned DlsFileBlock objects will contain both the FileBlock name
     and, if longList (**kwd) is set to true, some FileBlock attributes.
     Check the documentation of the concrete DLS client API implementation
     for the list of attributes
-
-    The FileBlocks may be specified as simple strings (FileBlock names) or
-    as DlsFileBlock objects. In the case of FileBlocks namespace directories,
-    the argument should be a string holding the directory name.
 
     The method may raise an exception if an error in the DLS operation occurs.
 
@@ -432,8 +435,7 @@ class DlsApi(object):
      - longList: boolean (default True) for the listing of location attributes
      - session: boolean (default False) for using a session for the operations
 
-    @return: a DlsFileBlock object (or list of objects) containing the FileBlock
-    information
+    @return: a list of DlsFileBlock objects containing the FileBlock information
     """
     msg = "This is just a base class!"
     msg += " This method should be implemented in an instantiable DLS API class"
