@@ -1,7 +1,5 @@
 #!/usr/bin/env python
-#
-# $Id: $
-#
+
 import getopt,sys
 
 import dlsClient
@@ -77,17 +75,44 @@ except dlsApi.DlsApiError, inst:
 # #############################
 ## add a DLS entry
 # #############################
-fb="testblock-part1/testblock-part2"
-se="testSE"
-fileblock=DlsFileBlock(fb)
-location=DlsLocation(se)
-print "*** add a DLS entry with fileblock=%s location=%s"%(fileblock.name,location.host)
-entry=DlsEntry(fileblock,[location])
+# first entry
+fbA="testblockA-part1/testblockA-part2"
+seA="test-A-SE"
+fileblockA=DlsFileBlock(fbA)
+locationA=DlsLocation(seA)
+print "*** add a DLS entry with fileblock=%s location=%s"%(fileblockA.name,locationA.host)
+entry=DlsEntry(fileblockA,[locationA])
 try:
   api.add([entry])
 except dlsApi.DlsApiError, inst:
      msg = "Error adding a DLS entry: %s." % str(inst)
      print msg
+
+#second entry
+fbB="testblockB-part1/testblockB-part2"
+seB="test-B-SE"
+fileblockB=DlsFileBlock(fbB)
+locationB=DlsLocation(seB)
+print "*** add a DLS entry with fileblock=%s location=%s"%(fileblockB.name,locationB.host)
+entry=DlsEntry(fileblockB,[locationB])
+try:
+  api.add([entry])
+except dlsApi.DlsApiError, inst:
+     msg = "Error adding a DLS entry: %s." % str(inst)
+     print msg
+
+#third entry: different fileblock same location as A
+fbC="testblockC-part1/testblockC-part2"
+fileblockC=DlsFileBlock(fbC)
+locationC=DlsLocation(seA)
+print "*** add a DLS entry with fileblock=%s location=%s"%(fileblockC.name,locationC.host)
+entry=DlsEntry(fileblockC,[locationC])
+try:
+  api.add([entry])
+except dlsApi.DlsApiError, inst:
+     msg = "Error adding a DLS entry: %s." % str(inst)
+     print msg
+
 
 #myList=api.listFileBlocks("")
 #for entry in myList:
@@ -96,37 +121,81 @@ except dlsApi.DlsApiError, inst:
 # #############################
 ## get Location of the added DLS entry
 # #############################
-print "*** get Locations for fileblock=%s"%fileblock.name
+print "*** get Locations for fileblock=%s"%fileblockA.name
 entryList=[]
 try:
-  entryList=api.getLocations(fileblock)
+ entryList=api.getLocations(fileblockA)
 except dlsApi.DlsApiError, inst:
      msg = "Error in the DLS query: %s." % str(inst)
      print msg
 for entry in entryList:
+  #print entry
   print "block %s"%entry.fileBlock.name
   for loc in entry.locations:
      print "locations found: %s"%loc.host
+
+# #############################
+## get Location of the added DLS entries
+# #############################
+
+print "*** get Locations for fileblocks = %s , %s"%(fileblockA.name,fileblockB.name)
+entryList=[]
+try:
+  entryList=api.getLocations([fileblockA,fileblockB])
+except dlsApi.DlsApiError, inst:
+     msg = "Error in the DLS query: %s." % str(inst)
+     print msg
+for entry in entryList:
+  #print entry
+  print "block %s"%entry.fileBlock.name
+  for loc in entry.locations:
+     print "locations found: %s"%loc.host
+
+
      
 # #############################
 ## get FileBlocks given the added location
 # #############################
-#print "*** get FileBlocks given the location=%s"%location.host
-#entryList=[]
-#try:
-#     entryList=api.getFileBlocks(location)
-#except dlsApi.DlsApiError, inst:
-#     msg = "Error in the DLS query: %s." % str(inst)
-#     print msg
-#print entryList
-#for entry in entryList:
-#      print entry.fileBlock.name
+print "*** get FileBlocks given the location=%s"%locationA.host
+entryList=[]
+try:
+     entryList=api.getFileBlocks(locationA)
+except dlsApi.DlsApiError, inst:
+     msg = "Error in the DLS query: %s." % str(inst)
+     print msg
+
+print entryList
+for entry in entryList:
+      if (isinstance(entry, list)):  #LFC implementation, complaint with Api Doc
+       for e in entry:
+        print e
+      else:   #MySQL implementation
+       print entry
 
 # #############################
-## delete a DLS entry
+## get FileBlocks given a list of location
 # #############################
-print "*** delete a DLS entry with fileblock=%s location=%s"%(fileblock.name,location.host)
-entry=DlsEntry(fileblock,[location])
+print "*** get FileBlocks given the locations = %s , %s"%(locationA.host,locationB.host)
+entryList=[]
+try:
+     entryList=api.getFileBlocks([locationA,locationB])
+except dlsApi.DlsApiError, inst:
+     msg = "Error in the DLS query: %s." % str(inst)
+     print msg
+                                                                                
+print entryList
+for entry in entryList:
+      if (isinstance(entry, list)):  #LFC implementation, complaint with Api Doc
+       for e in entry:
+        print e
+      else:   #MySQL implementation
+       print entry 
+
+# #############################
+## delete a DLS first entry
+# #############################
+print "*** delete a DLS entry with fileblock=%s location=%s"%(fileblockA.name,locationA.host)
+entry=DlsEntry(fileblockA,[locationA])
 try:
   api.delete([entry])
 except dlsApi.DlsApiError, inst:
@@ -134,12 +203,35 @@ except dlsApi.DlsApiError, inst:
      print msg
 
 # #############################
+## delete a DLS second entry
+# #############################
+print "*** delete a DLS entry with fileblock=%s location=%s"%(fileblockB.name,locationB.host)
+entry=DlsEntry(fileblockB,[locationB])
+try:
+  api.delete([entry])
+except dlsApi.DlsApiError, inst:
+     msg = "Error in deleting DLS entry: %s." % str(inst)
+     print msg
+
+# #############################
+## delete a DLS third entry
+# #############################
+print "*** delete a DLS entry with fileblock=%s location=%s"%(fileblockC.name,locationC.host)
+entry=DlsEntry(fileblockC,[locationC])
+try:
+  api.delete([entry])
+except dlsApi.DlsApiError, inst:
+     msg = "Error in deleting DLS entry: %s." % str(inst)
+     print msg
+
+
+# #############################
 ## check the removed DLS entry
 # #############################
-print "*** get Locations for the removed fileblock=%s"%fileblock.name
+print "*** get Locations for the removed fileblock=%s"%fileblockA.name
 entryList=[]
 try:
-  entryList=api.getLocations(fileblock)
+  entryList=api.getLocations(fileblockA)
 except dlsApi.DlsApiError, inst:
      msg = "Error in the DLS query: %s." % str(inst)
      print msg
