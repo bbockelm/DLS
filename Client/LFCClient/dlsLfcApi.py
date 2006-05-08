@@ -1,5 +1,5 @@
 #
-# $Id: dlsLfcApi.py,v 1.12 2006/05/03 14:57:11 delgadop Exp $
+# $Id: dlsLfcApi.py,v 1.13 2006/05/08 09:42:42 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -696,7 +696,7 @@ class DlsLfcApi(dlsApi.DlsApi):
     # Keywords
     session = False
     if(kwd.has_key("session")):
-   entrysession = kwd.get("session")
+       session = kwd.get("session")
 
     # Make sure the argument is a list
     if (isinstance(locationList, list)):
