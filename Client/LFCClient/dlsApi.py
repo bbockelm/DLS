@@ -1,5 +1,5 @@
 #
-# $Id: dlsApi.py,v 1.8 2006/04/26 11:49:37 delgadop Exp $
+# $Id: dlsApi.py,v 1.9 2006/05/03 14:57:11 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -229,7 +229,7 @@ class DlsApi(object):
     @param kwd: Flags:
      - errorTolerant: boolean (default True) for raising an exception after failure
      - trans: boolean (default False) for using a transaction for the operations
-      - session: boolean (default False) for using a session for the operations
+     - session: boolean (default False) for using a session for the operations
     """
 
     msg = "This is just a base class!"
@@ -347,14 +347,14 @@ class DlsApi(object):
 
   def getFileBlocks(self, locationList, **kwd):
     """
-    Returns a list of DlsEntry objects lists holding the FileBlocks stored in the
+    Returns a list of DlsEntry objects holding the FileBlocks stored in the
     specified locations.
     
     A single location or a list of those may be used as argument. The locations
     may  be specified as simple strings (hostnames) or as DlsLocation objects.
-    The returned list contains a list of DlsEntry objects per specified location
-    (holding all the FileBlocks in that location), in the same order as in the
-    argument.
+    The returned list contains a DlsEntry object per FileBlock-location pair; 
+    i.e.: for each specified location, one DlsEntry object per FileBlock
+    stored there.
 
     The returned objects will have a composing DlsFileBlock object containing the
     interesting FileBlock name, and a composing DlsLocation object holding the 
@@ -376,7 +376,7 @@ class DlsApi(object):
     NOTE: Normally, it makes no sense to use this method within a transaction, so
     please avoid it. 
 
-    NOTE: In some implemenations, this method may be quite more expensive (slow)
+    NOTE: In some implementations, this method may be quite more expensive (slow)
     than the getLocations method.
 
     @exception XXXX: On error with the DLS catalog
@@ -385,7 +385,7 @@ class DlsApi(object):
     @param kwd: Flags:
      - session: boolean (default False) for using a session for the operations
 
-    @return: a list of DlsEntry object lists containing the FileBlocks
+    @return: a list of DlsEntry objects containing the FileBlocks
     """
     msg = "This is just a base class!"
     msg += " This method should be implemented in an instantiable DLS API class"

@@ -1,5 +1,5 @@
 #
-# $Id: dlsLfcApi.py,v 1.11 2006/04/28 08:35:38 delgadop Exp $
+# $Id: dlsLfcApi.py,v 1.12 2006/05/03 14:57:11 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -151,7 +151,6 @@ class DlsLfcApi(dlsApi.DlsApi):
           raise SetupError(msg, code)    
     dlspath = dlspath.rstrip('/')
     self.root = dlspath
-#    environ["LFC_HOME"]=dlspath
 
     
 
@@ -602,10 +601,8 @@ class DlsLfcApi(dlsApi.DlsApi):
     # Make sure the argument is a list
     if (isinstance(fileBlockList, list)):
        theList = fileBlockList 
-#       wasList = True
     else:
        theList = [fileBlockList]
-#       wasList = False
 
     entryList = []
     
@@ -662,7 +659,6 @@ class DlsLfcApi(dlsApi.DlsApi):
            lfn = fB.name
          else:
            lfn = fB
-#         dliList.append(self._checkDlsHome(lfn))
          dliList.append(lfn)
          
       # Create the binding 
@@ -680,10 +676,6 @@ class DlsLfcApi(dlsApi.DlsApi):
 
     # Return what we got
     return entryList
-#    if(wasList):
-#      return entryList
-#    else:
-#      return entryList[0]
 
       
   
@@ -704,24 +696,21 @@ class DlsLfcApi(dlsApi.DlsApi):
     # Keywords
     session = False
     if(kwd.has_key("session")):
-       session = kwd.get("session")
+   entrysession = kwd.get("session")
 
     # Make sure the argument is a list
     if (isinstance(locationList, list)):
        theList = locationList 
-#       wasList = True
     else:
        theList = [locationList]
-#       wasList = False
 
-    listList = []
+    entryList = []
 
     # Start session
     if(session): self.startSession()
 
     # Loop on the entries
     for loc in theList:
-       entryList = []
        
        # Check what was passed (DlsLocation or string)
        if(isinstance(loc, DlsLocation)):
@@ -764,19 +753,12 @@ class DlsLfcApi(dlsApi.DlsApi):
        flags_rep=lfc.CNS_LIST_END
        filerep=lfc.lfc_listreplicax("", host, "", flags_rep, locList)
 
-       # Add the list to the list of lists
-       listList.append(entryList)
-
 
     # End session
     if(session): self.endSession()
 
     # Return what we got
-    return listList
-#    if(wasList):
-#      return listList
-#    else:
-#      return listList[0]
+    return entryList
 
 
   def listFileBlocks(self, fileBlockList, **kwd):
@@ -1192,8 +1174,6 @@ class DlsLfcApi(dlsApi.DlsApi):
     if(dir == ""):
        # The root directory is already there
        return
-#       msg = "Cannot create the root directory"
-#       raise DlsLfcApiError(msg)
     
     parentdir = dir[0:dir.rfind('/')+1]  
     fstat = lfc.lfc_filestatg()
