@@ -1,3 +1,10 @@
+#
+# $Id$
+#
+# DLS Client Functional Test Suite. $Name$.
+# Antonio Delgado Peris. CIEMAT. CMS.
+#
+
 #!/usr/bin/env python
  
 import unittest
@@ -126,12 +133,6 @@ class TestDlsCli_FromArgs_General(TestDlsCli):
      expected += "This method should be implemented in an instantiable DLS API class."
      msg = "Results (%s) are not those expected (%s)" % (out, expected)
      self.assertEqual(out, expected, msg)
-     # The test with DLS_TYPE_MYSQL waits till we know what we should expect
-#     cmd = self.path + "/dls-add -i DLS_TYPE_MYSQL c1"
-#     st, out = run(cmd)
-#     expected = ""
-#     msg = "Results (%s) are not those expected (%s)" % (out, expected)
-#     self.assertEqual(out, expected, msg)
    
      # With everything right, the thing should work 
      cmd = self.path + "/dls-add -e %s%s c1" % (self.host, self.testdir)
@@ -520,7 +521,7 @@ class TestDlsCli_FromArgs_AddGetSEList(TestDlsCli):
      except dlsLfcApi.DlsLfcApiError, inst:
         msg = "Error in iface.getGUID(\"c2\"): %s" % (inst.msg) 
         self.assertEqual(-1, 0, msg)
-     msg = "The guid retrieval was not correct",out 
+     msg = "The guid retrieval was not correct"
      self.assertEqual(retrievedGuid, guid, msg)
      
      # Same with FileBlock as argument
@@ -530,7 +531,7 @@ class TestDlsCli_FromArgs_AddGetSEList(TestDlsCli):
      except dlsLfcApi.DlsLfcApiError, inst:
         msg = "Error in iface.getGUID(\"fB\"): %s" % (inst.msg) 
         self.assertEqual(-1, 0, msg)
-     msg = "The guid retrieval was not correct",out 
+     msg = "The guid retrieval was not correct"
      self.assertEqual(retrievedGuid, guid, msg)
 
      # Test the SURL retrieval
@@ -543,7 +544,7 @@ class TestDlsCli_FromArgs_AddGetSEList(TestDlsCli):
      except dlsLfcApi.DlsLfcApiError, inst:
         msg = "Error in iface.getSURL(entry): %s" % (inst.msg) 
         self.assertEqual(-1, 0, msg)
-     msg = "The surl retrieval was not correct",out 
+     msg = "The surl retrieval was not correct"
      self.assertEqual(retrievedSurl, surl, msg)
      
 
@@ -648,7 +649,7 @@ class TestDlsCli_FromFile_AddGetSEList(TestDlsCli_FromFile):
 
 
   # Test dls-list using list files
-  def testGetSE(self):
+  def testList(self):
      cmd = self.path + "/dls-add -f 10_LFNs_with_SURLs"
      st, out = run(cmd)
      msg = "Error in dls-add -f 10_LFNs_with_SURLs",out 
@@ -803,7 +804,7 @@ class TestDlsCli_FromFile_DelUpdate(TestDlsCli_FromFile):
      # Now delete also FileBlock
      cmd = self.path + "/dls-delete -f 2_LFNs"
      st, out = run(cmd)
-     msg = "Error in dls-get-se -f 2_LFNs",out 
+     msg = "Error in dls-delete -f 2_LFNs",out 
      self.assertEqual(st, 0, msg)
 
      expected = "Error in the DLS query: Error querying for f2: Error accessing DLI " 
