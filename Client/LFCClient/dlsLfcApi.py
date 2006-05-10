@@ -771,6 +771,16 @@ class DlsLfcApi(dlsApi.DlsApi):
     This implementation supports a FileBlock directory (not a list) 
     as argument of the method, as well as a FileBlock name/object, or
     list of those.
+    
+    The implementation also supports recursive listing as described
+    in dlsApi.DlsApi.listFileBlocks. In this case, the resulting list
+    contains information on the FileBlocks under the specified directory
+    and its subdirectories also. The directory FileBlocks themselves are
+    not included in the list (for compatibility with other implementations).
+    As an exception, empty directories do appear in the list (since they
+    are not visible in the path of the files they contain). For those,
+    a slash is appended to their name, to make it clear that they are
+    directories and not normal FileBlocks.
 
     If longList (**kwd) is set to true, the attributes returned with
     the FileBlock are the following:
@@ -791,6 +801,9 @@ class DlsLfcApi(dlsApi.DlsApi):
     session = False
     if(kwd.has_key("session")):    session = kwd.get("session")
 
+    recursive = False
+    if(kwd.has_key("recursive")):    recursive = kwd.get("recursive")
+
     # Start session
     if(session): self.startSession()
 
@@ -802,7 +815,7 @@ class DlsLfcApi(dlsApi.DlsApi):
           if(result.attribs["filemode"] & S_IFDIR):
              if(self.verb >= DLS_VERB_HIGH):
                  print "--listDir(%s)" % (lfn)
-             result = self._listDir(lfn, longList)
+             result = self._listDir(lfn, longList, recursive)
           else:
              if(not longList):
                 result = DlsFileBlock(lfn)
@@ -1079,48 +1092,11 @@ class DlsLfcApi(dlsApi.DlsApi):
     @return: the FileBlock name (with the root path prepended) as a string
     """
     
-    # Current functionality just pre-prends the LFC's root path
-    # Remove next block to allow for relative FileBlocks support (LFC_HOME...)
+    # Just pre-prend the LFC's root path
     if(fileBlock.startswith('/')):
        return self.root + fileBlock
     else:
        return self.root + '/' + fileBlock
-
-    # This makes the whole thing
-#    Checks if the specified FileBlock is relative (not starting by '/') and if so,
-#    it tries to complete it with the DLS client working directory.
-#
-#    This method is required to support the use of relative FileBlocks by client 
-#    applications (like the CLI for example).
-#
-#    The DLS client working directory should be read from (in this order):
-#       - specified working_dir
-#       - DLS_HOME environmental variable
-#       - LFC_HOME environmental variable
-#
-#    If this DLS client working directory cannot be read, or if the specified
-#    FileBlock is an absolute path, the original FileBlock is returned.
-#
-#    @param fileBlock: the FileBlock to be changed, as a string
-#    @param working_dir: the DLS client working directory (FileBlock), as a string
-#      
-#    @return: the FileBlock name (possibly with a path prepended) as a string
-    if(fileBlock.startswith('/')):
-       absFB = fileBlock
-    else:
-       lfc_home = working_dir
-       if(not lfc_home):
-          lfc_home = environ.get("DLS_HOME")
-       if(not lfc_home):
-          lfc_home = environ.get("LFC_HOME")          
-       if(lfc_home):
-          if(not lfc_home.startswith('/')):
-            lfc_home = '/' + lfc_home
-          absFB = lfc_home + '/' + fileBlock
-       else:
-          absFB = '/' + fileBlock
-
-    return self.root + absFB
 
 
 
@@ -1653,7 +1629,7 @@ class DlsLfcApi(dlsApi.DlsApi):
     return result
 
 
-  def _listDir(self, dir, longList = False):
+  def _listDir(self, dir, longList = False, recursive = False):
     """
     Returns the entries of the specified directory from FileBlock namespace in
     the DLS catalog, as a list of FileBlock objects.
@@ -1662,6 +1638,12 @@ class DlsLfcApi(dlsApi.DlsApi):
 
     If longList is specified, each returned object contains some attributes as
     specifed in the listFileBlocks method.
+
+    If recursive is used, the list contains information on the FileBlocks
+    contained under the specified directory and its subdirectories. The directory
+    FileBlock themselves are not included in the list, unless the are empty.
+    In this case, a slash is appended to their name, to make it clear that 
+    they are directories and not normal FileBlocks.
 
     The method will raise an exception in the case that there is an error
     listing the directory. 
@@ -1678,6 +1660,9 @@ class DlsLfcApi(dlsApi.DlsApi):
       lfn = dir
     dir = self._checkDlsHome(lfn)
     userdir = self._removeRootPath(dir)
+
+    if(recursive):
+       subdirlist = [] # Subdirectories to remove when we are done with current one
 
     # Open dir 
     dir_p = lfc.lfc_DIR()
@@ -1705,7 +1690,7 @@ class DlsLfcApi(dlsApi.DlsApi):
 
       # Just the name    
       if(not longList):
-         fBList.append(DlsFileBlock(dir_entry.d_name))
+         fB = DlsFileBlock(dir_entry.d_name)
       else:
          # Long listing
          fB = DlsFileBlock(dir_entry.d_name)
@@ -1715,8 +1700,18 @@ class DlsLfcApi(dlsApi.DlsApi):
          fB.attribs["gid"] =  dir_entry.gid
          fB.attribs["filesize"] =  dir_entry.filesize
          fB.attribs["mtime"] =  dir_entry.mtime
+       
+      # Check for subdirectories (if recursive)
+      if(recursive and (dir_entry.filemode & S_IFDIR)):
+         if(not userdir.endswith('/')):
+            subdir = userdir + '/' + dir_entry.d_name
+         else:
+            subdir = userdir + dir_entry.d_name
+         fB.name = subdir
+         subdirlist.append(fB)
 
-         # Append
+      # Normal FileBlock -> append it
+      else:
          fBList.append(fB)
 
                  
@@ -1739,6 +1734,30 @@ class DlsLfcApi(dlsApi.DlsApi):
           print "Warning: %s" % (msg)
 #       raise DlsLfcApiError(msg, code)
 
+
+    # Now loop on the subdirectories (if recursive)
+    if(recursive):
+       for subdir in subdirlist:
+          # Stat subdir (just to avoid the 60 seconds timeout!)
+          fstat = lfc.lfc_filestatg()
+          if(lfc.lfc_statg(self._checkDlsHome(subdir.name), "", fstat)<0):
+             code = lfc.cvar.serrno
+             msg = "Error accessing FileBlock %s: %s" % (subdir.name, lfc.sstrerror(code))
+             if(self.verb >= DLS_VERB_WARN):
+                print "Warning: %s" % (msg)
+          # List subdir
+          subList = self._listDir(subdir, longList, recursive)
+          subdir_tokens = (subdir.name).split('/')
+          bare_subdir = subdir_tokens.pop()
+
+          # If the directory was empty, append just itself
+          if(not subList):
+              subdir.name = bare_subdir + '/'
+              fBList.append(subdir)
+          # Otherwise, append its contents
+          for i in subList:
+             i.name = bare_subdir + '/' + i.name
+             fBList.append(i)
 
     # Return
     return fBList

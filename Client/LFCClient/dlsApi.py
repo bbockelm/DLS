@@ -411,6 +411,14 @@ class DlsApi(object):
     Check the documentation of the concrete DLS client API implementation
     for the list of attributes
 
+    For the case of directory listing, if recursive (**kwd) is set to True,
+    the returned list will contain also the FileBlocks of the subdirectories
+    under the specified one in a recursive way. DLS implementations with 
+    flat FileBlock namespace will just ignore this flag.
+
+    NOTE: Be aware that depending on the catalog a recursive listing may be
+    a very costly operation, so please use this flag only with care.
+    
     The method may raise an exception if an error in the DLS operation occurs.
 
     If session(**kwd) is set to True, the whole operation of the method is
@@ -434,6 +442,7 @@ class DlsApi(object):
     @param kwd: Flags:
      - longList: boolean (default True) for the listing of location attributes
      - session: boolean (default False) for using a session for the operations
+     - recursive: boolean (default False) for recursive listing of a directory 
 
     @return: a list of DlsFileBlock objects containing the FileBlock information
     """
