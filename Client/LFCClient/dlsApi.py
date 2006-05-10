@@ -1,5 +1,5 @@
 #
-# $Id: dlsApi.py,v 1.9 2006/05/03 14:57:11 delgadop Exp $
+# $Id: dlsApi.py,v 1.10 2006/05/08 09:42:42 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -397,7 +397,7 @@ class DlsApi(object):
     Returns a list of DlsFileBlock objects holding the information of the
     specified FileBlocks, or, for implementations with hierarchical FileBlock
     namespace, of the FileBlocks under the specified FileBlock directory.
-
+    
     A single FileBlock, or a list of those, or a single Fileblock directory (not 
     a list) may be used as argument. In the case of FileBlocks, they may be
     specified as simple strings (FileBlock names) or as DlsFileBlock objects,
@@ -405,7 +405,7 @@ class DlsApi(object):
     FileBlock, in the same order. In the case of directories, the argument
     should be a string holding the directory name, and the returned list will
     hold a DlsFileBlock object per FileBlock under that directory.
-    
+
     The returned DlsFileBlock objects will contain both the FileBlock name
     and, if longList (**kwd) is set to true, some FileBlock attributes.
     Check the documentation of the concrete DLS client API implementation
@@ -416,10 +416,10 @@ class DlsApi(object):
     If session(**kwd) is set to True, the whole operation of the method is
     performed within a session (if the DLS implementation supports it).
     That is, the following call::
-      api.listFileBlock(x, session = True)
+      api.listFileBlocks(x, session = True)
     is equivalent to::
       api.startSession()
-      api.listFileBlock(x)
+      api.listFileBlocks(x)
       api.endSession()
 
     In some implementations it is not safe to nest sessions, so do not do it.

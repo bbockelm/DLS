@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #
-# $Id: dls-list,v 1.5 2006/04/27 12:16:04 delgadop Exp $
+# $Id: dls-list,v 1.6 2006/05/08 09:41:14 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -30,8 +30,8 @@ def usage():
    """
     Provides usage information
    """
-   print "Usage: dls-list [-v, -e, -i, -l] <fileblock>"
-   print "       dls-list [-v, -e, -i, -l] -f <listing_file>"
+   print "Usage: dls-list [-v, -e, -i, -l, -r] <fileblock>"
+   print "       dls-list [-v, -e, -i, -l, -r] -f <listing_file>"
    print "       dls-list -u"
    print "       dls-list -h"
 
@@ -47,6 +47,7 @@ def options():
    -e, --endpoint <endpoint>
    -i, --interface-type <iface_type>
    -l, --long
+   -r, --recursive
    -f, --from-file <filename>
    """
 def example():
@@ -69,6 +70,10 @@ FileBlock name. Printed attributes may depend on the DLS implementation.
 Currently, printed attributes (if supported by the implementation) are:
 file mode, number of files in a directory, owner, group owner, last
 modification date and name.
+
+If "-r" is specified, subdirectories contained in the specified
+FileBlock directory are listed recursively (for arguments being normal
+FileBlocks, this option is ignored).
 
 The "-f" option can be used to retrieve FileBlock names from a file rather
 than from the given arguments. The file must contain one line per FileBlock
@@ -106,12 +111,12 @@ If "-h" is specified, help information is displayed.
 
 
 
-def showFileBlocks(iface, lineList, longlist, verbose):
+def showFileBlocks(iface, lineList, longList, recursive, verbose):
    """
    Prints the specified FileBlocks information. lineList is a list
    of string, each holding a FileBlock name.
     
-   If longlist is True, some attributes are also printed.
+   If longList is True, some attributes are also printed.
    Currently printed attributes are:
    file mode, number of files in a directory, owner, group owner, last
    modification date.
@@ -140,9 +145,9 @@ def showFileBlocks(iface, lineList, longlist, verbose):
    # Get the locations (and let the caller deal with the exception...)
    if(len(fbList) == 1):
       # Need this for the directory listing (if in a list is like ls -d)
-      resList = iface.listFileBlocks(fbList[0], longList = longlist, session = True)
+      resList = iface.listFileBlocks(fbList[0], longList=longList, recursive=recursive,session=True)
    else:
-      resList = iface.listFileBlocks(fbList, longList = longlist, session = True)
+      resList = iface.listFileBlocks(fbList, longList=longList, recursive=recursive, session=True)
 
    # Make sure the obtained result is a list
    if(not isinstance(resList, list)):
@@ -150,7 +155,7 @@ def showFileBlocks(iface, lineList, longlist, verbose):
 
    # Print the entries
    for fB in resList:
-      if(not longlist):
+      if(not longList):
          print fB.name
       else:
          values = []
@@ -237,16 +242,17 @@ def main(pArgs):
 
  # Options and args... 
  
-   longoptions=["help", "usage", "long", "endpoint", "interface-type", "verbose","from-file"]
+   longoptions=["help","usage","long","recursive","endpoint","interface-type","verbose","from-file"]
    try:
-      optlist, args = getopt.getopt(pArgs, 'hule:i:v:f:', longoptions)
+      optlist, args = getopt.getopt(pArgs, 'hulre:i:v:f:', longoptions)
    except getopt.GetoptError, inst:
       sys.stderr.write("Bad usage: "+str(inst)+'\n')
       usage()
       sys.exit(-1)
 
    err=0
-   longlist = False
+   longList = False
+   recursive = False
    admitted_verb_values = [0, 1, 2]
    verbose = 1
    endpoint = None
@@ -264,7 +270,10 @@ def main(pArgs):
            return -1
            
        elif opt in ("-l", "--long"):
-           longlist = True
+           longList = True
+           
+       elif opt in ("-r", "--recursive"):
+           recursive = True
            
        elif opt in ("-e","--endpoint"):
            endpoint = val
@@ -337,9 +346,9 @@ def main(pArgs):
       return -1
 
    
- # Do the query (under session)
+ # Do the query
    try:
-     showFileBlocks(iface, lineList, longlist, verbose)
+     showFileBlocks(iface, lineList, longList, recursive, verbose)
    except dlsApi.DlsApiError, inst:         
       if(inst.rc):  err = inst.rc 
       else:           err = -1

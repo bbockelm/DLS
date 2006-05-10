@@ -1,5 +1,5 @@
 #
-# $Id: dlsLfcApi.py,v 1.13 2006/05/08 09:42:42 delgadop Exp $
+# $Id: dlsLfcApi.py,v 1.14 2006/05/08 10:08:42 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -219,7 +219,7 @@ class DlsLfcApi(dlsApi.DlsApi):
        if(session): self.startSession()
 
     # Loop on the entries
-    for entry in dlsEntryList:
+    for entry in theList:
       # FileBlock
       try:
          guid = self._addFileBlock(entry.fileBlock, createParent=createParent)
@@ -298,7 +298,7 @@ class DlsLfcApi(dlsApi.DlsApi):
        if(session): self.startSession()
 
     # Loop on the entries
-    for entry in dlsEntryList:
+    for entry in theList:
       # FileBlock
       try:
          self._updateFileBlock(entry.fileBlock)
@@ -592,8 +592,8 @@ class DlsLfcApi(dlsApi.DlsApi):
     """
     
     # Keywords
-    longlist = False 
-    if(kwd.has_key("longlist")):   longlist = kwd.get("longlist")
+    longList = False 
+    if(kwd.has_key("longList")):   longList = kwd.get("longList")
 
     session = False
     if(kwd.has_key("session")):    session = kwd.get("session")
@@ -607,7 +607,7 @@ class DlsLfcApi(dlsApi.DlsApi):
     entryList = []
     
     # For long listing (need to query the LFC directly)    
-    if(longlist):
+    if(longList):
 
       # Start session
       if(session): self.startSession()
@@ -1433,7 +1433,7 @@ class DlsLfcApi(dlsApi.DlsApi):
           continue
        else:
           if(self.verb >= DLS_VERB_WARN):
-             print "Warning: Fileblock attribute \""+attr+"\" unknown."
+             print "Warning: Attribute %s of FileBlock %s unknown." % (attr, userlfn)
  
     # Set the size and cksum
     if(update):
@@ -1699,8 +1699,10 @@ class DlsLfcApi(dlsApi.DlsApi):
        if(code != 0):
           msg = "Error reading dir %s: %s" % (userdir, lfc.sstrerror(code))
           raise DlsLfcApiError(msg, code)
+
        
     while(dir_entry):
+
       # Just the name    
       if(not longList):
          fBList.append(DlsFileBlock(dir_entry.d_name))
@@ -1713,9 +1715,10 @@ class DlsLfcApi(dlsApi.DlsApi):
          fB.attribs["gid"] =  dir_entry.gid
          fB.attribs["filesize"] =  dir_entry.filesize
          fB.attribs["mtime"] =  dir_entry.mtime
-       
+
          # Append
          fBList.append(fB)
+
                  
       # Next entry
       dir_entry = lfc.lfc_readdirg(dir_p)
@@ -1724,14 +1727,18 @@ class DlsLfcApi(dlsApi.DlsApi):
          if(code != 0):
             msg = "Error reading dir %s: %s" % (userdir, lfc.sstrerror(code))
             raise DlsLfcApiError(msg, code)
+
            
     # Close the directory
+    if(self.verb >= DLS_VERB_HIGH):
+       print "--lfc.lfc_closedirg(%s, \"\")"  % (dir)
     if(lfc.lfc_closedir(dir_p) < 0):
        code = lfc.cvar.serrno
        msg = "Error closing dir %s: %s" % (userdir, lfc.sstrerror(code))
        if(self.verb >= DLS_VERB_WARN):
           print "Warning: %s" % (msg)
 #       raise DlsLfcApiError(msg, code)
+
 
     # Return
     return fBList
