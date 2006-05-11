@@ -1,5 +1,5 @@
 #
-# $Id: README,v 1.1 2006/04/07 11:07:16 delgadop Exp $
+# $Id: README,v 1.2 2006/04/07 11:11:50 delgadop Exp $
 #
 # DLS Client Functional Test Suite. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -13,10 +13,30 @@ implementation the CLI and API could work slightly different (some offer
 more functionalities than others), so there can be different modules
 which contain classes implementing tests (in the unittest framework).
 
-The tests should create their own test area in the DLS and clean 
-everything afterwards.
+In the case of the LFC tests, they rely on a clean directory in the DLS,
+which they use and clean at the end (without removing the directory
+itself).
 
 In what follows we describe existing tests.
+
+
+DlsApiTest
+-------------
+General Test of the API for the DLS implementations (it should work with
+LFC or MySQL implementations). It does not include LFC-only capabilities
+like attributes or transactions.
+
+If everything is all right, this test version should produce no error with
+latest DLS API implementations.
+
+Main files are:
+ DlsApiTest.py: contains the tests and is runnable
+ DlsApiTest.conf: example conf file for previous script
+
+In addition, you need, of course, the DLS Client API code (python modules).
+
+For LFC API testing, you also need standard globus security installed, the
+lfc.py library, a valid grid proxy and access to a LFC-based DLS server.
 
 
 DlsLfcCliTest
@@ -25,21 +45,16 @@ Test of the CLI for the LFC-based DLS implementation. Since the CLI uses
 the API, this test also tests the API indirectly (though not in a 
 comprenhensive way).
 
-This test version should produce no error with DLS Client with tag
-DLS_V0_0_2.
+If everything is all right, this test version should produce no error with
+latest DLS Client.
 
 Main files are:
  DlsLfcCliTest.py: contains the tests and is runnable
  DlsLfcCliTest.conf: example conf file for previous script
  anto_utils.py, lfc_del*, lfc-del*: utilities used by the script
 
-In addition, you need, of course the DLS Client code (dlsApi.py,
-dlsLfcApi.py, dlsClient.py, dlsDliClient.py and dls-* commands) and the
-DLI client code (dliClient.py, dliClient_types.py).
+In addition, you need, of course, the DLS Client API code (python modules)
+and the command line tools (python scripts).
 
-
-This test version should produce no error with DLS Client with tag
-DLS_V0_0_2.
-You may need to set your PYTHONPATH env var to read the previous files.
 You also need standard globus security installed, the lfc.py library,
 a valid grid proxy and access to a LFC-based DLS server.
