@@ -1,5 +1,5 @@
 #
-# $Id: dlsMySQLApi.py,v 1.8 2006/04/24 23:47:53 afanfani Exp $
+# $Id: dlsMySQLApi.py,v 1.9 2006/04/25 18:27:03 afanfani Exp $
 #
 # DLC Client. $Name:  $. 
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -114,6 +114,10 @@ class DlsMySQLApi(dlsApi.DlsApi):
 
     if(not self.server):
        raise SetupError("Could not set the DLS server to use")
+
+    # Remove (ignore) the root directory
+    dlsserver = self.server.split('/')[0]
+    self.server = dlsserver
 
   ############################################
   # Methods defining the main public interface
@@ -292,6 +296,12 @@ class DlsMySQLApi(dlsApi.DlsApi):
             self.__client.close()
             #return 0
     return entryList
+
+  def startSession(self):
+     pass
+ 
+  def endSession(self):
+     pass
  
   ##################################
   # Other public methods (utilities)
