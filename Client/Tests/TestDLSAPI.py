@@ -114,9 +114,6 @@ except dlsApi.DlsApiError, inst:
      print msg
 
 
-#myList=api.listFileBlocks("")
-#for entry in myList:
-#  print entry
 
 # #############################
 ## get Location of the added DLS entry
@@ -166,10 +163,6 @@ except dlsApi.DlsApiError, inst:
 
 print entryList
 for entry in entryList:
-      if (isinstance(entry, list)):  #LFC implementation, complaint with Api Doc
-       for e in entry:
-        print e
-      else:   #MySQL implementation
        print entry
 
 # #############################
@@ -185,10 +178,6 @@ except dlsApi.DlsApiError, inst:
                                                                                 
 print entryList
 for entry in entryList:
-      if (isinstance(entry, list)):  #LFC implementation, complaint with Api Doc
-       for e in entry:
-        print e
-      else:   #MySQL implementation
        print entry 
 
 # #############################
