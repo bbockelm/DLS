@@ -1,12 +1,12 @@
+#!/usr/bin/env python
+ 
 #
-# $Id$
+# $Id: DlsLfcCliTest.py,v 1.10 2006/05/10 16:21:04 delgadop Exp $
 #
-# DLS Client Functional Test Suite. $Name$.
+# DLS Client Functional Test Suite. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
 #
 
-#!/usr/bin/env python
- 
 import unittest
 
 import anto_utils
@@ -43,6 +43,7 @@ class TestDlsCli(unittest.TestCase):
       msg1 = msg + " (DLS_TEST_DIR)"
       self.testdir = self.conf.get("DLS_TEST_DIR")
       self.assert_(self.testdir, msg1)
+      self.testdir = self.testdir + "/TESTDIR"
 
       msg1 = msg + " (DLS_TEST_SERVER)"
       self.host = self.conf.get("DLS_TEST_SERVER")
@@ -64,9 +65,9 @@ class TestDlsCli(unittest.TestCase):
 #      pythonpath = environ.get("PYTHONPATH")
 #      putenv("PYTHONPATH", self.path + ":" + pythonpath)
 
-      # Create the directory where to work
+      # Inside the given directory create a subdir where to work (and remove)
       putenv("LFC_HOST", self.host)
-      cmd = "lfc-mkdir " + self.testdir 
+      cmd = "lfc-mkdir " + self.testdir
       st, out = run(cmd)
       msg = "Error creating the LFC dir!",out 
       self.assertEqual(st, 0, msg)
@@ -75,7 +76,7 @@ class TestDlsCli(unittest.TestCase):
       unsetenv("LFC_HOST")
 
   def tearDown(self):
-     # Common clean up 
+     # Common clean up
      putenv("LFC_HOST", self.host)
      st, out = run(self.lfcdel+"/lfc-del-dir -r "+self.testdir)
      unsetenv("LFC_HOST")
