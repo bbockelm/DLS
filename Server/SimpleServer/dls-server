@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# $Id: dls-server,v 1.6 2006/04/24 18:32:35 elmer Exp $
+# $Id: dls-server,v 1.7 2006/05/03 00:50:57 afanfani Exp $
 
 import Queue
 import socket
@@ -102,8 +102,11 @@ class ClientThread ( threading.Thread ):
                #   print  msg
 
                if msg:
-                
-                  command=msg.split("#")
+                  if msg.count("replica#")>0 or msg.count("by_se#")>0 or msg.count("by_db#")>0:
+                   command=msg.split("#")
+                  else:
+                   command=msg.split("?")
+
                   if self.__verbose:
                      logging.info(command)
                      #print command
