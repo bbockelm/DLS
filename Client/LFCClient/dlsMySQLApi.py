@@ -1,5 +1,5 @@
 #
-# $Id: dlsMySQLApi.py,v 1.9 2006/04/25 18:27:03 afanfani Exp $
+# $Id: dlsMySQLApi.py,v 1.10 2006/05/11 15:28:36 delgadop Exp $
 #
 # DLC Client. $Name:  $. 
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -145,7 +145,7 @@ class DlsMySQLApi(dlsApi.DlsApi):
             #print "fb %s"%fb
             #print "ses %s"%se
             self.dls_connect()
-            msg='add_replica#%s#%s'%(fb,se)
+            msg='add_replica?%s?%s'%(fb,se)
             if ( self.verb > 10 ) :
                 print "Send:%s"%(msg)
             self.dls_send(msg)           
@@ -185,7 +185,7 @@ class DlsMySQLApi(dlsApi.DlsApi):
             #print "fb %s"%fb
             #print "ses %s"%se
             self.dls_connect()
-            msg='remove_replica#%s#%s'%(fb,se)
+            msg='remove_replica?%s?%s'%(fb,se)
             if ( self.verb > 10 ):
                 print "Send:%s"%(msg)
             self.dls_send(msg)
@@ -230,7 +230,7 @@ class DlsMySQLApi(dlsApi.DlsApi):
               fb = fblock
             entry = DlsEntry(DlsFileBlock(fb))
             self.dls_connect()
-            msg='show_replica_by_db#%s'%(fb)
+            msg='show_replica_by_db?%s'%(fb)
             self.dls_send(msg)
             if ( self.verb > 10 ):
                 print "Send: %s"%(msg)
@@ -277,7 +277,7 @@ class DlsMySQLApi(dlsApi.DlsApi):
             else:
               se = loc 
             self.dls_connect()
-            msg='show_replica_by_se#%s'%(se)
+            msg='show_replica_by_se?%s'%(se)
             self.dls_send(msg)
             if ( self.verb > 10 ):
                 print "Send: %s"%(msg) 

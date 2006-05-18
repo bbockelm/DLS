@@ -1,5 +1,5 @@
 #
-# $Id: dlsApi.py,v 1.10 2006/05/08 09:42:42 delgadop Exp $
+# $Id: dlsApi.py,v 1.12 2006/05/10 16:39:34 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -71,7 +71,7 @@ class ValueError(DlsApiError):
 
 
 #########################################
-# DlsApì class
+# DlsApi class
 #########################################
 
 class DlsApi(object):
