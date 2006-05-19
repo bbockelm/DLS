@@ -1,7 +1,7 @@
 #!/usr/bin/env python
  
 #
-# $Id: DlsLfcCliTest.py,v 1.10 2006/05/10 16:21:04 delgadop Exp $
+# $Id: DlsLfcCliTest.py,v 1.11 2006/05/11 15:25:51 delgadop Exp $
 #
 # DLS Client Functional Test Suite. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -62,8 +62,6 @@ class TestDlsCli(unittest.TestCase):
       putenv("DLS_TYPE", "DLS_TYPE_LFC")
       # DLS code for direct api calls
       sys.path.append(self.path)
-#      pythonpath = environ.get("PYTHONPATH")
-#      putenv("PYTHONPATH", self.path + ":" + pythonpath)
 
       # Inside the given directory create a subdir where to work (and remove)
       putenv("LFC_HOST", self.host)
@@ -298,7 +296,7 @@ class TestDlsCli_FromArgs_Deletion(TestDlsCli):
     
   # Test deletion using command line arguments
   def testDeletion(self):
-     # First add (already tested) 
+     # First add 
      cmd = self.path + "/dls-add c1 CliTest_se4 CliTest_se5 CliTest_se6"
      st, out = run(cmd)
      msg = "Error in dls-add c1 CliTest_se4 CliTest_se5 CliTest_se6",out 
@@ -317,11 +315,75 @@ class TestDlsCli_FromArgs_Deletion(TestDlsCli):
      msg = "The results obtained with dls-get-se are not those expected",out
      self.assertEqual(out, "CliTest_se6", msg)
 
-     # Delete the entry
-     cmd = self.path + "/dls-delete -a c1"
+     # Delete the entry by removing last location
+     cmd = self.path + "/dls-delete c1 CliTest_se6"
      st, out = run(cmd)
      msg = "Error in dls-delete -a c1",out 
      self.assertEqual(st, 0, msg)
+
+     # Check the FileBlock is also gone
+     cmd = self.path + "/dls-list c1"
+     st, out = run(cmd)
+     msg = "Unexpected success in %s: %s" % (cmd, out)
+     self.assert_(st != 0, msg)
+
+
+  # Test deletion with attrs (force...) using CLI
+  def testDeletionAttrs(self):
+     # First add with a permanent replica
+     cmd = self.path + "/dls-add f1 CliTest_se1"
+     st, out = run(cmd)
+     msg = "Error in %s: %s" % (cmd, out)
+     self.assertEqual(st, 0, msg)
+     cmd = self.path + "/dls-add f2  CliTest_se2 CliTest_se3 f_type=P"
+     st, out = run(cmd)
+     msg = "Error in %s: %s" % (cmd, out)
+     self.assertEqual(st, 0, msg)
+
+     # Delete some replicas (but keep FileBlock)
+     cmd = self.path + "/dls-delete -k f1 CliTest_se1"
+     st, out = run(cmd)
+     msg = "Error in %s: %s" % (cmd, out)
+     self.assertEqual(st, 0, msg)
+
+     # Now get locations
+     cmd = self.path + "/dls-get-se f1"
+     st, out = run(cmd)
+     msg = "Error in %s: %s" % (cmd, out)
+     self.assertEqual(st, 0, msg)
+     expected = ""
+     msg = "The results obtained with %s (%s) are not those expected (%s)" % (cmd, out, expected)
+     self.assertEqual(out, expected, msg)
+
+     # Next, fail to delete permanent replicas
+     cmd = self.path + "/dls-delete -a f2"
+     st, out = run(cmd)
+     msg = "Error in %s: %s" % (cmd, out)
+     self.assertEqual(st, 0, msg)
+     expected = "Warning: Not deleting custodial replica in CliTest_se3 of f2"
+     msg = "The results obtained with %s (%s) are not those expected (%s)" % (cmd, out, expected)
+     self.assertEqual(out, expected, msg)
+
+     # Check permanent location is still there
+     cmd = self.path + "/dls-get-se f2"
+     st, out = run(cmd)
+     msg = "Error in %s: %s" % (cmd, out)
+     self.assertEqual(st, 0, msg)
+     expected = "CliTest_se3"
+     msg = "The results obtained with %s (%s) are not those expected (%s)" % (cmd, out, expected)
+     self.assertEqual(out, expected, msg)
+
+     # Now, really delete the entry ("force" flag)
+     cmd = self.path + "/dls-delete -x f2 CliTest_se3"
+     st, out = run(cmd)
+     msg = "Error in %s: %s" % (cmd, out)
+     self.assertEqual(st, 0, msg)
+
+     # Check the entry is gone
+     cmd = self.path + "/dls-list f2"
+     st, out = run(cmd)
+     msg = "Unexpected success in %s: %s" % (cmd, out)
+     self.assert_(st != 0, msg)
 
 
   # Test deletion of a directory using CL args
@@ -349,7 +411,6 @@ class TestDlsCli_FromArgs_Deletion(TestDlsCli):
      expected = "Warning: Error deleting FileBlock directory dir1: File exists"
      msg = "The results obtained with dls-delete (%s) are not those expected (%s)" % (out, expected)
      self.assertEqual(out, expected, msg)
-     
 
      # Now delete the file and remove the dir correctly
      cmd = self.path + "/dls-delete -a dir1/f1"
@@ -481,7 +542,7 @@ class TestDlsCli_FromArgs_AddGetSEList(TestDlsCli):
      self.assertEqual(st, 0, msg)
      
      # Define some vars
-     fattrs="filesize=400 guid=%s mode=0711" % (guid)
+     fattrs="filesize=400 guid=%s filemode=0711" % (guid)
      surl = "sfn://my_sfn/%s" % (guid)
      rattrs="sfn=%s f_type=P ptime=45" % (surl)
      # Addition with attributes 
@@ -547,6 +608,60 @@ class TestDlsCli_FromArgs_AddGetSEList(TestDlsCli):
         self.assertEqual(-1, 0, msg)
      msg = "The surl retrieval was not correct"
      self.assertEqual(retrievedSurl, surl, msg)
+    
+
+  # Test recursive listing using CLI args 
+  def testRecursiveListing(self):
+   
+     # First create a dir hierarchy
+     cmd = self.path + "/dls-add f1 CliTest_se1"
+     st, out = run(cmd)
+     msg = "Error in %s: %s" % (cmd, out)
+     self.assertEqual(st, 0, msg)
+     cmd = self.path + "/dls-add dir1/f2 CliTest_se1"
+     st, out = run(cmd)
+     msg = "Error in %s: %s" % (cmd, out)
+     self.assertEqual(st, 0, msg)
+     cmd = self.path + "/dls-add dir1/dir2/f3 CliTest_se1"
+     st, out = run(cmd)
+     msg = "Error in %s: %s" % (cmd, out)
+     self.assertEqual(st, 0, msg)
+     cmd = self.path + "/dls-add dir1/dir3/fXX CliTest_se1"
+     st, out = run(cmd)
+     msg = "Error in %s: %s" % (cmd, out)
+     self.assertEqual(st, 0, msg)
+       # Remove the fXX file (leaving an empty dir1/dir3)
+     cmd = self.path + "/dls-delete -a dir1/dir3/fXX"
+     st, out = run(cmd)
+     msg = "Error in %s: %s" % (cmd, out)
+     self.assertEqual(st, 0, msg)
+
+     # Now list recursively, for several cases...
+       #... Just one file (just like normal list)
+     cmd = self.path + "/dls-list -r f1"
+     st, out = run(cmd)
+     msg = "Error in %s: %s" % (cmd, out)
+     self.assertEqual(st, 0, msg)
+     expected = "f1"
+     msg = "The results obtained with %s (%s) are not those expected (%s)"%(cmd, out, expected)
+     self.assertEqual(out, expected, msg)
+       #... empty dir (should return nothing)
+     cmd = self.path + "/dls-list -r dir1/dir3"
+     st, out = run(cmd)
+     msg = "Error in %s: %s" % (cmd, out)
+     self.assertEqual(st, 0, msg)
+     expected = ""
+     msg = "The results obtained with %s (%s) are not those expected (%s)"%(cmd, out, expected)
+     self.assertEqual(out, expected, msg)
+       #... root dir (should return whole hierarchy)
+     cmd = self.path + "/dls-list -r /"
+     st, out = run(cmd)
+     msg = "Error in %s: %s" % (cmd, out)
+     self.assertEqual(st, 0, msg)
+     expected = "f1\ndir1/f2\ndir1/dir2/f3\ndir1/dir3/"
+     msg = "The results obtained with %s (%s) are not those expected (%s)"%(cmd, out, expected)
+     self.assertEqual(out, expected, msg)
+
      
 
 ##############################################################################
@@ -903,8 +1018,6 @@ def getSuite():
   suite.append(getSuiteFromFile_AddGetSEList())
   suite.append(getSuiteFromFile_GetBlock())
   suite.append(getSuiteFromFile_DelUpdate())
-#  suite_args = getSuiteFromArgs()
-#  suite_file = getSuiteFromFile()
   return unittest.TestSuite(suite)
   
 def getSuiteFromArgs_General():
@@ -924,16 +1037,6 @@ def getSuiteFromFile_GetBlock():
 
 def getSuiteFromFile_DelUpdate():
   return unittest.makeSuite(TestDlsCli_FromFile_DelUpdate)
-
-#def getSingleTestArgs(testname):
-#  suite = unittest.TestSuite()
-#  suite.addTest(CliTest.TestDlsCli_FromArgs(testname))
-#  return suite
-#
-#def getSingleTestFile(testname):
-#  suite = unittest.TestSuite()
-#  suite.addTest(TestDlsCli_FromFile(testname))
-#  return suite
 
 # Module's methods to set the conf file
 def setConf(filename):
