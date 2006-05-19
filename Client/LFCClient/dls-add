@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #
-# $Id: dls-add,v 1.5 2006/04/24 23:47:53 afanfani Exp $
+# $Id: dls-add,v 1.6 2006/04/25 10:43:41 afanfani Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -68,7 +68,7 @@ can be specified after each given location. Unknown attribute names (keys)
 will be ignored.
 
 Currently understood fileblock attributes are:    
-      guid, mode, filesize, csumtype, csumvalue
+      guid, filemode, filesize, csumtype, csumvalue
 
 Currently understood replica attributes are:    
       sfn, f_type, ptime
