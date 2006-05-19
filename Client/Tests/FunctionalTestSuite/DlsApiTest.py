@@ -1,9 +1,9 @@
 #!/usr/bin/env python
  
 #
-# $Id$
+# $Id: DlsApiTest.py,v 1.1 2006/05/11 15:26:32 delgadop Exp $
 #
-# DLS Client Functional Test Suite. $Name$.
+# DLS Client Functional Test Suite. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
 #
 
@@ -14,7 +14,6 @@ import anto_utils
 from commands import getstatusoutput
 run = getstatusoutput
 from os import putenv, unsetenv, chdir, getcwd, environ
-from time import strftime
 import sys
 from stat import *
 
@@ -26,8 +25,6 @@ name = "DlsApiTest.py"
 ##############################################################################
 # Parent Class for DLS API testing
 ##############################################################################
-
-# TODO: Include things within sessions as much as possible...
 
 class TestDlsApi(unittest.TestCase):
  
@@ -56,6 +53,7 @@ class TestDlsApi(unittest.TestCase):
       verb = self.conf.get("DLS_VERBOSITY")
 
       # Create the interface
+      self.clean = True
       self.session = False
       try:
         self.api = dlsClient.getDlsApi(self.type, self.host+self.testdir)
@@ -67,17 +65,25 @@ class TestDlsApi(unittest.TestCase):
 
   def tearDown(self):
      # Common clean up (just in case)
-     fB = DlsFileBlock("f1")
-     fB2 = DlsFileBlock("f2")
-     fB3 = DlsFileBlock("f3")
-     entry = DlsEntry(fB, [])
-     entry2 = DlsEntry(fB2, [])
-     entry3 = DlsEntry(fB3, [])
-     try:
-       self.api.delete([entry, entry2, entry3], all = True)
-     except DlsApiError, inst:
-       msg = "Error in delete([%s, %s, %s]): %s" % (entry, entry2, entry3, inst)
-       self.assertEqual(0, 1, msg)
+     if(self.clean):
+        fBList = map(DlsFileBlock, ["f1", "f2", "f3"])
+        entryList = map(DlsEntry, fBList, [])
+        try:
+          self.api.delete(entryList, all = True, force = True)
+        except DlsApiError, inst:
+          msg = "Error in delete(%s): %s" % (map(str, entryList), inst)
+          self.assertEqual(0, 1, msg)
+#     fB = DlsFileBlock("f1")
+#     fB2 = DlsFileBlock("f2")
+#     fB3 = DlsFileBlock("f3")
+#     entry = DlsEntry(fB, [])
+#     entry2 = DlsEntry(fB2, [])
+#     entry3 = DlsEntry(fB3, [])
+#     try:
+#       self.api.delete([entry, entry2, entry3], all = True)
+#     except DlsApiError, inst:
+#       msg = "Error in delete([%s, %s, %s]): %s" % (entry, entry2, entry3, inst)
+#       self.assertEqual(0, 1, msg)
      
      # End session
      if(self.session):
@@ -101,8 +107,8 @@ class TestDlsApi_General(TestDlsApi):
      TestDlsApi.tearDown(self)
 
 
-# Class for multiple arguments testing
-# ====================================
+# Class for single argument testing
+# =================================
 
 class TestDlsApi_General_Basic(TestDlsApi_General):
   def setUp(self):
@@ -215,6 +221,7 @@ class TestDlsApi_General_Basic(TestDlsApi_General):
      # Clean: Delete the entries
      try:
        self.api.delete([entry, entry2], all = True)
+       self.clean = False
      except DlsApiError, inst:
        msg = "Error in delete([%s, %s]): %s" % (entry, entry2, inst)
        self.assertEqual(0, 1, msg)
@@ -270,7 +277,7 @@ class TestDlsApi_General_Basic(TestDlsApi_General):
        msg = "Unexpected success in listFileBlocks(%s)" % (entry.fileBlock)
        self.assertEqual(0, 1, msg)
      except DlsApiError, inst:
-       pass
+       self.clean = False
 
 
   # Test addition with non-existing parent directories
@@ -311,6 +318,7 @@ class TestDlsApi_General_Basic(TestDlsApi_General):
           self.api.delete(entry2, all = True)
           entry3 = DlsEntry(DlsFileBlock("dir1"), [])
           self.api.delete(entry3, all = True)
+       self.clean = False
      except DlsApiError, inst:
        msg = "Error in delete(%s): %s" % (entry, inst)
        self.assertEqual(0, 1, msg)
@@ -399,6 +407,7 @@ class TestDlsApi_General_MultipleArgs(TestDlsApi_General):
      # Clean: Delete the entries
      try:
        self.api.delete([entry, entry2, entry3], all = True)
+       self.clean = False
      except DlsApiError, inst:
        msg = "Error in delete([%s, %s, %s]): %s" % (entry, entry2, entry3, inst)
        self.assertEqual(0, 1, msg)
@@ -477,6 +486,7 @@ class TestDlsApi_General_MultipleArgs(TestDlsApi_General):
      # Delete the last entry
      try:
        self.api.delete([entry3], all = True)
+       self.clean = False
      except DlsApiError, inst:
        msg = "Error in delete(%s, all = True): %s" % (entry3, inst)
        self.assertEqual(0, 1, msg)
@@ -534,6 +544,7 @@ class TestDlsApi_General_GetFileBlocks(TestDlsApi_General):
      # Clean: Delete the entries
      try:
        self.api.delete([entry, entry2, entry3], all = True)
+       self.clean = False
      except DlsApiError, inst:
        msg = "Error in delete([%s, %s, %s]): %s" % (entry, entry2, entry3, inst)
        self.assertEqual(0, 1, msg)
@@ -582,6 +593,7 @@ class TestDlsApi_General_GetFileBlocks(TestDlsApi_General):
      # Clean: Delete the entries
      try:
        self.api.delete([entry, entry2, entry3], all = True)
+       self.clean = False
      except DlsApiError, inst:
        msg = "Error in delete([%s, %s, %s]): %s" % (entry, entry2, entry3, inst)
        self.assertEqual(0, 1, msg)
@@ -672,7 +684,7 @@ if __name__ == '__main__':
 
   the_conf = loadVars(sys.argv[1])
   if(not the_conf):
-     sys.stderr.write("Incorrecect conf file, leaving...\n")
+     sys.stderr.write("Incorrect conf file, leaving...\n")
   from dlsDataObjects import *
   from dlsApi import *
   import dlsClient
