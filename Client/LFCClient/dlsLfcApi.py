@@ -1,5 +1,5 @@
 #
-# $Id: dlsLfcApi.py,v 1.14 2006/05/08 10:08:42 delgadop Exp $
+# $Id: dlsLfcApi.py,v 1.16 2006/05/10 16:39:34 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -169,9 +169,9 @@ class DlsLfcApi(dlsApi.DlsApi):
 
     The list of supported attributes for the FileBlocks is:
      - guid
-     - mode
+     - filemode
      - filesize
-     - csumtype
+     - csumtype ("CS", "AD" or "MD": standard 32 bits, adler 32 b., MD5 128 b.)
      - csumvalue
     
     The list of supported attributes for the locations is:
@@ -226,7 +226,9 @@ class DlsLfcApi(dlsApi.DlsApi):
       except DlsLfcApiError, inst:
          if(not errorTolerant):
            if(session): self.endSession()
-           if(trans):   inst.msg += ". Transaction operations rolled back"
+           if(trans):
+                  self.abortTrans()
+                  inst.msg += ". Transaction operations rolled back"
            raise inst
          else: # Can't add locations without guid, so go to next FileBlock
            continue
@@ -237,7 +239,9 @@ class DlsLfcApi(dlsApi.DlsApi):
          except DlsLfcApiError, inst:
             if(not errorTolerant):
                if(session): self.endSession()
-               if(trans):   inst.msg += ". Transaction operations rolled back"
+               if(trans):
+                  self.abortTrans()
+                  inst.msg += ". Transaction operations rolled back"
                raise inst
 
     # End transaction/session
@@ -258,7 +262,7 @@ class DlsLfcApi(dlsApi.DlsApi):
 
     The list of supported attributes for the FileBlocks is:
      - filesize
-     - csumtype
+     - csumtype ("CS", "AD" or "MD": standard 32 bits, adler 32 b., MD5 128 b.)
      - csumvalue
     
     The list of supported attributes for the locations is:
@@ -305,7 +309,9 @@ class DlsLfcApi(dlsApi.DlsApi):
       except DlsLfcApiError, inst:
          if(not errorTolerant):
            if(session): self.endSession()
-           if(trans):   inst.msg += ". Transaction operations rolled back"
+           if(trans):
+                  self.abortTrans()
+                  inst.msg += ". Transaction operations rolled back"
            raise inst
          else:
            # For FileBlocks not accessible, go to next
@@ -333,7 +339,9 @@ class DlsLfcApi(dlsApi.DlsApi):
            if(session): self.endSession()
            code = lfc.cvar.serrno
            msg = "Error retrieving locations for(%s): %s" % (userlfn, lfc.sstrerror(code))
-           if(trans):   msg += ". Transaction operations rolled back"
+           if(trans):
+                   self.abortTrans()
+                   msg += ". Transaction operations rolled back"
            raise DlsLfcApiError(msg, code)
          else: continue
     
@@ -352,7 +360,9 @@ class DlsLfcApi(dlsApi.DlsApi):
             except DlsLfcApiError, inst:
               if(not errorTolerant): 
                  if(session): self.endSession()
-                 if(trans):   inst.msg += ". Transaction operations rolled back"
+                 if(trans):
+                   self.abortTrans()
+                   inst.msg += ". Transaction operations rolled back"
                  raise inst
 
             # And if no more SEs, exit
@@ -790,6 +800,8 @@ class DlsLfcApi(dlsApi.DlsApi):
      - gid (group owner)
      - filesize
      - mtime (last modification date)
+     - csumtype
+     - csumvalue
 
     NOTE: Normally, it makes no sense to use this method within a transaction,
     so please avoid it. 
@@ -1128,10 +1140,10 @@ class DlsLfcApi(dlsApi.DlsApi):
 
 
 
-  def _checkAndCreateDir(self, dir, mode=0755):
+  def _checkAndCreateDir(self, dir, filemode=0755):
     """
     Checks if the specified directory and all its parents exist in the DLS server.
-    Otherwise, it creates the whole tree (with the specified mode).
+    Otherwise, it creates the whole tree (with the specified filemode).
 
     This method is required to support the automatic creation of parent directories
     within the add() method.
@@ -1143,7 +1155,7 @@ class DlsLfcApi(dlsApi.DlsApi):
     @exception DlsLfcApiError: On error with the DLS catalog
 
     @param dir: the directory tree to be created, as a string
-    @param mode: the mode to be used in the directories creation
+    @param filemode: the filemode to be used in the directories creation
     """
     dir = dir.rstrip('/')
 
@@ -1154,11 +1166,11 @@ class DlsLfcApi(dlsApi.DlsApi):
     parentdir = dir[0:dir.rfind('/')+1]  
     fstat = lfc.lfc_filestatg()
     if(lfc.lfc_statg(dir, "", fstat)<0):
-       self._checkAndCreateDir(parentdir, mode)
+       self._checkAndCreateDir(parentdir, filemode)
        guid = commands.getoutput('uuidgen')         
        if(self.verb >= DLS_VERB_HIGH):
-          print "--lfc.lfc_mkdirg(",dir,",",guid,",",mode,")"
-       if(lfc.lfc_mkdirg(dir, guid, mode) < -1):
+          print "--lfc.lfc_mkdirg(",dir,",",guid,",",filemode,")"
+       if(lfc.lfc_mkdirg(dir, guid, filemode) < -1):
           code = lfc.cvar.serrno
           msg = "Error creating parent directory %s: %s" % (dir, lfc.sstrerror(code))
           raise DlsLfcApiError(msg, code)
@@ -1203,18 +1215,21 @@ class DlsLfcApi(dlsApi.DlsApi):
   # Analyze attribute list
   
     # Defaults
-    [mode, filesize, csumtype, csumvalue] = [0775, long(1000), '', '']
+    [filemode, filesize, csumtype, csumvalue] = [0775, long(1000), '', '']
  
     # Get what was passed
     for attr in attrList:
        if(attr == "guid"):
           guid=attrList[attr]
           continue
-       if(attr == "mode"): 
-          if((attrList[attr])[0] == '0'):
-             mode = int(attrList[attr], 8)
+       if(attr == "filemode"): 
+          if(isinstance(attrList[attr], str)):
+             if((attrList[attr])[0] == '0'):
+                filemode = int(attrList[attr], 8)
+             else:
+                filemode = int(attrList[attr])
           else:
-             mode = int(attrList[attr])
+             filemode = int(attrList[attr])              
           continue
        if(attr == "filesize"):     
           filesize=long(attrList[attr])
@@ -1240,14 +1255,14 @@ class DlsLfcApi(dlsApi.DlsApi):
           if(self.verb >= DLS_VERB_HIGH):
              print "--Checking parents of requested FileBlock: "+lfn
           parentdir = lfn[0:lfn.rfind('/')+1]
-          self._checkAndCreateDir(parentdir, mode)
+          self._checkAndCreateDir(parentdir, filemode)
  
        # Now, create it
        if(not guid):
           guid=commands.getoutput('uuidgen')         
        if(self.verb >= DLS_VERB_HIGH):
-          print "--lfc.lfc_creatg(\""+lfn+"\", \""+guid+"\",",mode,")"   
-       if(lfc.lfc_creatg(lfn, guid, mode) < 0):
+          print "--lfc.lfc_creatg(\""+lfn+"\", \""+guid+"\",",filemode,")"   
+       if(lfc.lfc_creatg(lfn, guid, filemode) < 0):
           code = lfc.cvar.serrno
           msg = "Error creating the FileBlock %s: %s" % (userlfn, lfc.sstrerror(code))
           if(self.verb >= DLS_VERB_WARN):
@@ -1624,6 +1639,8 @@ class DlsLfcApi(dlsApi.DlsApi):
     result.attribs["gid"] =  fstat.gid
     result.attribs["filesize"] =  fstat.filesize
     result.attribs["mtime"] =  fstat.mtime
+    result.attribs["csumtype"] =  fstat.csumtype
+    result.attribs["csumvalue"] =  fstat.csumvalue
 
     # Return
     return result
@@ -1700,6 +1717,8 @@ class DlsLfcApi(dlsApi.DlsApi):
          fB.attribs["gid"] =  dir_entry.gid
          fB.attribs["filesize"] =  dir_entry.filesize
          fB.attribs["mtime"] =  dir_entry.mtime
+         fB.attribs["csumtype"] =  dir_entry.csumtype
+         fB.attribs["csumvalue"] =  dir_entry.csumvalue
        
       # Check for subdirectories (if recursive)
       if(recursive and (dir_entry.filemode & S_IFDIR)):
