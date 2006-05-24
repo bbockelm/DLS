@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
 #
-# $Id: $
+# $Id: dls-replace-location,v 1.1 2006/05/22 18:19:02 afanfani Exp $
 #
-# DLS Client. $Name: $
+# DLS Client. $Name:  $
 # Alessandra Fanfani Univ./INFN Bologna. CMS.
 # 
 
@@ -28,7 +28,7 @@ def usage():
    """
     Provides usage information
    """
-   print "Usage: dls-replace-location [-v, -e, -i, -o , -n ] "
+   print "Usage: dls-replace-location [-v, -e, -i] -o <old_loc> -n <new_loc>"
    print "       dls-replace-location -u"
    print "       dls-replace-location -h"
 
@@ -43,7 +43,7 @@ def options():
    -e, --endpoint <endpoint>
    -i, --interface-type <iface_type>
    -o, --oldlocation <oldlocation>
-   -o, --newlocation <newlocation>
+   -n, --newlocation <newlocation>
    """
 def example():
   """
@@ -56,8 +56,8 @@ def help():
    """
     Provides some help information
    """
-   print """\n Replace the location for all fileblocks for the given <oldlocation> to the given <newlocation> in the DLS server.
-
+   print """Replaces the location for all fileblocks for the given <oldlocation> to
+the given <newlocation> in the DLS server.
 
 The "-e" option can be used to set the DLS endpoint to use. If not specified,
 the endpoint is retrieved from:
@@ -151,29 +151,32 @@ def main(pArgs):
          if(val == "DLS_TYPE_MYSQL"):
             iface_type = dlsClient.DLS_TYPE_MYSQL
 
-
      elif opt in ("-o", "--oldlocation"):
          oldlocation=val
      elif opt in ("-n", "--newlocation"):
          newlocation=val
 
 
-   if endpoint==None:
-      usage()
-      print "error: --endpoint <DLS endpoint> is required"
-      sys.exit(2)
-   if iface_type==None:
-      usage()
-      print "error: --interface-type <DLS type> is required. Suppported values: %s\n"%admitted_iface_types
-      sys.exit(2)
+#   if endpoint==None:
+#      usage()
+#      msg = "Error: --endpoint <DLS endpoint> is required"
+#      sys.stderr.write(msg+"\n")
+#      sys.exit(-1)
+#   if iface_type==None:
+#      usage()
+#      msg = "Error: --interface-type <DLS type> is required. Suppported values: %s\n"%admitted_iface_types
+#      sys.stderr.write(msg+"\n")
+#      sys.exit(-1)
    if oldlocation==None:
+      msg = "Error: --oldlocation <oldlocation> is required"
+      sys.stderr.write(msg+"\n")
       usage()
-      print "error: --oldlocation <oldlocation> is required"
-      sys.exit(2)
+      sys.exit(-1)
    if newlocation==None:
+      msg = "Error: --newlocation <newlocation> is required"
+      sys.stderr.write(msg+"\n")
       usage()
-      print "error: --newlocation <newlocation> is required"
-      sys.exit(2)
+      sys.exit(-1)
 
  
   
@@ -207,17 +210,23 @@ def main(pArgs):
       sys.stderr.write(msg+"\n")
       return -1
  
-   print "*** get FileBlocks given the location=%s"%oldlocation
+   # Start session
+   iface.startSession()
+    
+   if(verbose >= 2):
+      print "*** Get FileBlocks given the location=%s"%oldlocation
    entryList=[]
    try:
       entryList=iface.getFileBlocks(oldlocation)
    except dlsApi.DlsApiError, inst:
       msg = "Error in the DLS query: %s." % str(inst)
-      print msg
-      sys.exit(2)      
+      sys.stderr.write(msg+"\n")
+      iface.endSession()
+      sys.exit(-1)  
 
-   print "*** delete all DLS entry with location=%s"%oldlocation
-   print "*** add all DLS entry with location=%s"%newlocation
+   if(verbose >= 2):
+      print "*** Delete all DLS entries with location=%s"%oldlocation
+      print "*** Add all DLS entries with location=%s"%newlocation
    #print entryList
    for entry in entryList:
        #print entry
@@ -229,8 +238,11 @@ def main(pArgs):
          iface.add([newentry])
        except dlsApi.DlsApiError, inst:
          msg = "Error in deleting DLS entry: %s." % str(inst)
-         print msg
+         sys.stderr.write(msg+"\n")
          pass
+
+   # end session
+   iface.endSession()
 
 
 ######################### SCRIPT ###########################

@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
 #
-# $Id: $
+# $Id: dls-delete-fileblocksbylocation,v 1.1 2006/05/22 18:19:02 afanfani Exp $
 #
-# DLS Client. $Name: $
+# DLS Client. $Name:  $
 # Alessandra Fanfani Univ./INFN Bologna. CMS.
 
 
@@ -28,7 +28,7 @@ def usage():
    """
     Provides usage information
    """
-   print "Usage: dls-delete-fileblockbylocation [-v, -e, -i]    <location>"
+   print "Usage: dls-delete-fileblockbylocation [-v, -e, -i] <location>"
    print "       dls-delete-fileblockbylocation -u"
    print "       dls-delete-fileblockbylocation -h"
 
@@ -54,8 +54,7 @@ def help():
    """
     Provides some help information
    """
-   print """\n Deletes all fileblocks for the given <location> in the DLS server.
-
+   print """Deletes all fileblocks for the given <location> in the DLS server.
 
 The "-e" option can be used to set the DLS endpoint to use. If not specified,
 the endpoint is retrieved from:
@@ -148,14 +147,16 @@ def main(pArgs):
          if(val == "DLS_TYPE_MYSQL"):
             iface_type = dlsClient.DLS_TYPE_MYSQL
 
-   if endpoint==None:
-      usage()
-      print "error: --endpoint <DLS endpoint> is required"
-      sys.exit(2)
-   if iface_type==None:
-      usage()
-      print "error: --interface-type <DLS type> is required. Suppported values: %s\n"%admitted_iface_types
-      sys.exit(2)
+#   if endpoint==None:
+#      usage()
+#      msg = "error: --endpoint <DLS endpoint> is required"
+#      sys.stderr.write(msg+"\n")
+#      sys.exit(-1)
+#   if iface_type==None:
+#      usage()
+#      msg = "error: --interface-type <DLS type> is required. Suppported values: %s\n"%admitted_iface_types
+#      sys.stderr.write(msg+"\n")
+#      sys.exit(-1)
 
  
   
@@ -163,11 +164,13 @@ def main(pArgs):
 
    
    if(len(args)<1):
-         print "Bad usage: Not enough input arguments"
+         msg = "Bad usage: Not enough input arguments"
+         sys.stderr.write(msg+"\n")
          usage()
          return -1
    if(len(args)>1):
-         print "Bad usage: Too many input arguments"
+         msg = "Bad usage: Too many input arguments"
+         sys.stderr.write(msg+"\n")
          usage()
          return -1
 
@@ -191,16 +194,22 @@ def main(pArgs):
       sys.stderr.write(msg+"\n")
       return -1
  
-    print "*** get FileBlocks given the location=%s"%location
+    # Start session
+    iface.startSession()
+    
+    if(verbose >= 2):
+      print "*** Get FileBlocks given the location=%s"%location
     entryList=[]
     try:
       entryList=iface.getFileBlocks(location)
     except dlsApi.DlsApiError, inst:
       msg = "Error in the DLS query: %s." % str(inst)
-      print msg
-      sys.exit(2)      
-                                                                                                                   
-    print "*** delete all DLS entry with location=%s"%location
+      sys.stderr.write(msg+"\n")
+      sys.exit(-1)      
+      
+    if(verbose >= 2):
+       print "*** Delete all DLS entry with location=%s"%location
+    #Could just be: iface.delete(entryList)
     #print entryList
     for entry in entryList:
        #print entry
@@ -209,10 +218,14 @@ def main(pArgs):
          iface.delete([entry])
        except dlsApi.DlsApiError, inst:
          msg = "Error in deleting DLS entry: %s." % str(inst)
-         print msg
+         sys.stderr.write(msg+"\n")
          pass
 
+    # end session
+    iface.endSession()
 
+
+    
 ######################### SCRIPT ###########################
 
 if __name__ == "__main__":
