@@ -20,6 +20,7 @@ lfc-mysql:
 	/bin/cp $(PYTHON_SRC)/DliClient/dli* $(LIB_DIR)/.
 	/bin/cp -r $(PYTHON_SRC)/DliClient/ZSI.tar.gz $(LIB_DIR)/.
 	/bin/cp -r $(PYTHON_SRC)/DliClient/PyXML-$(PYXML_VER).tar.gz $(LIB_DIR)/.
+	/bin/cp $(PYTHON_SRC)/DliClient/pyexpat* $(LIB_DIR)/.
 	/bin/cp -r $(PYTHON_SRC)/DliClient/InstallPyXML.sh $(LIB_DIR)/.
 	/bin/chmod a+x $(LIB_DIR)/InstallPyXML.sh
 	cd $(LIB_DIR) && tar xvzf ZSI.tar.gz > /dev/null && /bin/rm $(LIB_DIR)/ZSI.tar.gz
@@ -30,6 +31,7 @@ lfc:
 	/bin/rm $(LIB_DIR)/dlsMySQLApi.py
 	/bin/cp -r $(PYTHON_SRC)/DliClient/ZSI.tar.gz $(LIB_DIR)/.
 	/bin/cp -r $(PYTHON_SRC)/DliClient/PyXML-$(PYXML_VER).tar.gz $(LIB_DIR)/.
+	/bin/cp $(PYTHON_SRC)/DliClient/pyexpat* $(LIB_DIR)/.
 	/bin/cp -r $(PYTHON_SRC)/DliClient/InstallPyXML.sh $(LIB_DIR)/.
 	/bin/chmod a+x $(LIB_DIR)/InstallPyXML.sh
 	cd $(LIB_DIR) && tar xvzf ZSI.tar.gz > /dev/null && /bin/rm $(LIB_DIR)/ZSI.tar.gz
@@ -44,6 +46,7 @@ dli:
 	/bin/rm $(LIB_DIR)/dlsLfcApi.py
 	/bin/cp -r $(PYTHON_SRC)/DliClient/ZSI.tar.gz $(LIB_DIR)/.
 	/bin/cp -r $(PYTHON_SRC)/DliClient/PyXML-$(PYXML_VER).tar.gz $(LIB_DIR)/.
+	/bin/cp $(PYTHON_SRC)/DliClient/pyexpat* $(LIB_DIR)/.	
 	/bin/cp -r $(PYTHON_SRC)/DliClient/InstallPyXML.sh $(LIB_DIR)/.
 	/bin/chmod a+x $(LIB_DIR)/InstallPyXML.sh
 	cd $(LIB_DIR) && tar xvzf ZSI.tar.gz > /dev/null && /bin/rm $(LIB_DIR)/ZSI.tar.gz
