@@ -15,6 +15,11 @@ mkdir xml;
 cp -r $PYXML_VER/build/lib.*/_xmlplus xml/.;
 mv xml/_xmlplus/* xml/.;
 rmdir xml/_xmlplus;
+# remove the pyexpat.so and pickup the pre-compiled python2.2
+rm xml/parsers/pyexpat.so;
+mkdir extra;
+cp pyexpat-i686-2.2.so extra/pyexpat.so;
+#mv xml/parsers/pyexpat.so extra/.;
 
 echo "PyXML installation performed"
 rm -Rf $PYXML_VER.tar.gz $PYXML_VER
