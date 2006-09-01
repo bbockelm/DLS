@@ -1,0 +1,15 @@
+Script that upload fileblock from Local to Global DLS.
+The required infromation are :
+ - the local DBS instance where the local fileblock name is (the corresponding local DLS instance   is mapped in the script) 
+ - the Global DLS server and type                                                                 - the fileblock name in the local DLS and the new fileblock name in the global DLS
+   or a file with a list of this mapping in form of lines:
+      local: <oldfileblockname> global: <newfileblockname>
+
+Example of usage:
+
+ python uploadtoGlobal.py -i DLS_TYPE_LFC -e prod-lfc-cms-central.cern.ch/grid/cms/DLS/LFC -d MCLocal_2 -l oldfileblock -g newfileblock
+
+or using info from a file:
+
+ python uploadtoGlobal.py -i DLS_TYPE_LFC -e prod-lfc-cms-central.cern.ch/grid/cms/DLS/LFC -d MCLocal_2 -m /afs/cern.ch/user/a/afanfani/public/MCLocal_2_map.txt 
+
