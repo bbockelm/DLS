@@ -1,5 +1,5 @@
 #
-# $Id: dlsDataObjects.py,v 1.3 2006/04/07 10:32:20 delgadop Exp $
+# $Id: dlsDataObjects.py,v 1.4 2006/04/26 11:48:47 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -370,9 +370,28 @@ class DlsEntry(object):
          self.locations.remove(i)
 
          
+  def simpleStr(self):
+    """
+    Returns a very simplified string representation of the object.
+    The string contains the FileBlock name and the hosts of all the
+    associated locations, but none of the other attributes.
+
+    @return: A string representing the entry.
+    """
+    locStr = ""
+    for i in self.locations:
+       if (locStr):
+         locStr += ", "
+       locStr += i.host
+    
+    result = self.fileBlock.name + ": " + locStr
+
+    return result
+
+
   def __str__(self):
     """
-    Returns a (simplified) string representation of the object
+    Returns a (simplified) string representation of the object.
     """
     locStr = ""
     for i in self.locations:
@@ -383,6 +402,8 @@ class DlsEntry(object):
     result = str(self.fileBlock) + ": " + locStr
 
     return result
+
+ 
  
 
   #############################################################
