@@ -847,6 +847,46 @@ class DlsLfcApi(dlsApi.DlsApi):
 
 
 
+  def getAllLocations(self, **kwd):
+    """
+    Implementation of the dlsApi.DlsApi.getAllLocations method.
+    Refer to that method's documentation.
+
+    Implementation specific remarks:
+
+    NOTE: Normally, it makes no sense to use this method within a transaction,
+    so please avoid it. 
+    """
+    locList = []
+ 
+    # Keywords
+    session = False
+    if(kwd.has_key("session")):    session = kwd.get("session")
+
+    # Start session
+    if(session): self.startSession()
+
+    # Get all the locations from the root dir
+    lfn = "/"
+    try:
+       if(self.verb >= DLS_VERB_HIGH):
+          print "--self._getLocsFromDir(%s)" % (lfn)
+       hostList = self._getLocsFromDir(lfn, recursive=True)
+    except DlsLfcApiError, inst:
+          if(session): self.endSession() 
+          raise
+
+    # End session
+    if(session): self.endSession()
+
+    # Build the list of DlsLocation objects
+    for i in hostList:
+       locList.append(DlsLocation(i))
+
+    # Return what we got
+    return locList
+
+
   def dumpEntries(self, dir = "/", **kwd):
     """
     Implementation of the dlsApi.DlsApi.dumpDirectory method.
@@ -1863,6 +1903,118 @@ class DlsLfcApi(dlsApi.DlsApi):
     # Return
     return fBList
 
+
+  def _getLocsFromDir(self, dir, recursive = False):
+    """
+    Returns a list of locations where there is a replica of any of the
+    FileBlocks in the specified directory from FileBlock namespace in
+    the DLS catalog, as a list of strings (hostnames).
+
+    The directory is specified as a string.
+
+    If recursive is used, the list contains information on the FileBlocks
+    contained under the specified directory and its subdirectories.
+
+    The method will raise an exception in the case that there is an error
+    listing the directory. 
+
+    @exception DlsLfcApiError: On error with the DLS catalog
+    
+    @param dir: the directory to be listed, as a string
+    
+    @return: the list of locations for the specified dir, as a list of strings
+    """
+    # Check what was passed (DlsFileBlock or string)
+    if(isinstance(dir, DlsFileBlock)):
+      lfn = dir.name
+    else:
+      lfn = dir
+    dir = self._checkDlsHome(lfn)
+    userdir = self._removeRootPath(dir, strict = True)
+
+    locList = {}
+    if(recursive):
+       subdirlist = [] # Subdirectories to remove when we are done with current one
+
+    # Open dir 
+    dir_p = lfc.lfc_DIR()
+    if(self.verb >= DLS_VERB_HIGH):
+       print "--lfc.lfc_opendirg(%s, \"\")"  % (dir)
+    dir_p = lfc.lfc_opendirg(dir , "")
+    if(not dir_p):
+       code = lfc.cvar.serrno
+       msg = "Error opening specified dir %s: %s" % (userdir, lfc.sstrerror(code))
+       raise DlsLfcApiError(msg, code)
+
+    # Loop on dir
+    dir_entry = lfc.lfc_direnrep()
+    dir_read = lfc.lfc_readdirxr(dir_p, "")
+    if(not dir_read):
+       code = lfc.cvar.serrno
+       if(code != 0):
+          lfc.lfc_closedir(dir_p)
+          msg = "Error reading dir %s: %s" % (userdir, lfc.sstrerror(code))
+          raise DlsLfcApiError(msg, code)
+    else:
+       dir_entry, repList = dir_read
+       
+    while(dir_read):
+
+      # Is it a subdirectory?
+      if(dir_entry.filemode & S_IFDIR):
+         if(recursive):
+            if(not userdir.endswith('/')):
+               subdir = userdir + '/' + dir_entry.d_name
+            else:
+               subdir = userdir + dir_entry.d_name
+            fB = DlsFileBlock(subdir)
+            subdirlist.append(fB)
+            
+      # Normal FileBlock -> add its locations (dict will avoid repetitions)
+      else:
+         if(repList):
+            for rep in repList:
+               locList[rep.host] = 1
+      
+      # Next entry
+      dir_read = lfc.lfc_readdirxr(dir_p, "")
+      if(not dir_read):
+         code = lfc.cvar.serrno
+         if(code != 0):
+            lfc.lfc_closedir(dir_p)
+            msg = "Error reading dir %s: %s" % (userdir, lfc.sstrerror(code))
+            raise DlsLfcApiError(msg, code)
+      else:
+         dir_entry, repList = dir_read
+
+           
+    # Close the directory
+    if(self.verb >= DLS_VERB_HIGH):
+       print "--lfc.lfc_closedir(%s, \"\")"  % (dir)
+    if(lfc.lfc_closedir(dir_p) < 0):
+       code = lfc.cvar.serrno
+       msg = "Error closing dir %s: %s" % (userdir, lfc.sstrerror(code))
+       if(self.verb >= DLS_VERB_WARN):
+          print "Warning: %s" % (msg)
+
+
+    # Now loop on the subdirectories (if recursive)
+    if(recursive):
+       for subdir in subdirlist:
+          # Stat subdir (just to avoid the 60 seconds timeout!)
+          fstat = lfc.lfc_filestatg()
+          if(lfc.lfc_statg(self._checkDlsHome(subdir.name), "", fstat)<0):
+             code = lfc.cvar.serrno
+             msg = "Error accessing FileBlock %s: %s" % (subdir.name, lfc.sstrerror(code))
+             if(self.verb >= DLS_VERB_WARN):
+                print "Warning: %s" % (msg)
+          # List subdir
+          subList = self._getLocsFromDir(subdir, recursive)
+          for loc in subList:
+             locList[loc]=1
+
+    # Return
+    return locList.keys()
 
 
   def _getEntriesFromDir(self, dir, location = "", recursive = False):
