@@ -1,5 +1,5 @@
 #
-# $Id: dlsLfcApi.py,v 1.17 2006/05/19 10:20:15 delgadop Exp $
+# $Id: dlsLfcApi.py,v 1.23 2006/09/06 13:31:51 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -889,7 +889,7 @@ class DlsLfcApi(dlsApi.DlsApi):
 
   def dumpEntries(self, dir = "/", **kwd):
     """
-    Implementation of the dlsApi.DlsApi.dumpDirectory method.
+    Implementation of the dlsApi.DlsApi.dumpEntries method.
     Refer to that method's documentation.
 
     Implementation specific remarks:
@@ -1224,7 +1224,7 @@ class DlsLfcApi(dlsApi.DlsApi):
     @exception ValueError: If fB does not start with root path and strict=True
     
     @param fileBlock: the FileBlock to be changed, as a string
-    @param stritct: boolean (def. False) for an exception to be raised on error
+    @param strict: boolean (def. False) for an exception to be raised on error
       
     @return: the adapted FileBlock name as a string, or None if fileBlock
              does not start with the root path
