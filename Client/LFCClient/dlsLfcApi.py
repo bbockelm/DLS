@@ -1,5 +1,5 @@
 #
-# $Id: dlsLfcApi.py,v 1.16 2006/05/10 16:39:34 delgadop Exp $
+# $Id: dlsLfcApi.py,v 1.17 2006/05/19 10:20:15 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -31,7 +31,7 @@ DLS_VERB_HIGH = dlsApi.DLS_VERB_HIGH
 DLS_VERB_WARN = dlsApi.DLS_VERB_WARN
 import dlsDliClient   # for a fast getLocations implementation
 from dlsDataObjects import DlsLocation, DlsFileBlock, DlsEntry
-# From what comes next, should not import whole modules, but what is needed...
+# TODO: From what comes next, should not import whole modules, but what is needed...
 import lfc
 import sys
 import commands
@@ -149,7 +149,7 @@ class DlsLfcApi(dlsApi.DlsApi):
           msg = "Specied LFC's root dir for DLS (%s) " % (dlspath)
           msg += "not accessible: %s" % (lfc.sstrerror(code))
           raise SetupError(msg, code)    
-    dlspath = dlspath.rstrip('/')
+    dlspath = '/'+dlspath.strip('/')
     self.root = dlspath
 
     
@@ -331,6 +331,7 @@ class DlsLfcApi(dlsApi.DlsApi):
       lfn = entry.fileBlock.name
       lfn = self._checkDlsHome(lfn)
       userlfn = self._removeRootPath(lfn)
+      if(not userlfn): userlfn = lfn
       if(self.verb >= DLS_VERB_HIGH):
          print "--lfc.lfc_getreplica(\""+ lfn +"\", \"\",\"\")"
       err, repList = lfc.lfc_getreplica(lfn, "", "")
@@ -440,7 +441,13 @@ class DlsLfcApi(dlsApi.DlsApi):
       # Get the FileBlock name
       lfn = entry.fileBlock.name
       lfn = self._checkDlsHome(lfn)
-      userlfn = self._removeRootPath(lfn)
+      try:
+         userlfn = self._removeRootPath(lfn, strict = True)
+      except ValueError, inst:
+         if(not errorTolerant): 
+            if(session): self.endSession()
+            raise 
+         else: continue
 
       # Get the specified locations
       seList = []
@@ -586,7 +593,7 @@ class DlsLfcApi(dlsApi.DlsApi):
 
     Implementation specific remarks:
 
-    If longList (**kwd) is set to true, some location attributes are also
+    If longList (**kwd) is set to True, some location attributes are also
     included in the returned DlsLocation objects. Those attributes are:
      - atime
      - ptime
@@ -600,7 +607,6 @@ class DlsLfcApi(dlsApi.DlsApi):
     NOTE: Normally, it makes no sense to use this method within a transaction,
     so please avoid it. 
     """
-    
     # Keywords
     longList = False 
     if(kwd.has_key("longList")):   longList = kwd.get("longList")
@@ -630,7 +636,14 @@ class DlsLfcApi(dlsApi.DlsApi):
          else:
            lfn = fB
          lfn = self._checkDlsHome(lfn)
-         userlfn = self._removeRootPath(lfn)
+         try:
+            userlfn = self._removeRootPath(lfn, strict = True)
+         except ValueError, inst:
+            if(not errorTolerant): 
+               if(session): self.endSession()
+               raise 
+            else: continue
+
          entry = DlsEntry(DlsFileBlock(userlfn))
  
          # Get the locations for the given FileBlock
@@ -742,16 +755,18 @@ class DlsLfcApi(dlsApi.DlsApi):
           if(self.verb >= DLS_VERB_HIGH):
              print "--lfc.lfc_getpath(\"\",",filerep.fileid,", path)  (("+filerep.sfn+"))"   
           if(lfc.lfc_getpath("", filerep.fileid, path)<0):
-             if(session): self.endSession()
-             code = lfc.cvar.serrno
-             msg = "Error retrieving the path for %s: %s" % (filerep.sfn, lfc.sstrerror(code))
-             raise DlsLfcApiError(msg, code)
-  
-          # Build the result 
-          path = path.split('\x00')[0]   # Remove LFC method tail (should be done in typemap)
-          path = self._removeRootPath(path)
-          entry = DlsEntry(DlsFileBlock(path), [DlsLocation(host, surl = filerep.sfn)])
-          entryList.append(entry)
+             if(self.verb >= DLS_VERB_WARN):               
+                 code = lfc.cvar.serrno
+                 msg = "Warning: Error retrieving the path for"
+                 msg += " %s: %s" % (filerep.sfn, lfc.sstrerror(code))
+                 print msg
+          else:
+             # Build the result 
+             path = path.split('\x00')[0]   # Remove LFC method tail (should be done in typemap)
+             path = self._removeRootPath(path)
+             if(path):
+                entry = DlsEntry(DlsFileBlock(path), [DlsLocation(host, surl = filerep.sfn)])
+                entryList.append(entry)
 
           # Go on with the listing
           flags_rep=lfc.CNS_LIST_CONTINUE
@@ -771,6 +786,7 @@ class DlsLfcApi(dlsApi.DlsApi):
     return entryList
 
 
+
   def listFileBlocks(self, fileBlockList, **kwd):
     """
     Implementation of the dlsApi.DlsApi.listFileBlocks method.
@@ -782,17 +798,19 @@ class DlsLfcApi(dlsApi.DlsApi):
     as argument of the method, as well as a FileBlock name/object, or
     list of those.
     
+    For the returned entries, a slash is appended to the name of those
+    that are directories in the FileBlocks namespace, to make it clear
+    that they are directories and not normal FileBlocks.
+
     The implementation also supports recursive listing as described
     in dlsApi.DlsApi.listFileBlocks. In this case, the resulting list
     contains information on the FileBlocks under the specified directory
     and its subdirectories also. The directory FileBlocks themselves are
     not included in the list (for compatibility with other implementations).
     As an exception, empty directories do appear in the list (since they
-    are not visible in the path of the files they contain). For those,
-    a slash is appended to their name, to make it clear that they are
-    directories and not normal FileBlocks.
+    are not visible in the path of the files they contain).
 
-    If longList (**kwd) is set to true, the attributes returned with
+    If longList (**kwd) is set to True, the attributes returned with
     the FileBlock are the following:
      - filemode
      - nlink (number of files in a directory, 1 for a FileBlock)
@@ -1007,6 +1025,7 @@ class DlsLfcApi(dlsApi.DlsApi):
     # Adapt name... 
     lfn = self._checkDlsHome(lfn)
     userlfn = self._removeRootPath(lfn)
+    if(not userlfn): userlfn = lfn
    
     # Query the DLS
     fstat=lfc.lfc_filestatg()
@@ -1047,9 +1066,11 @@ class DlsLfcApi(dlsApi.DlsApi):
     # Extract and adapt FileBlock name
     lfn = self._checkDlsHome(dlsEntry.fileBlock.name)
     userlfn = self._removeRootPath(lfn)
+    if(not userlfn): userlfn = lfn
 
-    # Now the locations (must compate with those of the catalog)
-    seList = []
+    # Now the locations (must compare with those of the catalog)
+    repList = []
+    seList = []    
     for loc in dlsEntry.locations:
        seList.append(loc.host)
    
@@ -1083,6 +1104,11 @@ class DlsLfcApi(dlsApi.DlsApi):
     # Return the result
     return dlsEntry 
 
+
+
+
+
+
   #########################
   # Internal methods 
   #########################
@@ -1112,31 +1138,48 @@ class DlsLfcApi(dlsApi.DlsApi):
 
 
 
-  def _removeRootPath(self, fileBlock):
+  def _removeRootPath(self, fileBlock, strict = False):
     """
-    Returns a FileBlock name with the leading root path (self.root) removed.
-    If fileBlock does not start with the root path, the name is returned
-    without modification, and a warning is printed.
- 
-    This method is used to hide the LFC's root path of DLS in the FileBlock
-    names that are shown to users (since LFC's API gets and returns them in
-    an absolute form).
+    Returns a FileBlock name with the leading root path (self.root)
+    removed.
+
+    The argument strict controls the behaviour of the method for the
+    case when the FileBlock does not start with the root path (which is
+    unexpected). If strict is False, it just prints a warning and
+    returns None. If strict is True, it prints the warning and also
+    raises an exception.
+
+    This method is used to hide the LFC's root path of DLS in the
+    FileBlock names that are shown to users (since LFC's API gets and
+    returns them in an absolute form). That fileBlock does not start with
+    the root path means probably that the FileBlock is not in the tree
+    under the specified root path.
+   
+    @exception ValueError: If fB does not start with root path and strict=True
     
     @param fileBlock: the FileBlock to be changed, as a string
+    @param stritct: boolean (def. False) for an exception to be raised on error
       
-    @return: the FileBlock name (with the root path removed) as a string
+    @return: the adapted FileBlock name as a string, or None if fileBlock
+             does not start with the root path
     """
+
     if(fileBlock.startswith(self.root+'/')):
        result = fileBlock.replace(self.root+'/', "", 1)
        result = result.strip('/')
        if(not result): result = '/'
        return result       
     else:
-       if(self.verb >= DLS_VERB_WARN):
-          msg = "Warning: Error when adapting name. FileBlock %s " % (fileBlock)
-          msg += "does not start with root path (%s)." % (self.root+'/')
-          print msg
-       return fileBlock
+       msg = "FileBlock %s not under root path %s" % (fileBlock, self.root)
+       if(strict):
+          if(self.verb >= DLS_VERB_WARN):
+             print "Warning: "+msg+". Skipping."
+          code = 100
+          raise ValueError("Error: "+msg, code)
+       else:
+          if(self.verb >= DLS_VERB_WARN):
+             print "Warning: "+msg
+          return None
 
 
 
@@ -1200,7 +1243,8 @@ class DlsLfcApi(dlsApi.DlsApi):
     # Exctract interesting values 
     lfn = dlsFileBlock.name
     lfn = self._checkDlsHome(lfn)
-    userlfn = self._removeRootPath(lfn)
+    userlfn = self._removeRootPath(lfn, strict = True)
+       
     attrList = dlsFileBlock.attribs
     guid = dlsFileBlock.getGuid()
 
@@ -1381,7 +1425,8 @@ class DlsLfcApi(dlsApi.DlsApi):
  
     lfn = dlsFileBlock.name 
     lfn = self._checkDlsHome(lfn)
-    userlfn = self._removeRootPath(lfn)
+    userlfn = self._removeRootPath(lfn, strict = True)
+
     guid = dlsFileBlock.getGuid()
     attrList = dlsFileBlock.attribs
        
@@ -1521,7 +1566,7 @@ class DlsLfcApi(dlsApi.DlsApi):
     """
  
     lfn = fileBlock
-    userlfn = self._removeRootPath(lfn)
+    userlfn = self._removeRootPath(lfn, strict = True)
    
     if(self.verb >= DLS_VERB_HIGH):
        print "--lfc.lfc_unlink(\""+lfn+"\")"
@@ -1578,7 +1623,7 @@ class DlsLfcApi(dlsApi.DlsApi):
     """
  
     lfn = dir
-    userlfn = self._removeRootPath(lfn)
+    userlfn = self._removeRootPath(lfn, strict = True)
    
     if(self.verb >= DLS_VERB_HIGH):
        print "--lfc.lfc_rmdir(\""+lfn+"\")"
@@ -1607,14 +1652,15 @@ class DlsLfcApi(dlsApi.DlsApi):
     
     @param lfn: the FileBlock to be listed, as a string or DlsFileBlock object
     @param longList: boolean (default True) for adding attrs to the FileBlock
+
+    @return: the FileBlock object for the specified FileBlock
     """
     # Check what was passed (DlsFileBlock or string)
     if(isinstance(lfn, DlsFileBlock)):
       lfn = lfn.name
     else:
       lfn = lfn
-    lfn = self._checkDlsHome(lfn)
-    userlfn = self._removeRootPath(lfn)
+    userlfn = self._removeRootPath(lfn, strict = True)
 
     # Get info
     fstat = lfc.lfc_filestatg()
@@ -1649,7 +1695,9 @@ class DlsLfcApi(dlsApi.DlsApi):
   def _listDir(self, dir, longList = False, recursive = False):
     """
     Returns the entries of the specified directory from FileBlock namespace in
-    the DLS catalog, as a list of FileBlock objects.
+    the DLS catalog, as a list of FileBlock objects. A slash is appended to the
+    name of those entries that are directories in the FileBlocks namespace ir name,
+    to make it clear that they are directories and not normal FileBlocks.
 
     The directory is specified as a string.
 
@@ -1657,11 +1705,10 @@ class DlsLfcApi(dlsApi.DlsApi):
     specifed in the listFileBlocks method.
 
     If recursive is used, the list contains information on the FileBlocks
-    contained under the specified directory and its subdirectories. The directory
-    FileBlock themselves are not included in the list, unless the are empty.
-    In this case, a slash is appended to their name, to make it clear that 
-    they are directories and not normal FileBlocks.
-
+    contained under the specified directory and its subdirectories. In this
+    case, the directory FileBlock themselves are not included in the list,
+    unless the are empty.
+    
     The method will raise an exception in the case that there is an error
     listing the directory. 
 
@@ -1669,6 +1716,8 @@ class DlsLfcApi(dlsApi.DlsApi):
     
     @param dir: the directory to be listed, as a string
     @param longList: boolean (default False) for adding attrs to the FileBlocks
+
+    @return: the list of FileBlock objects for the specified directory
     """
     # Check what was passed (DlsFileBlock or string)
     if(isinstance(dir, DlsFileBlock)):
@@ -1676,7 +1725,7 @@ class DlsLfcApi(dlsApi.DlsApi):
     else:
       lfn = dir
     dir = self._checkDlsHome(lfn)
-    userdir = self._removeRootPath(dir)
+    userdir = self._removeRootPath(dir, strict = True)
 
     if(recursive):
        subdirlist = [] # Subdirectories to remove when we are done with current one
@@ -1691,7 +1740,6 @@ class DlsLfcApi(dlsApi.DlsApi):
        code = lfc.cvar.serrno
        msg = "Error opening specified dir %s: %s" % (userdir, lfc.sstrerror(code))
        raise DlsLfcApiError(msg, code)
-#    lfc.lfc_rewinddir(dir_p)
 
     # Loop on dir
     fBList = []
@@ -1699,6 +1747,7 @@ class DlsLfcApi(dlsApi.DlsApi):
     if(not dir_entry):
        code = lfc.cvar.serrno
        if(code != 0):
+          lfc.lfc_closedir(dir_p)
           msg = "Error reading dir %s: %s" % (userdir, lfc.sstrerror(code))
           raise DlsLfcApiError(msg, code)
 
@@ -1719,15 +1768,20 @@ class DlsLfcApi(dlsApi.DlsApi):
          fB.attribs["mtime"] =  dir_entry.mtime
          fB.attribs["csumtype"] =  dir_entry.csumtype
          fB.attribs["csumvalue"] =  dir_entry.csumvalue
+         fB.setGuid(dir_entry.guid)
        
       # Check for subdirectories (if recursive)
-      if(recursive and (dir_entry.filemode & S_IFDIR)):
-         if(not userdir.endswith('/')):
-            subdir = userdir + '/' + dir_entry.d_name
+      if(dir_entry.filemode & S_IFDIR):
+         if(recursive):
+            if(not userdir.endswith('/')):
+               subdir = userdir + '/' + dir_entry.d_name
+            else:
+               subdir = userdir + dir_entry.d_name
+            fB.name = subdir
+            subdirlist.append(fB)
          else:
-            subdir = userdir + dir_entry.d_name
-         fB.name = subdir
-         subdirlist.append(fB)
+            fB.name += "/"
+            fBList.append(fB)
 
       # Normal FileBlock -> append it
       else:
@@ -1739,19 +1793,19 @@ class DlsLfcApi(dlsApi.DlsApi):
       if(not dir_entry):
          code = lfc.cvar.serrno
          if(code != 0):
+            lfc.lfc_closedir(dir_p)
             msg = "Error reading dir %s: %s" % (userdir, lfc.sstrerror(code))
             raise DlsLfcApiError(msg, code)
 
            
     # Close the directory
     if(self.verb >= DLS_VERB_HIGH):
-       print "--lfc.lfc_closedirg(%s, \"\")"  % (dir)
+       print "--lfc.lfc_closedir(%s, \"\")"  % (dir)
     if(lfc.lfc_closedir(dir_p) < 0):
        code = lfc.cvar.serrno
        msg = "Error closing dir %s: %s" % (userdir, lfc.sstrerror(code))
        if(self.verb >= DLS_VERB_WARN):
           print "Warning: %s" % (msg)
-#       raise DlsLfcApiError(msg, code)
 
 
     # Now loop on the subdirectories (if recursive)
@@ -1774,12 +1828,14 @@ class DlsLfcApi(dlsApi.DlsApi):
               subdir.name = bare_subdir + '/'
               fBList.append(subdir)
           # Otherwise, append its contents
-          for i in subList:
-             i.name = bare_subdir + '/' + i.name
-             fBList.append(i)
+          else:
+            for i in subList:
+                i.name = bare_subdir + '/' + i.name
+                fBList.append(i)
 
     # Return
     return fBList
+
 
 
 ##################################################333
