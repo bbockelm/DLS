@@ -762,7 +762,6 @@ class DlsLfcApi(dlsApi.DlsApi):
     return entryList
 
 
-
   def listFileBlocks(self, fileBlockList, **kwd):
     """
     Implementation of the dlsApi.DlsApi.listFileBlocks method.
@@ -845,6 +844,57 @@ class DlsLfcApi(dlsApi.DlsApi):
 
     # Return what we got
     return result
+
+
+
+  def dumpEntries(self, dir = "/", **kwd):
+    """
+    Implementation of the dlsApi.DlsApi.dumpDirectory method.
+    Refer to that method's documentation.
+
+    Implementation specific remarks:
+
+    A FileBlock directory (not a list) must be specified as argument
+    of the method, in the form of a string or a DlsFileBlock object.
+    
+    For the returned entries, a slash is appended to the name of those
+    that are directories in the FileBlocks namespace, to make it clear
+    that they are directories and not normal FileBlocks.
+
+    The implementation also supports recursive listing as described
+    in dlsApi.DlsApi.dumpEntries. In this case, the resulting list
+    contains information on the FileBlocks under the specified directory
+    and its subdirectories also. The directory FileBlocks themselves are
+    not included in the list (for compatibility with other implementations).
+    As an exception, empty directories do appear in the list (since they
+    are not visible in the path of the files they contain).
+
+    NOTE: Normally, it makes no sense to use this method within a transaction,
+    so please avoid it. 
+    """
+    # Keywords
+    session = False
+    if(kwd.has_key("session")):    session = kwd.get("session")
+
+    recursive = False
+    if(kwd.has_key("recursive")):    recursive = kwd.get("recursive")
+
+    # Start session
+    if(session): self.startSession()
+
+    # Call the internal method that does the work
+    try:
+       result = self._getEntriesFromDir(dir, "", recursive) 
+    except DlsLfcApiError, inst:
+       if(session): self.endSession() 
+       raise
+
+    # End session
+    if(session): self.endSession()
+
+    # Return what we got
+    return result
+
 
 
   def startSession(self):
