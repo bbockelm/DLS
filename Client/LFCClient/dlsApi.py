@@ -1,5 +1,5 @@
 #
-# $Id: dlsApi.py,v 1.14 2006/09/06 11:46:06 delgadop Exp $
+# $Id: dlsApi.py,v 1.15 2006/09/06 14:21:29 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -530,7 +530,7 @@ class DlsApi(object):
 
     @exception XXXX: On error with the DLS catalog
 
-    @param fileBlockList: the FileBlock dir, as string or DlsFileBlock object
+    @param dir: the FileBlock dir, as string or DlsFileBlock object
     @param kwd: Flags:
      - session: boolean (default False) for using a session for the operations
      - recursive: boolean (default False) for recursive listing of a directory 
