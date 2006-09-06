@@ -748,28 +748,14 @@ class DlsLfcApi(dlsApi.DlsApi):
        locList=lfc.lfc_list()
        flags_rep=lfc.CNS_LIST_BEGIN 
     
-       # Call the retrieval in a loop
+       # Call the retrieval in a loop (first just store)
+       repList = []
        if(self.verb >= DLS_VERB_HIGH):
           print "--lfc.lfc_listreplicax(\"\", \""+host+"\", \"\",",flags_rep,",locList)"   
        filerep = lfc.lfc_listreplicax("", host, "", flags_rep, locList)
 
        while(filerep):
-          path = ' ' * (lfc.CA_MAXPATHLEN+1)
-          if(self.verb >= DLS_VERB_HIGH):
-             print "--lfc.lfc_getpath(\"\",",filerep.fileid,", path)  (("+filerep.sfn+"))"   
-          if(lfc.lfc_getpath("", filerep.fileid, path)<0):
-             if(self.verb >= DLS_VERB_WARN):               
-                 code = lfc.cvar.serrno
-                 msg = "Warning: Error retrieving the path for"
-                 msg += " %s: %s" % (filerep.sfn, lfc.sstrerror(code))
-                 print msg
-          else:
-             # Build the result 
-             path = path.split('\x00')[0]   # Remove LFC method tail (should be done in typemap)
-             path = self._removeRootPath(path)
-             if(path):
-                entry = DlsEntry(DlsFileBlock(path), [DlsLocation(host, surl = filerep.sfn)])
-                entryList.append(entry)
+          repList.append([filerep.fileid, filerep.sfn])
 
           # Go on with the listing
           flags_rep=lfc.CNS_LIST_CONTINUE
@@ -780,6 +766,28 @@ class DlsLfcApi(dlsApi.DlsApi):
        # Finish the location retriving
        flags_rep=lfc.CNS_LIST_END
        filerep=lfc.lfc_listreplicax("", host, "", flags_rep, locList)
+
+
+       # Now, for each replica, find its associated path
+       for repinfo in repList:       
+          path = ' ' * (lfc.CA_MAXPATHLEN+1)
+          
+          if(self.verb >= DLS_VERB_HIGH):
+             print "--lfc.lfc_getpath(\"\",",repinfo[0],", path)  (("+repinfo[1]+"))"   
+             
+          if(lfc.lfc_getpath("", repinfo[0], path)<0):
+             if(self.verb >= DLS_VERB_WARN):               
+                 code = lfc.cvar.serrno
+                 msg = "Warning: Error retrieving the path for"
+                 msg += " %s: %s" % (repinfo[1], lfc.sstrerror(code))
+                 print msg
+          else:  
+             # Build the result 
+             path = path.split('\x00')[0]   # Remove LFC method tail (should be done in typemap)
+             path = self._removeRootPath(path)
+             if(path):
+                entry = DlsEntry(DlsFileBlock(path), [DlsLocation(host, surl = repinfo[1])])
+                entryList.append(entry)
 
 
     # End session
