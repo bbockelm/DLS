@@ -1,5 +1,5 @@
 #
-# $Id: dlsApi.py,v 1.13 2006/05/18 01:47:03 afanfani Exp $
+# $Id: dlsApi.py,v 1.14 2006/09/06 11:46:06 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -351,7 +351,7 @@ class DlsApi(object):
     specified locations.
     
     NOTE: Depending on the implementation, this method may be a very expensive
-    operation and affect DLS response, so use it only with care!
+    operation and affect DLS response, so use it only with care!!
 
     A single location or a list of those may be used as argument. The locations
     may  be specified as simple strings (hostnames) or as DlsLocation objects.
@@ -417,7 +417,8 @@ class DlsApi(object):
     flat FileBlock namespace will just ignore this flag.
 
     NOTE: Be aware that depending on the catalog a recursive listing may be
-    a very costly operation, so please use this flag only with care!!
+    a very costly operation and affect DLS response, so please use this
+    flag only with care!!
     
     The method may raise an exception if an error in the DLS operation occurs.
 
@@ -450,6 +451,95 @@ class DlsApi(object):
     msg += " This method should be implemented in an instantiable DLS API class"
     raise NotImplementedError(msg)
 
+
+
+  def getAllLocations(self, **kwd):
+    """
+    Returns all the locations in the DLS that are associated with any
+    FileBlock in the catalog. The locations are returned as a list
+    of DlsLocation objects.
+
+    This methods accepts no arguments (other than possibly some kwd flags).
+
+    NOTE: Depending on the implementation, this method may be a very expensive
+    operation and affect DLS response, so use it only with care!!
+    
+    The method may raise an exception if an error in the DLS operation occurs.
+
+    If session(**kwd) is set to True, the whole operation of the method is
+    performed within a session (if the DLS implementation supports it).
+    That is, the following call::
+      api.getAllLocations(session = True)
+    is equivalent to::
+      api.startSession()
+      api.getAllLocations(x)
+      api.endSession()
+
+    In some implementations it is not safe to nest sessions, so do not do it.
+
+    NOTE: Normally, it makes no sense to use this method within a transaction, so
+    please avoid it. 
+
+    @exception XXXX: On error with the DLS catalog
+
+    @param kwd: Flags:
+     - session: boolean (default False) for using a session for the operations
+
+    @return: a list of DlsLocation objects containing the locations information
+    """
+    msg = "This is just a base class!"
+    msg += " This method should be implemented in an instantiable DLS API class"
+    raise NotImplementedError(msg)
+
+
+  def dumpEntries(self, dir = "/", **kwd):
+    """
+    Returns the DLS entries under the specified directory in the FileBlock
+    namespace, as a list of DlsEntry objects. These objects will include both
+    FileBlock names and associated locations. In the case of DLS
+    implementations with a flat FileBlock namespace, the directory argument
+    will be ignored (i.e.: it will behave as if "/" is specified).
+    
+    A FileBlock directory (not a list) must be specified as argument
+    of the method, in the form of a string or a DlsFileBlock object.
+    
+    If recursive (**kwd) is set to True, the returned list will contain also
+    the FileBlocks of the subdirectories under the specified one in a
+    recursive way. DLS implementations with flat FileBlock namespace will
+    just ignore this flag.
+
+    NOTE: Be aware that depending on the catalog a recursive listing may be
+    a very costly operation and affect DLS response, so please use this flag
+    only with care!!
+    
+    The method may raise an exception if an error in the DLS operation occurs.
+
+    If session(**kwd) is set to True, the whole operation of the method is
+    performed within a session (if the DLS implementation supports it).
+    That is, the following call::
+      api.dumpEntries(x, session = True)
+    is equivalent to::
+      api.startSession()
+      api.dumpEntries(x)
+      api.endSession()
+
+    In some implementations it is not safe to nest sessions, so do not do it.
+
+    NOTE: Normally, it makes no sense to use this method within a transaction, so
+    please avoid it. 
+
+    @exception XXXX: On error with the DLS catalog
+
+    @param fileBlockList: the FileBlock dir, as string or DlsFileBlock object
+    @param kwd: Flags:
+     - session: boolean (default False) for using a session for the operations
+     - recursive: boolean (default False) for recursive listing of a directory 
+
+    @return: a list of DlsEntry objects representing the DLS data
+    """
+    msg = "This is just a base class!"
+    msg += " This method should be implemented in an instantiable DLS API class"
+    raise NotImplementedError(msg)
 
 
   def startSession(self):
