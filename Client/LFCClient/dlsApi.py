@@ -1,5 +1,5 @@
 #
-# $Id: dlsApi.py,v 1.12 2006/05/10 16:39:34 delgadop Exp $
+# $Id: dlsApi.py,v 1.13 2006/05/18 01:47:03 afanfani Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -350,6 +350,9 @@ class DlsApi(object):
     Returns a list of DlsEntry objects holding the FileBlocks stored in the
     specified locations.
     
+    NOTE: Depending on the implementation, this method may be a very expensive
+    operation and affect DLS response, so use it only with care!
+
     A single location or a list of those may be used as argument. The locations
     may  be specified as simple strings (hostnames) or as DlsLocation objects.
     The returned list contains a DlsEntry object per FileBlock-location pair; 
@@ -375,9 +378,6 @@ class DlsApi(object):
 
     NOTE: Normally, it makes no sense to use this method within a transaction, so
     please avoid it. 
-
-    NOTE: In some implementations, this method may be quite more expensive (slow)
-    than the getLocations method.
 
     @exception XXXX: On error with the DLS catalog
 
@@ -417,7 +417,7 @@ class DlsApi(object):
     flat FileBlock namespace will just ignore this flag.
 
     NOTE: Be aware that depending on the catalog a recursive listing may be
-    a very costly operation, so please use this flag only with care.
+    a very costly operation, so please use this flag only with care!!
     
     The method may raise an exception if an error in the DLS operation occurs.
 
@@ -449,6 +449,7 @@ class DlsApi(object):
     msg = "This is just a base class!"
     msg += " This method should be implemented in an instantiable DLS API class"
     raise NotImplementedError(msg)
+
 
 
   def startSession(self):
