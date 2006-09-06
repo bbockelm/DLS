@@ -29,7 +29,7 @@
 import dlsApi
 DLS_VERB_HIGH = dlsApi.DLS_VERB_HIGH
 DLS_VERB_WARN = dlsApi.DLS_VERB_WARN
-import dlsDliClient   # for a fast getLocations implementation
+#import dlsDliClient   # for a fast getLocations implementation
 from dlsDataObjects import DlsLocation, DlsFileBlock, DlsEntry
 # TODO: From what comes next, should not import whole modules, but what is needed...
 import lfc
@@ -674,6 +674,9 @@ class DlsLfcApi(dlsApi.DlsApi):
 
     # For normal listing (go through the DLI)
     else:      
+
+      import dlsDliClient
+
       # Build a FileBlock name list with absolute paths
       dliList = []
       for fB in theList:
@@ -701,7 +704,7 @@ class DlsLfcApi(dlsApi.DlsApi):
     return entryList
 
       
-  
+
   def getFileBlocks(self, locationList, **kwd):
     """
     Implementation of the dlsApi.DlsApi.getFileBlocks method.
@@ -869,6 +872,7 @@ class DlsLfcApi(dlsApi.DlsApi):
 
     # Return what we got
     return result
+
 
 
   def startSession(self):
@@ -1660,6 +1664,7 @@ class DlsLfcApi(dlsApi.DlsApi):
       lfn = lfn.name
     else:
       lfn = lfn
+    lfn = self._checkDlsHome(lfn)
     userlfn = self._removeRootPath(lfn, strict = True)
 
     # Get info
@@ -1835,6 +1840,7 @@ class DlsLfcApi(dlsApi.DlsApi):
 
     # Return
     return fBList
+
 
 
 
