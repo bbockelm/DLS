@@ -1,5 +1,5 @@
 #
-# $Id: README,v 1.3 2006/05/11 15:25:21 delgadop Exp $
+# $Id: README,v 1.4 2006/05/19 10:15:15 delgadop Exp $
 #
 # DLS Client Functional Test Suite. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -16,7 +16,7 @@ which contain classes implementing tests (in the unittest framework).
 For each test there is a runnable script that executes the different
 tests. Usually, an optional additional argument may be used to execute a
 desired subset of the tests (default is to execute all of them). Please
-execute each script with the "-h" option to obtain more information.
+execute each script without options to obtain more information.
 
 NOTE: In the case of the LFC tests, they rely on a clean directory in
 the DLS, which they use and clean at the end (without removing the
