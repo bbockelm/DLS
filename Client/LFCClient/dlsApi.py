@@ -1,5 +1,5 @@
 #
-# $Id: dlsApi.py,v 1.15 2006/09/06 14:21:29 delgadop Exp $
+# $Id: dlsApi.py,v 1.16 2006/09/06 14:26:52 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -140,7 +140,7 @@ class DlsApi(object):
     are also registered. For the DlsEntry objects with an already registered FileBlock,
     only the locations are added.
 
-    For DLS implementations with hierarchical FileBlock namespace, they method may
+    For DLS implementations with hierarchical FileBlock namespace, the method may
     support a flag, createParent (**kwd), that, if true, will cause the check for
     existence of the specified FileBlock parent directory tree, and the creation of
     that tree if it does not exist. The default for this flag is True.
@@ -452,6 +452,56 @@ class DlsApi(object):
     raise NotImplementedError(msg)
 
 
+  def renameFileBlock(self, oldFileBlock, newFileBlock, **kwd):
+    """
+    Renames the specified oldFileBlock to the new name specified as
+    newFileBlock. Both arguments can be specified either as DlsFileBlock objects
+    or simple strings (holding the name of the FileBlocks).
+
+    If newFileBlock exists alread, it will be removed before the rename
+    takes place.
+
+    For DLS implementations with hierarchical FileBlock namespace, directory 
+    FileBlocks may also be renamed. Check the corresponding implementation 
+    documentation. Also, the method may support a flag, createParent (**kwd),
+    that, if true, will cause the check for existence of the specified
+    newFileBlock parent directory tree, and the creation of that tree if it
+    does not exist. The default for this flag is False.
+
+    The method will raise an exception in case there is an error renaming the
+    FileBlock or creating the parent directories of the new FileBlock.
+
+    If session(**kwd) is set to True, the whole operation of the method is
+    performed within a session (if the DLS implementation supports it).
+    That is, the following call::
+      api.add(x, session = True)
+    is equivalent to::
+      api.startSession()
+      api.add(x)
+      api.endSession()
+
+    If trans(**kwd) is set to True, the whole operation of the method is
+    performed within a transaction (if the DLS implementation supports it),
+    in the same way as if it was within a session. If trans is True, the
+    session flag is ignored and considered False.
+
+    In some implementations it is not safe to nest sessions or transactions,
+    so do not do it.
+
+    @exception XXXX: On error with the DLS catalog
+
+    @param oldFileBlock: the FileBlock to rename, as DlsFileBlock object or string
+    @param oldFileBlock: the new name for the FileBlock, as DlsFileBlock object or string
+    @param kwd: Flags:
+      - createParent: boolean (default True) for parent directory creation
+      - trans: boolean (default False) for using a transaction for the operations
+      - session: boolean (default False) for using a session for the operations
+    """
+
+    msg = "This is just a base class!"
+    msg += " This method should be implemented in an instantiable DLS API class"
+    raise NotImplementedError(msg) 
+ 
 
   def getAllLocations(self, **kwd):
     """

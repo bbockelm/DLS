@@ -1,5 +1,5 @@
 #
-# $Id: dlsLfcApi.py,v 1.23 2006/09/06 13:31:51 delgadop Exp $
+# $Id: dlsLfcApi.py,v 1.24 2006/09/06 14:21:01 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -847,6 +847,74 @@ class DlsLfcApi(dlsApi.DlsApi):
 
 
 
+  def renameFileBlock(self, oldFileBlock, newFileBlock, **kwd):
+    """
+    Implementation of the dls.DlsApi.renameFileBlock method.
+    Refer to that method's documentation.
+
+    Implementation specific remarks:
+
+    Both arguments of the method may be refer to the same type of Fileblock:
+    both normal FileBlocks or both directories.
+    
+    If a directory is specified as newFileBlock, it must not be a descendant
+    of oldFileBlock. Also, if newFileBlock existed already, it must be empty
+    and it will be removed prior to renaming.
+    
+    Write permission is required on both parents. If oldFileBlock is a directory,
+    write permission is required on it and if newFileBlock is an existing
+    directory, write permission is also required on it.
+    """
+    
+    # Keywords
+    createParent = False 
+    if(kwd.has_key("createParent")):
+       createParent = kwd.get("createParent")
+       
+    trans = False 
+    if(kwd.has_key("trans")):
+       trans = kwd.get("trans")
+
+    session = False
+    if(kwd.has_key("session")):
+       session = kwd.get("session")
+
+    if(trans):
+      session = False
+   
+    # Check what was passed and extract interesting values 
+    if(isinstance(oldFileBlock, DlsFileBlock)):
+       oldLfn = oldFileBlock.name
+    else:
+       oldLfn = oldFileBlock
+    if(isinstance(newFileBlock, DlsFileBlock)):
+       newLfn = newFileBlock.name
+    else:
+       newLfn = newFileBlock
+
+
+    # Start transaction/session
+    if(trans): self.startTrans()
+    else:
+       if(session): self.startSession()
+
+    try:
+       self._renameFileBlock(oldLfn, newLfn, createParent=createParent)
+    except DlsLfcApiError, inst:
+       if(session): self.endSession()
+       if(trans):
+              self.abortTrans()
+              inst.msg += ". Transaction operations rolled back"
+       raise inst
+
+    # End transaction/session
+    if(trans): self.endTrans()
+    else:
+       if(session): self.endSession()
+
+
+
+
   def getAllLocations(self, **kwd):
     """
     Implementation of the dlsApi.DlsApi.getAllLocations method.
@@ -1306,7 +1374,7 @@ class DlsLfcApi(dlsApi.DlsApi):
     @return: the GUID of the FileBlock (newly set or existing one)
     """
 
-    # Exctract interesting values 
+    # Extract interesting values 
     lfn = dlsFileBlock.name
     lfn = self._checkDlsHome(lfn)
     userlfn = self._removeRootPath(lfn, strict = True)
@@ -1902,6 +1970,53 @@ class DlsLfcApi(dlsApi.DlsApi):
 
     # Return
     return fBList
+
+
+  def _renameFileBlock(self, oldPath, newPath, **kwd):
+    """
+    Renames a FileBlock in the DLS as described in
+    dlsLfcApi.renameFileBlock.
+
+    The FileBlock names (paths) are specified as strings.
+
+    The method will raise an exception in the case that there is an
+    error adding the FileBlock or creating the necessary parent
+    directories of the new FileBlock.
+
+    @exception DlsLfcApiError: On error with the DLS catalog
+    
+    @param oldPath: the FileBlock to be added to the DLS, as a string
+    @param newPath: the FileBlock to be added to the DLS, as a string
+    """
+    # Adapt names
+    oldLfn = self._checkDlsHome(oldPath)
+    userOldLfn = self._removeRootPath(oldLfn, strict = True)
+    newLfn = self._checkDlsHome(newPath)
+    userNewLfn = self._removeRootPath(newLfn, strict = True)
+    
+    # Keywords
+    createParent = False 
+    if(kwd.has_key("createParent")):
+       createParent = kwd.get("createParent")
+       
+    # First, check parents for destination FileBlock, if asked for
+    if(createParent and newLfn.startswith('/')):
+       if(self.verb >= DLS_VERB_HIGH):
+          print "--Checking parents of requested FileBlock: "+newLfn
+       parentdir = newLfn[0:newLfn.rfind('/')+1]
+       self._checkAndCreateDir(parentdir)
+
+    # Now, perform the renaming
+    if(self.verb >= DLS_VERB_HIGH):
+       print "--lfc.lfc_rename(\""+oldLfn+"\", \""+newLfn+"\")"   
+    if(lfc.lfc_rename(oldLfn, newLfn) < 0):
+       code = lfc.cvar.serrno
+       msg = "Error renaming FileBlock %s as %s: %s"%(userOldLfn, userNewLfn, lfc.sstrerror(code))
+       if(self.verb >= DLS_VERB_WARN):
+         print "Warning: " + msg
+       raise DlsLfcApiError(msg, code)
+          
+
 
 
   def _getLocsFromDir(self, dir, recursive = False):
