@@ -1,5 +1,5 @@
 #
-# $Id: dlsLfcApi.py,v 1.24 2006/09/06 14:21:01 delgadop Exp $
+# $Id: dlsLfcApi.py,v 1.25 2006/09/19 11:43:40 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -795,6 +795,7 @@ class DlsLfcApi(dlsApi.DlsApi):
      - mtime (last modification date)
      - csumtype
      - csumvalue
+    Additionally, the GUID is set in the corresponding dlsFileBlock object.
 
     NOTE: Normally, it makes no sense to use this method within a transaction,
     so please avoid it. 
@@ -1808,12 +1809,15 @@ class DlsLfcApi(dlsApi.DlsApi):
           print "Warning: %s" % (msg)
        raise DlsLfcApiError(msg, code)
 
-    # Just the name    
+    # Set the GUID in any case
+    result = DlsFileBlock(userlfn)
+    result.setGuid(fstat.guid)
+    
+    # Not listing, just the name    
     if(not longList):
-       return DlsFileBlock(userlfn)
+       return result
 
     # Long listing
-    result = DlsFileBlock(userlfn)
     result.attribs["filemode"] =  fstat.filemode
     result.attribs["nlink"] =  fstat.nlink
     result.attribs["uid"] =  fstat.uid
@@ -1889,12 +1893,12 @@ class DlsLfcApi(dlsApi.DlsApi):
        
     while(dir_entry):
 
-      # Just the name    
-      if(not longList):
-         fB = DlsFileBlock(dir_entry.d_name)
-      else:
+      # Set always the name and GUID
+      fB = DlsFileBlock(dir_entry.d_name)
+      fB.setGuid(dir_entry.guid)
+
+      if(longList):
          # Long listing
-         fB = DlsFileBlock(dir_entry.d_name)
          fB.attribs["filemode"] =  dir_entry.filemode
          fB.attribs["nlink"] =  dir_entry.nlink
          fB.attribs["uid"] =  dir_entry.uid
@@ -1903,7 +1907,6 @@ class DlsLfcApi(dlsApi.DlsApi):
          fB.attribs["mtime"] =  dir_entry.mtime
          fB.attribs["csumtype"] =  dir_entry.csumtype
          fB.attribs["csumvalue"] =  dir_entry.csumvalue
-         fB.setGuid(dir_entry.guid)
        
       # Check for subdirectories (if recursive)
       if(dir_entry.filemode & S_IFDIR):

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #
-# $Id: dls-list,v 1.8 2006/05/10 16:39:34 delgadop Exp $
+# $Id: dls-list,v 1.9 2006/05/19 10:18:17 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -30,8 +30,8 @@ def usage():
    """
     Provides usage information
    """
-   print "Usage: dls-list [-v, -e, -i, -l, -r] <fileblock>"
-   print "       dls-list [-v, -e, -i, -l, -r] -f <listing_file>"
+   print "Usage: dls-list [-v, -e, -i, -l, -r, -g] <fileblock>"
+   print "       dls-list [-v, -e, -i, -l, -r, -g] -f <listing_file>"
    print "       dls-list -u"
    print "       dls-list -h"
 
@@ -48,6 +48,7 @@ def options():
    -i, --interface-type <iface_type>
    -l, --long
    -r, --recursive
+   -g, --guid
    -f, --from-file <filename>
    """
 def example():
@@ -65,15 +66,19 @@ def help():
 or, for DLS implementations with hierarchical FileBlock namespace, 
 of FileBlocks in the specified FileBlock namespace directory.
 
-If "-l" is specified, some location attributes are printed after the
+If "-l" is specified, some FileBlock attributes are printed before the
 FileBlock name. Printed attributes may depend on the DLS implementation.
 Currently, printed attributes (if supported by the implementation) are:
-filemode, number of files in a directory, owner, group owner, last
-modification date and name.
+filemode, number of files in a directory, owner, group owner and last
+modification date.
 
 If "-r" is specified, subdirectories contained in the specified
 FileBlock directory are listed recursively (for arguments being normal
 FileBlocks, this option is ignored).
+
+The use of "-g" will cause, for DLS implementations supporting the concept
+of FileBlock unique identifier, the print of this identifier after
+every FileBlock listed. Other implementations will just ignore this option.
 
 The "-f" option can be used to retrieve FileBlock names from a file rather
 than from the given arguments. The file must contain one line per FileBlock
@@ -111,7 +116,7 @@ If "-h" is specified, help information is displayed.
 
 
 
-def showFileBlocks(iface, lineList, longList, recursive, verbose):
+def showFileBlocks(iface, lineList, longList, recursive, guid, verbose):
    """
    Prints the specified FileBlocks information. lineList is a list
    of string, each holding a FileBlock name.
@@ -123,6 +128,7 @@ def showFileBlocks(iface, lineList, longList, recursive, verbose):
    
    Throws DlsLfcApiError if there is a problem in the DLS operation.
    """
+   more = longList or guid
    fbList = []
    for line in lineList:
 
@@ -145,9 +151,9 @@ def showFileBlocks(iface, lineList, longList, recursive, verbose):
    # Get the locations (and let the caller deal with the exception...)
    if(len(fbList) == 1):
       # Need this for the directory listing (if in a list is like ls -d)
-      resList = iface.listFileBlocks(fbList[0], longList=longList, recursive=recursive,session=True)
+      resList = iface.listFileBlocks(fbList[0], longList=more, recursive=recursive, session=True)
    else:
-      resList = iface.listFileBlocks(fbList, longList=longList, recursive=recursive, session=True)
+      resList = iface.listFileBlocks(fbList, longList=more, recursive=recursive, session=True)
 
    # Make sure the obtained result is a list
    if(not isinstance(resList, list)):
@@ -155,9 +161,7 @@ def showFileBlocks(iface, lineList, longList, recursive, verbose):
 
    # Print the entries
    for fB in resList:
-      if(not longList):
-         print fB.name
-      else:
+      if(longList):
          values = []
          for i in ["filemode", "nlink", "uid", "gid", "filesize", "mtime"]:
             try:
@@ -225,10 +229,15 @@ def showFileBlocks(iface, lineList, longList, recursive, verbose):
                fmt = "%b %d %H:%M"
             print '\t', time.strftime(fmt, time_tuple), '\t',
          else:
-            print '\t', values[5], '\t'
-   
-         # Name and go to next line
-         print fB.name
+            print '\t', values[5], '\t',
+      
+      # In any case, print the name 
+      print fB.name,'\t',
+
+      if(guid):
+         print fB.getGuid(),
+
+      print         
 
 
 
@@ -242,9 +251,9 @@ def main(pArgs):
 
  # Options and args... 
  
-   longoptions=["help","usage","long","recursive","endpoint","interface-type","verbose","from-file"]
+   longoptions=["help","usage","long","recursive","endpoint","interface-type","verbose","guid","from-file"]
    try:
-      optlist, args = getopt.getopt(pArgs, 'hulre:i:v:f:', longoptions)
+      optlist, args = getopt.getopt(pArgs, 'hulre:i:v:gf:', longoptions)
    except getopt.GetoptError, inst:
       sys.stderr.write("Bad usage: "+str(inst)+'\n')
       usage()
@@ -258,6 +267,7 @@ def main(pArgs):
    endpoint = None
    iface_type = None
    admitted_iface_types = ["DLS_TYPE_LFC", "DLS_TYPE_DLI", "DLS_TYPE_MYSQL"]
+   guid = False
    fromFile = False
    fname=""
    for opt, val in optlist:
@@ -274,6 +284,9 @@ def main(pArgs):
            
        elif opt in ("-r", "--recursive"):
            recursive = True
+           
+       elif opt in ("-g", "--guid"):
+           guid = True           
            
        elif opt in ("-e","--endpoint"):
            endpoint = val
@@ -348,7 +361,7 @@ def main(pArgs):
    
  # Do the query
    try:
-     showFileBlocks(iface, lineList, longList, recursive, verbose)
+     showFileBlocks(iface, lineList, longList, recursive, guid, verbose)
    except dlsApi.DlsApiError, inst:         
       if(inst.rc):  err = inst.rc 
       else:           err = -1
