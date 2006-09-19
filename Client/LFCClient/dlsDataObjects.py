@@ -1,5 +1,5 @@
 #
-# $Id: dlsDataObjects.py,v 1.4 2006/04/26 11:48:47 delgadop Exp $
+# $Id: dlsDataObjects.py,v 1.5 2006/09/06 11:47:38 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -62,7 +62,7 @@ class DlsFileBlock(object):
   that can be read and set. The form of the string should be that imposed by
   the DLS namespace. In some DLS implementatios, this namespace may be
   hierarchical (e.g. like a UNIX file system), while in others is flat.
-  It does not make much sense that this member is leave empty.
+  It does not make much sense that this member is left empty.
 
   The attribute list is accessible on the data member "attribs". It is a
   dictionary that can be read and set. Any attribute key and value can be set
@@ -77,7 +77,7 @@ class DlsFileBlock(object):
   that purpose. Notice that this usage is normally discouraged.
 
   NOTE: The term GUID here refers to a unique identifier of a FileBlock, and
-  not to a simple Grid file. We only use the term GUID for ease of understanding,
+  not of a simple Grid file. We only use the term GUID for ease of understanding,
   in the assumption that DLS implementations will use an equivalent concept
   for a unique FileBlock identifier. If a concrete implementation has no such
   concept, then the GUID variable is of not use at all.
@@ -199,7 +199,7 @@ class DlsLocation(object):
   normally discouraged.
   
   NOTE: The term SURL here refers to a identifier of a FileBlock copy, and not
-  to a simple Grid replica. In particular, the path part of a SURL makes no
+  of a simple Grid replica. In particular, the path part of a SURL makes no
   sense when dealing with FileBlocks. We only use the term SURL for ease of
   understanding, in the assumption that most DLS implementations will use an
   equivalent concept for a FileBlock copy identifier. If a concrete
