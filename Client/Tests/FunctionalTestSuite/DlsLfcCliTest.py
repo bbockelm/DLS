@@ -1,7 +1,7 @@
 #!/usr/bin/env python
  
 #
-# $Id: DlsLfcCliTest.py,v 1.11 2006/05/11 15:25:51 delgadop Exp $
+# $Id: DlsLfcCliTest.py,v 1.12 2006/05/19 10:16:28 delgadop Exp $
 #
 # DLS Client Functional Test Suite. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -20,6 +20,10 @@ run = getstatusoutput
 
 # Need a global variable here
 conf_file = ""
+
+
+# TODO: Check that the rename and list guid tests really work!
+# TODO: Basic tests for rename, dump, get-all-locations... but already tested in the API
 
 
 ##############################################################################
@@ -568,6 +572,25 @@ class TestDlsCli_FromArgs_AddGetSEList(TestDlsCli):
      msg = "The listing of attributes is not as expected",out 
      self.assert_(contains, msg)
      
+     # Test the GUID listing
+     cmd = self.path + "/dls-list -g c2"
+     st, out = run(cmd)
+     msg = "Error in dls-list -g c2",out 
+     self.assertEqual(st, 0, msg)
+     out_tokens = out.split()
+     retrievedGuid = out_tokens[1]
+     msg = "The normal guid listing was not correct: %s (guid: %s)" % (out, guid)
+     self.assertEqual(retrievedGuid, guid, msg)
+     
+     cmd = self.path + "/dls-list -lg c2"
+     st, out = run(cmd)
+     msg = "Error in dls-list -lg c2",out 
+     self.assertEqual(st, 0, msg)
+     out_tokens = out.split()
+     retrievedGuid = out_tokens[9]
+     msg = "The long guid listing was not correct: %s (guid: %s)" % (out, guid)
+     self.assertEqual(retrievedGuid, guid, msg)
+     
      # Test the replica attributes
      the_date=strftime("%b %d %H:%M")
      cmd = self.path + "/dls-get-se -l c2"
@@ -593,7 +616,7 @@ class TestDlsCli_FromArgs_AddGetSEList(TestDlsCli):
      except dlsLfcApi.DlsLfcApiError, inst:
         msg = "Error in iface.getGUID(\"fB\"): %s" % (inst.msg) 
         self.assertEqual(-1, 0, msg)
-     msg = "The guid retrieval was not correct"
+     msg = "The guid listing was not correct: %s and %s" % (retrievedGuid, guid)
      self.assertEqual(retrievedGuid, guid, msg)
 
      # Test the SURL retrieval
@@ -690,6 +713,7 @@ class TestDlsCli_FromFile(TestDlsCli):
      f_2_LFNs = open('2_LFNs', 'w')
      f_2_LFNs_with_SURLs = open('2_LFNs_with_SURLs', 'w')
      f_2_LFNs_with_SURLS_attrs = open('f_2_LFNs_with_SURLS_attrs', 'w')
+     f_rename = open('f_rename', 'w')
 
      f_2_SEs.write("CliTest_se1\nCliTest_se3\n")
      for i in xrange(10):       
@@ -705,6 +729,7 @@ class TestDlsCli_FromFile(TestDlsCli):
      f_2_LFNs_with_SURLs.write("f2 CliTest_se1 CliTest_se2\n"+"f6 CliTest_se3\n")
      f_2_LFNs_with_SURLS_attrs.write("c1 filesize=777 adsf=324 CliTest_se1 ptime=444 jjj=999\n")
      f_2_LFNs_with_SURLS_attrs.write("f99 CliTest_se2 ptime=444 a=0\n")
+     f_rename.write("f1 f1_NEW\nfXXX fXXX_NEW\nf2 f2_NEW\n")
      
      f_10_LFNs.close()
      f_8_LFNs.close()
@@ -713,6 +738,7 @@ class TestDlsCli_FromFile(TestDlsCli):
      f_2_LFNs.close()
      f_2_LFNs_with_SURLs.close()
      f_2_LFNs_with_SURLS_attrs.close()
+     f_rename.close()
 
 
   def tearDown(self):
@@ -730,9 +756,9 @@ class TestDlsCli_FromFile(TestDlsCli):
 ##############################################################################
 
 
-##################################################
-# Class for DLS CLI testing: Addition, getSE, list
-##################################################
+##########################################################
+# Class for DLS CLI testing: Addition, getSE, list, Rename
+##########################################################
 
 class TestDlsCli_FromFile_AddGetSEList(TestDlsCli_FromFile):
   def setUp(self):
@@ -807,6 +833,64 @@ class TestDlsCli_FromFile_AddGetSEList(TestDlsCli_FromFile):
      expected += "CliTest_se1\nCliTest_se2"
      msg = "Results obtained with dls-get-se -f (%s) are not those expected (%s)"%(out, expected)
      self.assertEqual(out, expected, msg)
+
+
+  # Test dls-rename using list files
+  def testRename(self):
+     cmd = self.path + "/dls-add f1 se1"
+     st, out = run(cmd)
+     msg = "Error in dls-add f1 se1",out 
+     self.assertEqual(st, 0, msg)
+     cmd = self.path + "/dls-add f2 se2"
+     st, out = run(cmd)
+     msg = "Error in dls-add f2 se2",out 
+     self.assertEqual(st, 0, msg)
+
+     # First try in transaction mode
+     cmd = self.path + "/dls-rename -t -f f_rename"
+     st, out = run(cmd)
+
+     # Check nothing was changed
+     cmd = self.path + "/dls-list /"
+     st, out = run(cmd)
+     msg = "Error in dls-list /",out
+     self.assertEqual(st, 0, msg)
+     expected = "f1\nf2"
+     msg = "The results obtained with dls-list / (%s) are not those expected (%s)" %(out, expected)
+     self.assertEqual(out, expected, msg)
+
+     # Now try without transactions
+     cmd = self.path + "/dls-rename -f f_rename"
+     st, out = run(cmd)
+     msg = "Error in dls-rename -f f_rename",out
+     self.assertEqual(st, 0, msg)
+
+     # Check the renamings were correctly made
+     cmd = self.path + "/dls-get-se f1_NEW"
+     st, out = run(cmd)
+     msg = "Error in dls-get-se f1_NEW",out
+     self.assertEqual(st, 0, msg)
+     expected = "se1"
+     msg = "Results for dls-get-se f1_NEW (%s) are not those expected (%s)" %(out, expected)
+     self.assertEqual(out, expected, msg)
+     cmd = self.path + "/dls-get-se f2_NEW"
+     st, out = run(cmd)
+     msg = "Error in dls-get-se f2_NEW",out
+     self.assertEqual(st, 0, msg)
+     expected = "se2"
+     msg = "Results for dls-get-se f2_NEW (%s) are not those expected (%s)" %(out, expected)
+     self.assertEqual(out, expected, msg)
+
+     # Check also that the old files are not there anymore
+     cmd = self.path + "/dls-list /"
+     st, out = run(cmd)
+     msg = "Error in dls-list /",out
+     self.assertEqual(st, 0, msg)
+     expected = "f1_NEW\nf2_NEW"
+     msg = "The results obtained with dls-list / (%s) are not those expected (%s)" %(out, expected)
+     self.assertEqual(out, expected, msg)
+
+
 
 ###########################################
 # Class for DLS CLI testing: get-fileblocks
@@ -1057,7 +1141,7 @@ def help():
   print "   \"args_general\" ==> Tests on general options and setup, using command line args"
   print "   \"args_add\"   ==> Tests on add, get-se, list, using command line args"
   print "   \"args_del\"   ==> Tests on del, using command line args"
-  print "   \"file_add\"   ==> Tests on add, get-se, list, using args from a file (-f)"
+  print "   \"file_add\"   ==> Tests on add, get-se, list, rename using args from a file (-f)"
   print "   \"file_getfb\" ==> Tests on get-fileblock, using args from a file (-f)"
   print "   \"file_del\"   ==> Tests on del, update, using args from a file (-f)"
   
