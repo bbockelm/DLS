@@ -1,5 +1,5 @@
 #
-# $Id: dlsApi.py,v 1.16 2006/09/06 14:26:52 delgadop Exp $
+# $Id: dlsApi.py,v 1.17 2006/09/19 11:43:40 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -491,7 +491,7 @@ class DlsApi(object):
     @exception XXXX: On error with the DLS catalog
 
     @param oldFileBlock: the FileBlock to rename, as DlsFileBlock object or string
-    @param oldFileBlock: the new name for the FileBlock, as DlsFileBlock object or string
+    @param newFileBlock: the new name for the FileBlock, as DlsFileBlock object or string
     @param kwd: Flags:
       - createParent: boolean (default True) for parent directory creation
       - trans: boolean (default False) for using a transaction for the operations
