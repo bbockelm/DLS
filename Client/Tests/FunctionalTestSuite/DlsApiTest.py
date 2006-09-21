@@ -1,7 +1,7 @@
 #!/usr/bin/env python
  
 #
-# $Id: DlsApiTest.py,v 1.1 2006/05/11 15:26:32 delgadop Exp $
+# $Id: DlsApiTest.py,v 1.2 2006/05/19 10:14:12 delgadop Exp $
 #
 # DLS Client Functional Test Suite. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -20,7 +20,6 @@ from stat import *
 # Need a global variable here
 conf = {}
 name = "DlsApiTest.py"
-
 
 ##############################################################################
 # Parent Class for DLS API testing
@@ -70,20 +69,21 @@ class TestDlsApi(unittest.TestCase):
         entryList = map(DlsEntry, fBList, [])
         try:
           self.api.delete(entryList, all = True, force = True)
+          if(self.type == "DLS_TYPE_LFC"):
+             # TODO: If empty dirs were automatically removed, this would go away...
+             entry2 = DlsEntry(DlsFileBlock("dir1/dir2/f1"), [])
+             self.api.delete(entry2, all = True)
+             entry2 = DlsEntry(DlsFileBlock("dir1/dir2/f3"), [])
+             self.api.delete(entry2, all = True)
+             entry2 = DlsEntry(DlsFileBlock("dir1/f2"), [])
+             self.api.delete(entry2, all = True)
+             entry2 = DlsEntry(DlsFileBlock("dir1/dir2"), [])
+             self.api.delete(entry2, all = True)
+             entry2 = DlsEntry(DlsFileBlock("dir1"), [])
+             self.api.delete(entry2, all = True)
         except DlsApiError, inst:
           msg = "Error in delete(%s): %s" % (map(str, entryList), inst)
           self.assertEqual(0, 1, msg)
-#     fB = DlsFileBlock("f1")
-#     fB2 = DlsFileBlock("f2")
-#     fB3 = DlsFileBlock("f3")
-#     entry = DlsEntry(fB, [])
-#     entry2 = DlsEntry(fB2, [])
-#     entry3 = DlsEntry(fB3, [])
-#     try:
-#       self.api.delete([entry, entry2, entry3], all = True)
-#     except DlsApiError, inst:
-#       msg = "Error in delete([%s, %s, %s]): %s" % (entry, entry2, entry3, inst)
-#       self.assertEqual(0, 1, msg)
      
      # End session
      if(self.session):
@@ -324,6 +324,66 @@ class TestDlsApi_General_Basic(TestDlsApi_General):
        self.assertEqual(0, 1, msg)
 
 
+  # Test renaming of FileBlock
+  def testRenaming(self):
+     fB = DlsFileBlock("dir1/dir2/f1")
+     fB2 = "f2"
+     loc1 = DlsLocation("DlsApiTest_se1")
+     loc2 = DlsLocation("DlsApiTest_se2")
+
+     # Session
+     self.session = True
+     self.api.startSession()
+
+     # First add
+     entry = DlsEntry(fB, [loc1, loc2])
+     try:
+       self.api.add(entry)
+     except DlsApiError, inst:
+       msg = "Error in add(%s): %s" % (entry, inst)
+       self.assertEqual(0, 1, msg)
+
+     # Now rename it
+     try:
+       self.api.renameFileBlock(fB, fB2)
+     except DlsApiError, inst:
+       msg = "Error in renameFileBlock(%s, %s): %s" % (fB, fB2, inst)
+       self.assertEqual(0, 1, msg)
+     # Check new entry
+     try:
+       res = self.api.getLocations(fB2)
+     except DlsApiError, inst:
+       msg = "Error in getLocations(%s): %s" % (fB2, inst)
+       self.assertEqual(0, 1, msg)
+     correct = (res[0].getLocation("DlsApiTest_se1") != None)
+     correct *= (res[0].getLocation("DlsApiTest_se2") != None)
+     msg = "Rename was not correct (retrieving new entry: %s)" % (res[0])
+     self.assert_(correct, msg)
+     # Check old entry is gone
+     correct = False
+     try:
+       res = self.api.listFileBlocks(fB)
+     except DlsApiError, inst:
+       correct = True
+     msg = "Rename was not correct (old entry still there: %s)" % (res[0])
+     self.assert_(correct, msg)
+
+     # Clean: Delete the entry (and -LFC- the dirs)
+     try:
+       self.api.delete(entry, all = True)
+       if(self.type == "DLS_TYPE_LFC"):
+          # TODO: If empty dirs were automatically removed, this would go away...
+          entry2 = DlsEntry(DlsFileBlock("dir1/dir2"), [])
+          self.api.delete(entry2, all = True)
+          entry3 = DlsEntry(DlsFileBlock("dir1"), [])
+          self.api.delete(entry3, all = True)
+       self.clean = False
+     except DlsApiError, inst:
+       msg = "Error in delete(%s): %s" % (entry, inst)
+       self.assertEqual(0, 1, msg)
+
+
+
 # Class for multiple arguments testing
 # ====================================
 
@@ -507,76 +567,67 @@ class TestDlsApi_General_GetFileBlocks(TestDlsApi_General):
 
   # Test get-fileblock simple arg
   def testGetFileBlocks(self):
-
-     fB = DlsFileBlock("f1")
-     fB2 = DlsFileBlock("f2")
-     fB3 = DlsFileBlock("f3")
-     loc1 = DlsLocation("DlsApiTest_se1")
-     loc2 = DlsLocation("DlsApiTest_se2")
-     loc3 = DlsLocation("DlsApiTest_se3")
+     fBList = map(DlsFileBlock, ["f1", "f2", "f3"])
+     locList = map(lambda x: [DlsLocation(x)], ["DlsApiTest_se1","DlsApiTest_se2","DlsApiTest_se3"])
+     entryList = map(DlsEntry, fBList, locList)
+     entryList[0].locations.append(locList[1][0])
+     entryList[1].locations.append(locList[2][0])
 
      # Session
      self.session = True
      self.api.startSession()
 
      # First add
-     entry = DlsEntry(fB, [loc1, loc2])
-     entry2 = DlsEntry(fB2, [loc2, loc3])
-     entry3 = DlsEntry(fB3, [loc3])
      try:
-       self.api.add([entry, entry2, entry3])
+       self.api.add(entryList)
      except DlsApiError, inst:
-       msg = "Error in add([%s, %s, %s]): %s" % (entry, entry2, entry3, inst)
+       msg = "Error in add([%s, %s, %s]): %s" % (entryList[0], entryList[1], entryList[2], inst)
        self.assertEqual(0, 1, msg)
        
     # Now retrieve them
      try:
        res = self.api.getFileBlocks("DlsApiTest_se2")
      except DlsApiError, inst:
-       msg = "Error in getFileBlocks(%s): %s" % (loc2, inst)
+       msg = "Error in getFileBlocks(%s): %s" % (locList[1][0], inst)
        self.assertEqual(0, 1, msg)
      fb_got = [res[0].fileBlock.name, res[1].fileBlock.name]
      correct = ("f1" in fb_got)
      correct *= ("f2" in fb_got)
-     msg = "FileBlocks were not correctly retrieved (entry1: %s, entry2: %s)" % (res[0], res[1])
+     msg = "FileBlocks were not correctly retrieved (entry[1]: %s, entry[2]: %s)"%(res[0], res[1])
      self.assert_(correct, msg)
 
      # Clean: Delete the entries
      try:
-       self.api.delete([entry, entry2, entry3], all = True)
+       self.api.delete(entryList, all = True)
        self.clean = False
      except DlsApiError, inst:
-       msg = "Error in delete([%s, %s, %s]): %s" % (entry, entry2, entry3, inst)
+       msg = "Error in delete([%s, %s, %s]): %s" % (entryList[0], entryList[1], entryList[2], inst)
        self.assertEqual(0, 1, msg)
 
 
   # Test getFileblocks with multiple arguments
   def testGetFileBlocksMulti(self):
   
-     fB = DlsFileBlock("f1")
-     fB2 = DlsFileBlock("f2")
-     fB3 = DlsFileBlock("f3")
-     loc1 = DlsLocation("DlsApiTest_se1")
-     loc2 = DlsLocation("DlsApiTest_se2")
-     loc3 = DlsLocation("DlsApiTest_se3")
+     fBList = map(DlsFileBlock, ["f1", "f2", "f3"])
+     locList = map(lambda x: [DlsLocation(x)], ["DlsApiTest_se1","DlsApiTest_se2","DlsApiTest_se3"])
+     entryList = map(DlsEntry, fBList, locList)
+     entryList[0].locations.append(locList[1][0])
+     entryList[1].locations.append(locList[2][0])
 
      # Session
      self.session = True
      self.api.startSession()
 
      # First add
-     entry = DlsEntry(fB, [loc1, loc2])
-     entry2 = DlsEntry(fB2, [loc2, loc3])
-     entry3 = DlsEntry(fB3, [loc3])
      try:
-       self.api.add([entry, entry2, entry3])
+       self.api.add(entryList)
      except DlsApiError, inst:
-       msg = "Error in add([%s, %s, %s]): %s" % (entry, entry2, entry3, inst)
+       msg = "Error in add([%s, %s, %s]): %s" % (entryList[0], entryList[1], entryList[2], inst)
        self.assertEqual(0, 1, msg)
        
     # Now retrieve them
      try:
-       res = self.api.getFileBlocks([loc1, loc2, loc3])
+       res = self.api.getFileBlocks([locList[0][0], locList[1][0], locList[2][0]])
      except DlsApiError, inst:
        msg = "Error in getFileBlocks(%s): %s" % (loc2, inst)
        self.assertEqual(0, 1, msg)
@@ -592,12 +643,130 @@ class TestDlsApi_General_GetFileBlocks(TestDlsApi_General):
 
      # Clean: Delete the entries
      try:
-       self.api.delete([entry, entry2, entry3], all = True)
+       self.api.delete(entryList, all = True)
        self.clean = False
      except DlsApiError, inst:
-       msg = "Error in delete([%s, %s, %s]): %s" % (entry, entry2, entry3, inst)
+       msg = "Error in delete([%s, %s, %s]): %s" % (entryList[0], entryList[1], entryList[2], inst)
        self.assertEqual(0, 1, msg)
 
+
+
+# Class for (slower) dump + getAllLocations testing 
+# =================================================
+
+class TestDlsApi_General_Dump(TestDlsApi_General):
+  def setUp(self):
+     # Invoke parent
+     TestDlsApi_General.setUp(self)
+     
+  def tearDown(self):
+     # Invoke parent
+     TestDlsApi_General.tearDown(self)
+
+  # Test dump entries
+  def testDumpEntries(self):
+
+     fBList = map(DlsFileBlock, ["f1", "dir1/f2", "dir1/dir2/f3"])
+     locList = map(lambda x: [DlsLocation(x)], ["DlsApiTest_se1","DlsApiTest_se2","DlsApiTest_se3"])
+     entryList = map(DlsEntry, fBList, locList)
+     entryList[0].locations.append(locList[1][0])
+     entryList[1].locations.append(locList[2][0])
+
+     # Session
+     self.session = True
+     self.api.startSession()
+
+     # First add
+     try:
+       self.api.add(entryList)
+     except DlsApiError, inst:
+       msg = "Error in add([%s, %s, %s]): %s" % (entryList[0], entryList[1], entryList[2], inst)
+       self.assertEqual(0, 1, msg)
+       
+    # Now dump them and check
+     try:
+       res = self.api.dumpEntries("/", recursive=True)
+     except DlsApiError, inst:
+       msg = "Error in dumpEntries(\"/\"): %s" % (inst)
+       self.assertEqual(0, 1, msg)
+     correct = (len(res)==3)
+     msg = "Incorrectal dump (number of entries not three: %s)"%(res)
+     self.assert_(correct, msg)
+     correct = (res[0].fileBlock.name=="f1") and (res[1].fileBlock.name=="dir1/f2")
+     correct *= (res[2].fileBlock.name=="dir1/dir2/f3")
+     correct *= (len(res[0].locations)==2) and (len(res[1].locations)==2)
+     correct *= (len(res[2].locations)==1) 
+     correct *= (res[0].locations[0].host=="DlsApiTest_se1")
+     correct *= (res[0].locations[1].host=="DlsApiTest_se2")
+     correct *= (res[1].locations[0].host=="DlsApiTest_se2")
+     correct *= (res[1].locations[1].host=="DlsApiTest_se3")
+     correct *= (res[2].locations[0].host=="DlsApiTest_se3")
+     msg = "Incorrectal dump (entries: %s, %s, %s)"%(res[0], res[1], res[2])
+     self.assert_(correct, msg)
+
+     # Clean: Delete the entry (and -LFC- the dirs)
+     try:
+       self.api.delete(entryList, all = True)
+       if(self.type == "DLS_TYPE_LFC"):
+          # TODO: If empty dirs were automatically removed, this would go away...
+          entry2 = DlsEntry(DlsFileBlock("dir1/dir2"), [])
+          self.api.delete(entry2, all = True)
+          entry3 = DlsEntry(DlsFileBlock("dir1"), [])
+          self.api.delete(entry3, all = True)
+       self.clean = False
+     except DlsApiError, inst:
+       msg = "Error in delete([%s, %s, %s]): %s" % (entryList[0], entryList[1], entryList[2], inst)
+       self.assertEqual(0, 1, msg)
+
+
+  # Test get all locations
+  def testGetAllLocations(self):
+  
+     fBList = map(DlsFileBlock, ["f1", "dir1/f2", "dir1/dir2/f3"])
+     locList = map(lambda x: [DlsLocation(x)], ["DlsApiTest_se1","DlsApiTest_se2","DlsApiTest_se3"])
+     entryList = map(DlsEntry, fBList, locList)
+     entryList[0].locations.append(locList[1][0])
+     entryList[1].locations.append(locList[2][0])
+
+     # Session
+     self.session = True
+     self.api.startSession()
+
+     # First add
+     try:
+       self.api.add(entryList)
+     except DlsApiError, inst:
+       msg = "Error in add([%s, %s, %s]): %s" % (entryList[0], entryList[1], entryList[2], inst)
+       self.assertEqual(0, 1, msg)
+       
+    # Now get all and check
+     try:
+       res = self.api.getAllLocations()
+     except DlsApiError, inst:
+       msg = "Error in getAllLocations(): %s" % (inst)
+       self.assertEqual(0, 1, msg)
+     correct = (len(res)==3)
+     msg = "Incorrectal retrieval of all locations (number not three: %s)"%(res)
+     self.assert_(correct, msg)
+     all_locs = ["DlsApiTest_se1", "DlsApiTest_se2", "DlsApiTest_se3"]
+     correct = (res[0].host in all_locs) and (res[1].host in all_locs)
+     correct *= (res[2].host in all_locs)
+     msg = "Incorrect retrieval of all locations. (locations: %s, %s, %s)"%(res[0], res[1], res[2])
+     self.assert_(correct, msg)
+
+     # Clean: Delete the entry (and -LFC- the dirs)
+     try:
+       self.api.delete(entryList, all = True)
+       if(self.type == "DLS_TYPE_LFC"):
+          # TODO: If empty dirs were automatically removed, this would go away...
+          entry2 = DlsEntry(DlsFileBlock("dir1/dir2"), [])
+          self.api.delete(entry2, all = True)
+          entry3 = DlsEntry(DlsFileBlock("dir1"), [])
+          self.api.delete(entry3, all = True)
+       self.clean = False
+     except DlsApiError, inst:
+       msg = "Error in delete([%s, %s, %s]): %s" % (entryList[0], entryList[1], entryList[2], inst)
+       self.assertEqual(0, 1, msg)
 
 
 
@@ -610,6 +779,7 @@ def getSuite():
   suite.append(getSuite_General_Basic())
   suite.append(getSuite_General_Multi())
   suite.append(getSuite_General_GetFileBlocks())
+  suite.append(getSuite_General_Dump())
   return unittest.TestSuite(suite)
   
 def getSuite_General_Basic():
@@ -620,6 +790,9 @@ def getSuite_General_Multi():
    
 def getSuite_General_GetFileBlocks():
   return unittest.makeSuite(TestDlsApi_General_GetFileBlocks)
+   
+def getSuite_General_Dump():
+  return unittest.makeSuite(TestDlsApi_General_Dump)
    
 
 ##############################################################################
@@ -660,7 +833,8 @@ def help():
   print "of the tests. Default is to execute all of them."
   print "   \"basic\" ==> Tests on general basic functionality"
   print "   \"multi\" ==> Basic tests but using multiple arguments (lists)"
-  print "   \"getfb\" ==> Tests on getFileBlocks functions (maybe slower)" 
+  print "   \"getfb\" ==> Tests on getFileBlocks functions (maybe slow)" 
+  print "   \"dump\" ==> Tests on dump and getAllLocations functions (maybe slow)" 
   
 def usage():
   print "Usage:  %s <conf_file> [<subset_of_tests>]" % (name+".py")
@@ -698,6 +872,8 @@ if __name__ == '__main__':
         suite = getSuite_General_Multi()
      if(sys.argv[2] == "getfb"):
         suite = getSuite_General_GetFileBlocks()
+     if(sys.argv[2] == "dump"):
+        suite = getSuite_General_Dump()
 
      if(not suite):
            msg = "Error: The optional second argument is not one of the supported ones!\n"
