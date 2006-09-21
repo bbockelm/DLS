@@ -1,5 +1,5 @@
 #
-# $Id: dlsLfcApi.py,v 1.25 2006/09/19 11:43:40 delgadop Exp $
+# $Id: dlsLfcApi.py,v 1.26 2006/09/19 14:00:02 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -850,7 +850,7 @@ class DlsLfcApi(dlsApi.DlsApi):
 
   def renameFileBlock(self, oldFileBlock, newFileBlock, **kwd):
     """
-    Implementation of the dls.DlsApi.renameFileBlock method.
+    Implementation of the dlsApi.DlsApi.renameFileBlock method.
     Refer to that method's documentation.
 
     Implementation specific remarks:
@@ -2077,6 +2077,9 @@ class DlsLfcApi(dlsApi.DlsApi):
        dir_entry, repList = dir_read
        
     while(dir_read):
+    
+      if(self.verb >= DLS_VERB_HIGH):    
+         print "--Read:",dir_entry.d_name
 
       # Is it a subdirectory?
       if(dir_entry.filemode & S_IFDIR):
@@ -2093,6 +2096,8 @@ class DlsLfcApi(dlsApi.DlsApi):
          if(repList):
             for rep in repList:
                locList[rep.host] = 1
+               if(self.verb >= DLS_VERB_HIGH):    
+                  print "--Added:",rep.host
       
       # Next entry
       dir_read = lfc.lfc_readdirxr(dir_p, "")
@@ -2242,7 +2247,7 @@ class DlsLfcApi(dlsApi.DlsApi):
             
       # Next entry
       # TODO: The location should be specified, but we get a strange abort
-      #       However, results are performance are basically the same
+      #       However, results and performance are basically the same
 #      dir_read = lfc.lfc_readdirxr(dir_p, location)
       dir_read = lfc.lfc_readdirxr(dir_p, "")
       if(not dir_read):         
