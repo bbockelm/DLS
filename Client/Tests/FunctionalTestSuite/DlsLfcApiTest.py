@@ -1,7 +1,7 @@
 #!/usr/bin/env python
  
 #
-# $Id: DlsApiTest.py,v 1.1 2006/05/11 15:26:32 delgadop Exp $
+# $Id: DlsLfcApiTest.py,v 1.1 2006/05/19 10:15:00 delgadop Exp $
 #
 # DLS Client Functional Test Suite. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -79,9 +79,9 @@ class TestDlsApi(unittest.TestCase):
 
      if(self.cleanDirs):
         fBList2 = []
-        fBList2.append(map(DlsFileBlock, ["dir1/f2", "dir1/dir2/f3"]))
-        fBList2.append(map(DlsFileBlock, ["dir1/dir2", "dir1/dir3"]))
-        fBList2.append(map(DlsFileBlock, ["dir1/"]))
+        fBList2.append(map(DlsFileBlock, ["dir1/f2", "dir1/dir2/f2", "dir1/dir2/f3"]))
+        fBList2.append(map(DlsFileBlock, ["dir1/f1", "dir1/dir2", "dir1/dir3", "dir1"]))
+        fBList2.append(map(DlsFileBlock, ["dir2/dir3/f1", "dir2/dir3", "dir2"]))
         
         for i in fBList2:
            entryList = map(DlsEntry, i, [])
@@ -620,6 +620,7 @@ class TestDlsApi_LFC_Trans(TestDlsApi_LFC):
 
 
 
+
 # Class for LFC "other" tests
 # ===========================
 
@@ -839,6 +840,128 @@ class TestDlsApi_LFC_Other(TestDlsApi_LFC):
        self.assertEqual(0, 1, msg)
 
 
+  # Test dump entries of a single dir (non recursive)
+  def testDumpEntries(self):
+     self.cleanDirs = True
+
+     fBList = map(DlsFileBlock, ["f1", "dir1/dir2/f2", "dir1/dir2/f3"])
+     locList = map(lambda x: [DlsLocation(x)], ["DlsApiTest_se1","DlsApiTest_se2","DlsApiTest_se3"])
+     entryList = map(DlsEntry, fBList, locList)
+     entryList[0].locations.append(locList[1][0])
+     entryList[1].locations.append(locList[2][0])
+
+     # Session
+     self.session = True
+     self.api.startSession()
+
+     # First add
+     try:
+       self.api.add(entryList)
+     except DlsApiError, inst:
+       msg = "Error in add([%s, %s, %s]): %s" % (entryList[0], entryList[1], entryList[2], inst)
+       self.assertEqual(0, 1, msg)
+       
+    # Now dump them and check
+     try:
+       res = self.api.dumpEntries("dir1/dir2")
+     except DlsApiError, inst:
+       msg = "Error in dumpEntries(\"/\"): %s" % (inst)
+       self.assertEqual(0, 1, msg)
+     correct = (len(res)==2)
+     msg = "Incorrectal dump (number of entries not two: %s)"%(res)
+     self.assert_(correct, msg)
+     correct = (res[0].fileBlock.name=="f2") and (res[1].fileBlock.name=="f3")
+     correct *= (len(res[0].locations)==2) and (len(res[1].locations)==1)
+     correct *= (res[0].locations[0].host=="DlsApiTest_se2")
+     correct *= (res[0].locations[1].host=="DlsApiTest_se3")
+     correct *= (res[1].locations[0].host=="DlsApiTest_se3")
+     msg = "Incorrectal dump (entries: %s, %s)"%(res[0], res[1])
+     self.assert_(correct, msg)
+
+     # Clean: Delete the entries and dirs
+     try:
+       self.api.delete(entryList, all = True)
+       entry2 = DlsEntry(DlsFileBlock("dir1/dir2"), [])
+       self.api.delete(entry2, all = True)
+       entry3 = DlsEntry(DlsFileBlock("dir1"), [])
+       self.api.delete(entry3, all = True)
+       self.clean = False
+       self.cleanDirs = False
+     except DlsApiError, inst:
+       msg = "Error in delete([%s, %s, %s]): %s" % (entryList[0], entryList[1], entryList[2], inst)
+       self.assertEqual(0, 1, msg)
+
+
+  # Test renaming of a dir and createParents flag
+  def testRenaming(self):
+     self.cleanDirs = True
+
+     fB1 = DlsFileBlock("dir1/f1")
+     dir1 = "dir1"
+     dir2 = DlsFileBlock("dir2/dir3")
+     fB2 = DlsFileBlock("dir2/dir3/f1")
+     loc1 = DlsLocation("DlsApiTest_se1")
+     loc2 = DlsLocation("DlsApiTest_se2")
+
+     # Session
+     self.session = True
+     self.api.startSession()
+
+     # First add
+     entry = DlsEntry(fB1, [loc1, loc2])
+     try:
+       self.api.add(entry)
+     except DlsApiError, inst:
+       msg = "Error in add(%s): %s" % (entry, inst)
+       self.assertEqual(0, 1, msg)
+
+     # Now rename it
+     try:
+       self.api.renameFileBlock(dir1, dir2, createParent=True)
+     except DlsApiError, inst:
+       msg = "Error in renameFileBlock(%s, %s): %s" % (dir1, dir2, inst)
+       self.assertEqual(0, 1, msg)
+     # Check new entry
+     try:
+       res = self.api.getLocations(fB2)
+     except DlsApiError, inst:
+       msg = "Error in getLocations(%s): %s" % (fB2, inst)
+       self.assertEqual(0, 1, msg)
+     correct = (res[0].getLocation("DlsApiTest_se1") != None)
+     correct *= (res[0].getLocation("DlsApiTest_se2") != None)
+     msg = "Rename was not correct (retrieving new entry: %s)" % (res[0])
+     self.assert_(correct, msg)
+     # Check old entry and dir are gone
+     correct = False
+     try:
+       res = self.api.listFileBlocks(fB1)
+     except DlsApiError, inst:
+       correct = True
+     msg = "Rename was not correct (old entry still there: %s)" % (res[0])
+     self.assert_(correct, msg)
+     correct = False
+     try:
+       res = self.api.listFileBlocks(dir1)
+     except DlsApiError, inst:
+       correct = True
+     msg = "Rename was not correct (old entry still there: %s)" % (res[0])
+     self.assert_(correct, msg)
+
+     # Clean: Delete the entry (and -LFC- the dirs)
+     try:
+       self.api.delete(entry, all = True)
+       entry2 = DlsEntry(DlsFileBlock("dir2/dir3"), [])
+       self.api.delete(entry2, all = True)
+       entry3 = DlsEntry(DlsFileBlock("dir2"), [])
+       self.api.delete(entry3, all = True)
+       entry3 = DlsEntry(DlsFileBlock("dir1"), [])
+       self.api.delete(entry3, all = True)
+       self.clean = False
+       self.cleanDirs = False
+     except DlsApiError, inst:
+       msg = "Error in delete(%s): %s" % (entry, inst)
+       self.assertEqual(0, 1, msg)
+
 
 ##############################################################################
 # Module's methods to return the suites
@@ -899,7 +1022,7 @@ def help():
   print "of the tests. Default is to execute all of them."
   print "   \"attrs\" ==> Tests on attributes support"
   print "   \"trans\" ==> Test transactions in add and update"
-  print "   \"other\" ==> Other tests (setup, dir deletion...)" 
+  print "   \"other\" ==> Other tests (setup, dir deletion/dump/rename, recursive list)" 
   
 def usage():
   print "Usage:  %s <conf_file> [<subset_of_tests>]" % (name+".py")
