@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# $Id: dls-server,v 1.7 2006/05/03 00:50:57 afanfani Exp $
+# $Id: dls-server,v 1.8 2006/05/18 01:50:16 afanfani Exp $
 
 import Queue
 import socket
@@ -150,6 +150,20 @@ class ClientThread ( threading.Thread ):
                         else:
                            msg=msg+'\n'+row[0]
                      self.dls_send(msg)
+                  elif command[0]=="show_allreplicas":
+                     self.__conn.get_ses()
+                     rows=self.__conn.fetchall()
+                     msg=""
+                     first=True
+                     for row in rows:
+                        if first:
+                           msg=msg+row[0]
+                           first=False
+                        else:
+                           msg=msg+'\n'+row[0]
+                     self.dls_send(msg)
+ 
+
                   
             if self.__client:
                self.__client [ 0 ].close()
@@ -378,8 +392,9 @@ class DLS_db:
    def get_se_from_db(self,db):
       self.execute_query("SELECT se FROM db,se,db_se WHERE db.db='%s' and db.db_id=db_se.db_id and db_se.se_id = se.se_id"%(db))
 
-   
-      
+   def get_ses(self): 
+      self.execute_query("SELECT se FROM se")
+
    
 
    def add_replica(self,db,se):
