@@ -1,5 +1,5 @@
 #
-# $Id: dlsMySQLApi.py,v 1.10 2006/05/11 15:28:36 delgadop Exp $
+# $Id: dlsMySQLApi.py,v 1.11 2006/05/18 01:47:03 afanfani Exp $
 #
 # DLC Client. $Name:  $. 
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -296,6 +296,32 @@ class DlsMySQLApi(dlsApi.DlsApi):
             self.__client.close()
             #return 0
     return entryList
+
+  def getAllLocations(self,**kwd):
+    """
+    Implementation of the dlsApi.DlsApi.getAllLocations method.
+    Refer to that method's documentation.
+    """
+    locList = []
+
+    self.dls_connect()
+    msg='show_allreplicas?'
+    self.dls_send(msg)
+    if ( self.verb > 10 ):
+       print "Send: %s"%(msg)
+    msg=self.dls_receive()
+    if ( self.verb > 10 ):
+        print "Received from server:"
+    #print msg
+    ses=string.split(msg,'\n')
+    if ses == ['']:
+      msg=" No locations found "
+      code=4
+      raise DlsMySQLApiError(msg, code)
+    for se in ses:
+     loc = DlsLocation(se)
+     locList.append(loc)
+    return locList 
 
   def startSession(self):
      pass

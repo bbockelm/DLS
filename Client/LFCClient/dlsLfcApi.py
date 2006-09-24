@@ -1,5 +1,5 @@
 #
-# $Id: dlsLfcApi.py,v 1.26 2006/09/19 14:00:02 delgadop Exp $
+# $Id: dlsLfcApi.py,v 1.27 2006/09/21 15:20:27 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -748,6 +748,9 @@ class DlsLfcApi(dlsApi.DlsApi):
           # Retrieve list for each location and add it to the general list
           partialList = self._getEntriesFromDir("/", host, True)
           for i in partialList:
+#AF-begin: add starting slash to fileblock name
+            if(not i.fileBlock.name.startswith('/')): i.fileBlock.name = '/' + i.fileBlock.name
+#AF-end
             entryList.append(i)
        
 
@@ -1379,7 +1382,6 @@ class DlsLfcApi(dlsApi.DlsApi):
     lfn = dlsFileBlock.name
     lfn = self._checkDlsHome(lfn)
     userlfn = self._removeRootPath(lfn, strict = True)
-       
     attrList = dlsFileBlock.attribs
     guid = dlsFileBlock.getGuid()
 
