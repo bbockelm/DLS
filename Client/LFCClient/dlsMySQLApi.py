@@ -329,6 +329,50 @@ class DlsMySQLApi(dlsApi.DlsApi):
   def endSession(self):
      pass
  
+
+  def renameFileBlock(self, oldFileBlock, newFileBlock, **kwd):
+    """
+    Implementation of the dlsApi.DlsApi.renameFileBlock method.
+    Refer to that method's documentation.
+    """
+    # Check what was passed and extract interesting values
+    if(isinstance(oldFileBlock, DlsFileBlock)):
+       oldLfn = oldFileBlock.name
+    else:
+       oldLfn = oldFileBlock
+    if(isinstance(newFileBlock, DlsFileBlock)):
+       newLfn = newFileBlock.name
+    else:
+       newLfn = newFileBlock
+
+
+    self.dls_connect()
+    msg='rename_db?%s?%s'%(oldLfn,newLfn)
+    if ( self.verb > 10 ) :
+        print "Send:%s"%(msg)
+    self.dls_send(msg)
+    msg=self.dls_receive()
+     
+    if msg=="0":
+          if ( self.verb > 10 ): print "Fileblock renamed"
+    elif msg=="1":
+          msgtxt = "Error renaming FileBlock %s as %s: %s does not exist"%(oldLfn, newLfn, oldLfn)
+          print "Warning: "+ msgtxt
+          raise DlsMySQLApiError(msgtxt, msg)
+    elif msg=="3":
+          msgtxt = "Error renaming FileBlock %s as %s: %s exists"%(oldLfn, newLfn,newLfn) 
+          print "Warning: "+ msgtxt
+          raise DlsMySQLApiError(msgtxt, msg)
+    else:
+          msg="2"
+          msgtxt="Error renaming FileBlock %s as %s: Fileblock not renamed"%(oldLfn, newLfn)
+          print "Warning: "+ msgtxt
+          raise DlsMySQLApiError(msgtxt, msg)
+
+    self.__client.close()
+
+
+
   ##################################
   # Other public methods (utilities)
   ##################################
