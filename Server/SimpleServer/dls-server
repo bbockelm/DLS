@@ -162,7 +162,9 @@ class ClientThread ( threading.Thread ):
                         else:
                            msg=msg+'\n'+row[0]
                      self.dls_send(msg)
- 
+                  elif command[0]=="rename_db":
+                     msg=self.__conn.rename_fileblock(command[1],command[2])
+                     self.dls_send(str(msg))
 
                   
             if self.__client:
@@ -449,7 +451,26 @@ class DLS_db:
          self.rollback_transaction()
          return 2
 
-      
+   def rename_fileblock(self,olddb,newdb):
+
+      try:
+         db_id=self.select_id("db","db_id","db",olddb)
+
+         if not db_id:
+            return 1
+         
+
+         if not self.select_id("db","db_id","db",newdb):
+           self.begin_transaction()
+           self.execute_query("UPDATE db SET db='%s' where db_id=%d"%(newdb,db_id))
+           self.commit_transaction()
+           return 0
+         else:
+           return 3
+
+      except:
+         self.rollback_transaction() 
+         return 2                                               
 
     
 
