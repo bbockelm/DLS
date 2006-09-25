@@ -1,7 +1,7 @@
 #!/usr/bin/env python
  
 #
-# $Id: DlsApiTest.py,v 1.2 2006/05/19 10:14:12 delgadop Exp $
+# $Id: DlsApiTest.py,v 1.4 2006/09/25 08:53:06 delgadop Exp $
 #
 # DLS Client Functional Test Suite. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -420,11 +420,11 @@ class TestDlsApi_General_MultipleArgs(TestDlsApi_General):
        msg = "Error in add([%s, %s, %s]): %s" % (entry, entry2, entry3, inst)
        self.assertEqual(0, 1, msg)
        
-     entry2 = DlsEntry(fB, [loc2, loc3])
+     entry4 = DlsEntry(fB, [loc2, loc3])
      try:
-       self.api.add(entry)
+       self.api.add(entry4)
      except DlsApiError, inst:
-       msg = "Error in add(%s): %s" % (entry2, inst)
+       msg = "Error in add(%s): %s" % (entry4, inst)
        self.assertEqual(0, 1, msg)
 
      # Now get locations
