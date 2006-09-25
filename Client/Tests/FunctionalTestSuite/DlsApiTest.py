@@ -591,8 +591,8 @@ class TestDlsApi_General_GetFileBlocks(TestDlsApi_General):
        msg = "Error in getFileBlocks(%s): %s" % (locList[1][0], inst)
        self.assertEqual(0, 1, msg)
      fb_got = [res[0].fileBlock.name, res[1].fileBlock.name]
-     correct = ("f1" in fb_got)
-     correct *= ("f2" in fb_got)
+     correct = ("/f1" in fb_got)
+     correct *= ("/f2" in fb_got)
      msg = "FileBlocks were not correctly retrieved (entry[1]: %s, entry[2]: %s)"%(res[0], res[1])
      self.assert_(correct, msg)
 
@@ -635,9 +635,9 @@ class TestDlsApi_General_GetFileBlocks(TestDlsApi_General):
      for i in res:
         fb_got.append(i.fileBlock.name)
      correct = (len(fb_got) == 5)
-     correct *= ("f1" in fb_got)
-     correct *= ("f2" in fb_got)
-     correct *= ("f3" in fb_got)
+     correct *= ("/f1" in fb_got)
+     correct *= ("/f2" in fb_got)
+     correct *= ("/f3" in fb_got)
      msg = "FileBlocks were not correctly retrieved (got: %s)" % fb_got
      self.assert_(correct, msg)
 
