@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #
-# $Id$
+# $Id: dls-dump,v 1.1 2006/09/06 14:22:22 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -65,6 +65,15 @@ in the FileBlock namespace. The printed information will include both FileBlock
 names and associated locations. In the case of DLS implementations with a flat
 FileBlock namespace, the directory argument -while compulsory- will be ignored
 (i.e.: it will behave as if "/" is specified).
+
+The "-r" option makes the dumping recursive. That is, for hierarchical namespaces,
+the command will print also the contents of the subdirectories of under the
+specified directory. DLS implementations with flat FileBlock namespace will
+just ignore this option.
+
+   NOTE: Be aware that depending on the catalog a recursive dumping may be
+   a very costly operation and affect DLS response, so please use this flag
+   only with care!!
 
 The "-e" option can be used to set the DLS endpoint to use. If not specified,
 the endpoint is retrieved from:
