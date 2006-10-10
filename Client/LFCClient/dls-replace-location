@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #
-# $Id: dls-replace-location,v 1.1 2006/05/22 18:19:02 afanfani Exp $
+# $Id: dls-replace-location,v 1.2 2006/05/24 09:11:59 delgadop Exp $
 #
 # DLS Client. $Name:  $
 # Alessandra Fanfani Univ./INFN Bologna. CMS.
@@ -19,8 +19,14 @@ import os
 import sys
 import commands
 import getopt
+from time import localtime, mktime
 
 
+#########################################
+# Constants 
+#########################################
+# Max duration of a transaction (in seconds)
+DLS_MAX_TRANS_TIME = 10.5
 
 ######################### FUNCTIONS ########################
 
@@ -57,7 +63,11 @@ def help():
     Provides some help information
    """
    print """Replaces the location for all fileblocks for the given <oldlocation> to
-the given <newlocation> in the DLS server.
+the given <newlocation> in the DLS server. For DLS with LFC back-end, this is done
+as an atomic operation (using transactions), so either the whole replacement is
+performed or nothing is done. This may not be the case for other implementations.
+
+NOTE: Depending on the DLS implementation this operation may take some time to complete.
 
 The "-e" option can be used to set the DLS endpoint to use. If not specified,
 the endpoint is retrieved from:
@@ -156,17 +166,6 @@ def main(pArgs):
      elif opt in ("-n", "--newlocation"):
          newlocation=val
 
-
-#   if endpoint==None:
-#      usage()
-#      msg = "Error: --endpoint <DLS endpoint> is required"
-#      sys.stderr.write(msg+"\n")
-#      sys.exit(-1)
-#   if iface_type==None:
-#      usage()
-#      msg = "Error: --interface-type <DLS type> is required. Suppported values: %s\n"%admitted_iface_types
-#      sys.stderr.write(msg+"\n")
-#      sys.exit(-1)
    if oldlocation==None:
       msg = "Error: --oldlocation <oldlocation> is required"
       sys.stderr.write(msg+"\n")
@@ -177,21 +176,10 @@ def main(pArgs):
       sys.stderr.write(msg+"\n")
       usage()
       sys.exit(-1)
-
- 
-  
- # Build the arguments 
-
-   
-   #if(len(args)<1):
-   #      print "Bad usage: Not enough input arguments"
-   #      usage()
-   #      return -1
-   #if(len(args)>1):
-   #      print "Bad usage: Too many input arguments"
-   #      usage()
-   #      return -1
-
+   if oldlocation == newlocation:
+      msg = "Error: <newlocation> (%s) and <oldlocation> (%s) are equal"%(oldlocation, newlocation)
+      sys.stderr.write(msg+"\n")
+      sys.exit(-1)
 
 
  # Create the interface binding
@@ -209,41 +197,48 @@ def main(pArgs):
       msg = "Error when binding the DLS interface: " + str(inst)
       sys.stderr.write(msg+"\n")
       return -1
- 
-   # Start session
-   iface.startSession()
+   
     
    if(verbose >= 2):
       print "*** Get FileBlocks given the location=%s"%oldlocation
    entryList=[]
    try:
-      entryList=iface.getFileBlocks(oldlocation)
+      entryList=iface.getFileBlocks(oldlocation, session=True)
    except dlsApi.DlsApiError, inst:
       msg = "Error in the DLS query: %s." % str(inst)
       sys.stderr.write(msg+"\n")
-      iface.endSession()
       sys.exit(-1)  
 
    if(verbose >= 2):
       print "*** Delete all DLS entries with location=%s"%oldlocation
       print "*** Add all DLS entries with location=%s"%newlocation
-   #print entryList
-   for entry in entryList:
-       #print entry
-       try:
-         #print " delete %s"%entry
-         iface.delete([entry])
-         newentry=DlsEntry(entry.fileBlock,[DlsLocation(newlocation)])
-         #print " add %s"%newentry
-         iface.add([newentry])
-       except dlsApi.DlsApiError, inst:
-         msg = "Error in deleting DLS entry: %s." % str(inst)
-         sys.stderr.write(msg+"\n")
-         pass
 
-   # end session
-   iface.endSession()
+     
+   newList = []
+   t0 = mktime(localtime())
+   iface.startTrans()
+   try:
+     # NOTE: Here we delete inside a transaction. This is dangerous and should
+     # be normally avoided! This particular case is known to behave correctly (hope).
+     for oldEntry in entryList:
+        newEntry = DlsEntry(oldEntry.fileBlock,[DlsLocation(newlocation)])
+        iface.add(newEntry, errorTolerant = False)
+        iface.delete(oldEntry, errorTolerant = False, keepFileBlock = True)
+        # Check time (each transaction should not be longer than DLS_MAX_TRANS_TIME)
+        t1 = mktime(localtime())
+        if((t1-t0)>DLS_MAX_TRANS_TIME):
+           iface.endTrans()
+           t0 = mktime(localtime())           
+           iface.startTrans()
+           
 
+   except dlsApi.DlsApiError, inst:
+     msg = "Error in deleting DLS entry: %s." % str(inst)
+     sys.stderr.write(msg+"\n")
+     iface.abortTrans()
+     sys.exit(-1)  
+
+   iface.endTrans()
 
 ######################### SCRIPT ###########################
 
