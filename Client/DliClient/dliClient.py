@@ -1,5 +1,5 @@
 #
-# $Id: dliClient.py,v 1.4 2006/04/21 11:39:04 delgadop Exp $
+# $Id: dliClient.py,v 1.5 2006/04/25 18:28:21 afanfani Exp $
 #
 # DliClient. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -177,7 +177,7 @@ class DliClient:
        result = response.urlList
     except ZSIFaultException, inst:
        # This hack is due to extrange behaviour of DLI when an LFN has no replica
-       if(inst.fault.string == "Out of memory"):
+       if((inst.fault.string == "Out of memory") or (inst.fault.string == "NoURLFound")):
           result = []
        else:
           f = inst.fault
