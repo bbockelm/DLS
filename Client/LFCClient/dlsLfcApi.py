@@ -1,5 +1,5 @@
 #
-# $Id: dlsLfcApi.py,v 1.27 2006/09/21 15:20:27 delgadop Exp $
+# $Id: dlsLfcApi.py,v 1.28 2006/09/24 15:17:42 afanfani Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -146,8 +146,8 @@ class DlsLfcApi(dlsApi.DlsApi):
        fstat = lfc.lfc_filestatg()
        if(lfc.lfc_statg(dlspath, "", fstat)<0):
           code = lfc.cvar.serrno
-          msg = "Specied LFC's root dir for DLS (%s) " % (dlspath)
-          msg += "not accessible: %s" % (lfc.sstrerror(code))
+          msg = "Specied LFC's root dir for DLS (%s) not accessible "%(dlspath)
+          msg += "(probably wrong host/path or authentication problem): %s"%(lfc.sstrerror(code))
           raise SetupError(msg, code)    
     dlspath = '/'+dlspath.strip('/')
     self.root = dlspath
@@ -317,7 +317,7 @@ class DlsLfcApi(dlsApi.DlsApi):
            # For FileBlocks not accessible, go to next
            if(isinstance(inst, NotAccessibleError)):
               if(self.verb >= DLS_VERB_WARN):
-                 print "Warning: Not updating unaccessible FileBlock: %s" % (inst.msg)
+                 print "Warning: Not updating inaccessible FileBlock: %s" % (inst.msg)
               continue
            # For error on attributes, just warn and go on
            else:
