@@ -1,7 +1,7 @@
 #!/usr/bin/env python
  
 #
-# $Id: DlsLfcApiTest.py,v 1.1 2006/05/19 10:15:00 delgadop Exp $
+# $Id: DlsLfcApiTest.py,v 1.2 2006/09/21 15:23:24 delgadop Exp $
 #
 # DLS Client Functional Test Suite. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -157,7 +157,7 @@ class TestDlsApi_LFC_Attrs(TestDlsApi_LFC):
   def testAttrsAdditionListGetSE(self):
   
      fB = DlsFileBlock("f1")
-     loc1 = DlsLocation("DlsApiTest_se1")
+     loc1 = DlsLocation("DlsApiTest-se1")
      
      # Session
      self.session = True
@@ -253,7 +253,7 @@ class TestDlsApi_LFC_Attrs(TestDlsApi_LFC):
      # Test the SURL retrieval
      try:        
         entry = self.api.getSURL(entry)
-        retrievedSurl = (entry.getLocation("DlsApiTest_se1")).getSurl()
+        retrievedSurl = (entry.getLocation("DlsApiTest-se1")).getSurl()
      except DlsApiError, inst:
         msg = "Error in getSURL(%s): %s" % (entry, inst) 
         self.assertEqual(-1, 0, msg)
@@ -269,7 +269,7 @@ class TestDlsApi_LFC_Attrs(TestDlsApi_LFC):
      fB.attribs["filesize"] = "123"
      fB.attribs["csumtype"] = "CS"
      fB.attribs["csumvalue"] = "4321"
-     loc1 = DlsLocation("DlsApiTest_se1")
+     loc1 = DlsLocation("DlsApiTest-se1")
      loc1.attribs["ptime"] = 111
      
      # Session
@@ -337,9 +337,9 @@ class TestDlsApi_LFC_Attrs(TestDlsApi_LFC):
      fB = DlsFileBlock("f1")
      fB.attribs["filesize"] = "123"
      fB2 = DlsFileBlock("f2")
-     loc1 = DlsLocation("DlsApiTest_se1")
+     loc1 = DlsLocation("DlsApiTest-se1")
      loc1.attribs["ptime"] = 111
-     loc2 = DlsLocation("DlsApiTest_se2")
+     loc2 = DlsLocation("DlsApiTest-se2")
      loc2.attribs = {"ptime": 999, "aaa": 888}
      
      # Session
@@ -401,9 +401,9 @@ class TestDlsApi_LFC_Attrs(TestDlsApi_LFC):
      fB = DlsFileBlock("f1")
      fB2 = DlsFileBlock("f2")
      fB3 = DlsFileBlock("f3")
-     loc1 = DlsLocation("DlsApiTest_se1")
-     loc2 = DlsLocation("DlsApiTest_se2")
-     loc3 = DlsLocation("DlsApiTest_se3")
+     loc1 = DlsLocation("DlsApiTest-se1")
+     loc2 = DlsLocation("DlsApiTest-se2")
+     loc3 = DlsLocation("DlsApiTest-se3")
      loc3.attribs = {"f_type": "P"}
      
      # Session
@@ -452,7 +452,7 @@ class TestDlsApi_LFC_Attrs(TestDlsApi_LFC):
        msg = "Error in getLocations(%s): %s" % (fB, inst)
        self.assertEqual(0, 1, msg)
      correct = len(res[0].locations) == 1
-     correct *= (res[0].getLocation("DlsApiTest_se3") != None)
+     correct *= (res[0].getLocation("DlsApiTest-se3") != None)
      msg = "Locations were not correctly retrieved (entry: %s)" % (res[0])
      self.assert_(correct, msg)
 
@@ -499,9 +499,9 @@ class TestDlsApi_LFC_Trans(TestDlsApi_LFC):
   def testAddTrans(self):
   
      fB = DlsFileBlock("f1")
-     loc1 = DlsLocation("DlsApiTest_se1")
-     loc2 = DlsLocation("DlsApiTest_se2")
-     loc3 = DlsLocation("DlsApiTest_se3")
+     loc1 = DlsLocation("DlsApiTest-se1")
+     loc2 = DlsLocation("DlsApiTest-se2")
+     loc3 = DlsLocation("DlsApiTest-se3")
      
      entry = DlsEntry(fB, [loc1, loc2])
      try:
@@ -524,9 +524,9 @@ class TestDlsApi_LFC_Trans(TestDlsApi_LFC):
      except DlsApiError, inst:
        msg = "Error in getLocations(%s): %s" % (fB, inst)
        self.assertEqual(0, 1, msg)
-     correct = (res[0].getLocation("DlsApiTest_se1") != None)
-     correct *= (res[0].getLocation("DlsApiTest_se2") != None)
-     correct *= (res[0].getLocation("DlsApiTest_se3") == None)
+     correct = (res[0].getLocation("DlsApiTest-se1") != None)
+     correct *= (res[0].getLocation("DlsApiTest-se2") != None)
+     correct *= (res[0].getLocation("DlsApiTest-se3") == None)
      msg = "Locations were not correctly retrieved (entry: %s)" % (res[0])
      self.assert_(correct, msg)
        
@@ -541,9 +541,9 @@ class TestDlsApi_LFC_Trans(TestDlsApi_LFC):
      except DlsApiError, inst:
        msg = "Error in getLocations(%s): %s" % (fB, inst)
        self.assertEqual(0, 1, msg)
-     correct = (res[0].getLocation("DlsApiTest_se1") != None)
-     correct *= (res[0].getLocation("DlsApiTest_se2") != None)
-     correct *= (res[0].getLocation("DlsApiTest_se3") != None)
+     correct = (res[0].getLocation("DlsApiTest-se1") != None)
+     correct *= (res[0].getLocation("DlsApiTest-se2") != None)
+     correct *= (res[0].getLocation("DlsApiTest-se3") != None)
      msg = "Locations were not correctly retrieved (entry: %s)" % (res[0])
      self.assert_(correct, msg)
 
@@ -564,9 +564,9 @@ class TestDlsApi_LFC_Trans(TestDlsApi_LFC):
      fB.attribs["csumtype"] = "CS"
      fB.attribs["csumvalue"] = "4321"
      fB2 = DlsFileBlock("f2")
-     loc1 = DlsLocation("DlsApiTest_se1")
+     loc1 = DlsLocation("DlsApiTest-se1")
      loc1.attribs["ptime"] = "111"
-     loc2 = DlsLocation("DlsApiTest_se2")
+     loc2 = DlsLocation("DlsApiTest-se2")
      loc2.attribs = {"ptime": 999, "aaa": 888}
      
      # First add
@@ -635,8 +635,8 @@ class TestDlsApi_LFC_Other(TestDlsApi_LFC):
 
   def testEndpointAndInterface(self):
      fB = DlsFileBlock("f1")
-     loc1 = DlsLocation("DlsApiTest_se1")
-     loc2 = DlsLocation("DlsApiTest_se2")
+     loc1 = DlsLocation("DlsApiTest-se1")
+     loc2 = DlsLocation("DlsApiTest-se2")
 
      # Test the root path
      entry = DlsEntry(fB, [loc1, loc2])
@@ -664,8 +664,8 @@ class TestDlsApi_LFC_Other(TestDlsApi_LFC):
   def testErroneousAddition(self):
    
      fB = DlsFileBlock("f1")
-     loc1 = DlsLocation("DlsApiTest_se1")
-     loc2 = DlsLocation("DlsApiTest_se2")
+     loc1 = DlsLocation("DlsApiTest-se1")
+     loc2 = DlsLocation("DlsApiTest-se2")
 
      # Erroneous root directory (not permitted)
      try:
@@ -689,8 +689,8 @@ class TestDlsApi_LFC_Other(TestDlsApi_LFC):
      self.cleanDirs = True
 
      fB = DlsFileBlock("dir1/f2")
-     loc1 = DlsLocation("DlsApiTest_se1")
-     loc2 = DlsLocation("DlsApiTest_se2")
+     loc1 = DlsLocation("DlsApiTest-se1")
+     loc2 = DlsLocation("DlsApiTest-se2")
      
      # Session
      self.session = True
@@ -758,8 +758,8 @@ class TestDlsApi_LFC_Other(TestDlsApi_LFC):
      fB2 = DlsFileBlock("dir1/f2")
      fB3 = DlsFileBlock("dir1/dir2/f3")
      fB4 = DlsFileBlock("dir1/dir3/fXX")
-     loc1 = DlsLocation("DlsApiTest_se1")
-     loc2 = DlsLocation("DlsApiTest_se2")
+     loc1 = DlsLocation("DlsApiTest-se1")
+     loc2 = DlsLocation("DlsApiTest-se2")
 
      # Session
      self.session = True
@@ -845,7 +845,7 @@ class TestDlsApi_LFC_Other(TestDlsApi_LFC):
      self.cleanDirs = True
 
      fBList = map(DlsFileBlock, ["f1", "dir1/dir2/f2", "dir1/dir2/f3"])
-     locList = map(lambda x: [DlsLocation(x)], ["DlsApiTest_se1","DlsApiTest_se2","DlsApiTest_se3"])
+     locList = map(lambda x: [DlsLocation(x)], ["DlsApiTest-se1","DlsApiTest-se2","DlsApiTest-se3"])
      entryList = map(DlsEntry, fBList, locList)
      entryList[0].locations.append(locList[1][0])
      entryList[1].locations.append(locList[2][0])
@@ -872,9 +872,9 @@ class TestDlsApi_LFC_Other(TestDlsApi_LFC):
      self.assert_(correct, msg)
      correct = (res[0].fileBlock.name=="f2") and (res[1].fileBlock.name=="f3")
      correct *= (len(res[0].locations)==2) and (len(res[1].locations)==1)
-     correct *= (res[0].locations[0].host=="DlsApiTest_se2")
-     correct *= (res[0].locations[1].host=="DlsApiTest_se3")
-     correct *= (res[1].locations[0].host=="DlsApiTest_se3")
+     correct *= (res[0].locations[0].host=="DlsApiTest-se2")
+     correct *= (res[0].locations[1].host=="DlsApiTest-se3")
+     correct *= (res[1].locations[0].host=="DlsApiTest-se3")
      msg = "Incorrectal dump (entries: %s, %s)"%(res[0], res[1])
      self.assert_(correct, msg)
 
@@ -900,8 +900,8 @@ class TestDlsApi_LFC_Other(TestDlsApi_LFC):
      dir1 = "dir1"
      dir2 = DlsFileBlock("dir2/dir3")
      fB2 = DlsFileBlock("dir2/dir3/f1")
-     loc1 = DlsLocation("DlsApiTest_se1")
-     loc2 = DlsLocation("DlsApiTest_se2")
+     loc1 = DlsLocation("DlsApiTest-se1")
+     loc2 = DlsLocation("DlsApiTest-se2")
 
      # Session
      self.session = True
@@ -927,8 +927,8 @@ class TestDlsApi_LFC_Other(TestDlsApi_LFC):
      except DlsApiError, inst:
        msg = "Error in getLocations(%s): %s" % (fB2, inst)
        self.assertEqual(0, 1, msg)
-     correct = (res[0].getLocation("DlsApiTest_se1") != None)
-     correct *= (res[0].getLocation("DlsApiTest_se2") != None)
+     correct = (res[0].getLocation("DlsApiTest-se1") != None)
+     correct *= (res[0].getLocation("DlsApiTest-se2") != None)
      msg = "Rename was not correct (retrieving new entry: %s)" % (res[0])
      self.assert_(correct, msg)
      # Check old entry and dir are gone
@@ -949,6 +949,9 @@ class TestDlsApi_LFC_Other(TestDlsApi_LFC):
 
      # Clean: Delete the entry (and -LFC- the dirs)
      try:
+       entry = DlsEntry(DlsFileBlock("dir1/f1"), [])
+       self.api.delete(entry, all = True)
+       entry = DlsEntry(DlsFileBlock("dir2/dir3/f1"), [])
        self.api.delete(entry, all = True)
        entry2 = DlsEntry(DlsFileBlock("dir2/dir3"), [])
        self.api.delete(entry2, all = True)

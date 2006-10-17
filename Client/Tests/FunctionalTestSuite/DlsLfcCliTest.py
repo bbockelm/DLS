@@ -1,7 +1,7 @@
 #!/usr/bin/env python
  
 #
-# $Id: DlsLfcCliTest.py,v 1.12 2006/05/19 10:16:28 delgadop Exp $
+# $Id: DlsLfcCliTest.py,v 1.13 2006/09/21 15:24:50 delgadop Exp $
 #
 # DLS Client Functional Test Suite. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -22,7 +22,6 @@ run = getstatusoutput
 conf_file = ""
 
 
-# TODO: Check that the rename and list guid tests really work!
 # TODO: Basic tests for rename, dump, get-all-locations... but already tested in the API
 
 
@@ -162,9 +161,9 @@ class TestDlsCli_FromArgs_General(TestDlsCli):
      msg = "Error in dls-get-se -e %s%s -i DLS_TYPE_DLI c1: %s" % (self.host, self.testdir, out)
      self.assertEqual(st, 0, msg)
 
-     cmd = self.path + "/dls-get-fileblock -e %s%s CliTest_NOTHING" % (self.host, self.testdir)
+     cmd = self.path + "/dls-get-fileblock -e %s%s CliTest-NOTHING" % (self.host, self.testdir)
      st, out = run(cmd)
-     msg = "Error in dls-get-fileblock -e %s%s CliTest_NOTHING: %s" % (self.host, self.testdir, out)
+     msg = "Error in dls-get-fileblock -e %s%s CliTest-NOTHING: %s" % (self.host, self.testdir, out)
      self.assertEqual(st, 0, msg)
 
      cmd = self.path + "/dls-delete -e %s%s -a c1" % (self.host, self.testdir)
@@ -175,12 +174,12 @@ class TestDlsCli_FromArgs_General(TestDlsCli):
 
   # Test verbosity (on update after addition)
   def testVerbosity(self):
-     cmd = self.path + "/dls-add c1 CliTest_se1 CliTest_se2"
+     cmd = self.path + "/dls-add c1 CliTest-se1 CliTest-se2"
      st, out = run(cmd)
-     msg = "Error in dls-add c1 CliTest_se1 CliTest_se2",out 
+     msg = "Error in dls-add c1 CliTest-se1 CliTest-se2",out 
      self.assertEqual(st, 0, msg)
 
-     cmd = self.path + "/dls-update -v 0 c1 CliTest_se5"
+     cmd = self.path + "/dls-update -v 0 c1 CliTest-se5"
      st, out = run(cmd)
      msg = "Error in dls-get-se c1",out 
      self.assertEqual(st, 0, msg)
@@ -189,7 +188,7 @@ class TestDlsCli_FromArgs_General(TestDlsCli):
            % (out, expected)
      self.assertEqual(out, expected, msg)
 
-     cmd = self.path + "/dls-update -v 1 c1 CliTest_se5"
+     cmd = self.path + "/dls-update -v 1 c1 CliTest-se5"
      st, out = run(cmd)
      msg = "Error in dls-get-se c1",out 
      self.assertEqual(st, 0, msg)
@@ -198,7 +197,7 @@ class TestDlsCli_FromArgs_General(TestDlsCli):
            % (out, expected)
      self.assertEqual(out, expected, msg)
 
-     cmd = self.path + "/dls-update -v 2 c1 CliTest_se5"
+     cmd = self.path + "/dls-update -v 2 c1 CliTest-se5"
      st, out = run(cmd)
      msg = "Error in dls-get-se c1",out 
      self.assertEqual(st, 0, msg)
@@ -213,9 +212,9 @@ class TestDlsCli_FromArgs_General(TestDlsCli):
 
   # Test sessions (on dls-get-se for -l only) 
   def testSession(self):
-     cmd = self.path + "/dls-add c1 CliTest_se4 CliTest_se5 CliTest_se6"
+     cmd = self.path + "/dls-add c1 CliTest-se4 CliTest-se5 CliTest-se6"
      st, out = run(cmd)
-     msg = "Error in dls-add c1 CliTest_se4 CliTest_se5 CliTest_se6",out 
+     msg = "Error in dls-add c1 CliTest-se4 CliTest-se5 CliTest-se6",out 
      self.assertEqual(st, 0, msg)
 
      cmd = self.path + "/dls-get-se -v 2 -l c1"
@@ -243,12 +242,12 @@ class TestDlsCli_FromArgs_General(TestDlsCli):
 
   # Test transactions on addition (from CL arguments) 
   def testAddTrans(self):
-     cmd = self.path + "/dls-add c1 CliTest_se1 CliTest_se2"
+     cmd = self.path + "/dls-add c1 CliTest-se1 CliTest-se2"
      st, out = run(cmd)
-     msg = "Error in dls-add c1 CliTest_se1 CliTest_se2",out 
+     msg = "Error in dls-add c1 CliTest-se1 CliTest-se2",out 
      self.assertEqual(st, 0, msg)
 
-     cmd = self.path + "/dls-add -v 2 -t c1 CliTest_se3 CliTest_se1"
+     cmd = self.path + "/dls-add -v 2 -t c1 CliTest-se3 CliTest-se1"
      st, out = run(cmd)
      expected = "Transaction operations rolled back"
      contains = out.find(expected) != -1
@@ -260,14 +259,14 @@ class TestDlsCli_FromArgs_General(TestDlsCli):
      st, out = run(cmd)
      msg = "Error in dls-get-se c1",out 
      self.assertEqual(st, 0, msg)
-     expected = "CliTest_se1\nCliTest_se2"
+     expected = "CliTest-se1\nCliTest-se2"
      msg = "The results obtained (%s) with dls-get-se are not those expected  (%s)"\
            % (out, expected)
      self.assertEqual(out, expected, msg)
 
-     cmd = self.path + "/dls-add -v 2 c1 CliTest_se3 CliTest_se1"
+     cmd = self.path + "/dls-add -v 2 c1 CliTest-se3 CliTest-se1"
      st, out = run(cmd)
-     msg = "Error in dls-add -v 2 c1 CliTest_se3 CliTest_se1",out 
+     msg = "Error in dls-add -v 2 c1 CliTest-se3 CliTest-se1",out 
      self.assertEqual(st, 0, msg)
      expected = "--Ending session"
      contains = out.find(expected) != -1
@@ -279,7 +278,7 @@ class TestDlsCli_FromArgs_General(TestDlsCli):
      st, out = run(cmd)
      msg = "Error in dls-get-se c1",out 
      self.assertEqual(st, 0, msg)
-     expected = "CliTest_se1\nCliTest_se2\nCliTest_se3"
+     expected = "CliTest-se1\nCliTest-se2\nCliTest-se3"
      msg = "The results obtained (%s) with dls-get-se are not those expected  (%s)"\
            % (out, expected)
      self.assertEqual(out, expected, msg)
@@ -301,15 +300,15 @@ class TestDlsCli_FromArgs_Deletion(TestDlsCli):
   # Test deletion using command line arguments
   def testDeletion(self):
      # First add 
-     cmd = self.path + "/dls-add c1 CliTest_se4 CliTest_se5 CliTest_se6"
+     cmd = self.path + "/dls-add c1 CliTest-se4 CliTest-se5 CliTest-se6"
      st, out = run(cmd)
-     msg = "Error in dls-add c1 CliTest_se4 CliTest_se5 CliTest_se6",out 
+     msg = "Error in dls-add c1 CliTest-se4 CliTest-se5 CliTest-se6",out 
      self.assertEqual(st, 0, msg)
 
      # Delete some replicas
-     cmd = self.path + "/dls-delete c1 CliTest_se4 CliTest_se5"
+     cmd = self.path + "/dls-delete c1 CliTest-se4 CliTest-se5"
      st, out = run(cmd)
-     msg = "Error in dls-delete c1 CliTest_se4 CliTest_se5",out 
+     msg = "Error in dls-delete c1 CliTest-se4 CliTest-se5",out 
      self.assertEqual(st, 0, msg)
 
      cmd = self.path + "/dls-get-se c1"
@@ -317,10 +316,10 @@ class TestDlsCli_FromArgs_Deletion(TestDlsCli):
      msg = "Error in dls-get-se c1",out 
      self.assertEqual(st, 0, msg)
      msg = "The results obtained with dls-get-se are not those expected",out
-     self.assertEqual(out, "CliTest_se6", msg)
+     self.assertEqual(out, "CliTest-se6", msg)
 
      # Delete the entry by removing last location
-     cmd = self.path + "/dls-delete c1 CliTest_se6"
+     cmd = self.path + "/dls-delete c1 CliTest-se6"
      st, out = run(cmd)
      msg = "Error in dls-delete -a c1",out 
      self.assertEqual(st, 0, msg)
@@ -335,17 +334,17 @@ class TestDlsCli_FromArgs_Deletion(TestDlsCli):
   # Test deletion with attrs (force...) using CLI
   def testDeletionAttrs(self):
      # First add with a permanent replica
-     cmd = self.path + "/dls-add f1 CliTest_se1"
+     cmd = self.path + "/dls-add f1 CliTest-se1"
      st, out = run(cmd)
      msg = "Error in %s: %s" % (cmd, out)
      self.assertEqual(st, 0, msg)
-     cmd = self.path + "/dls-add f2  CliTest_se2 CliTest_se3 f_type=P"
+     cmd = self.path + "/dls-add f2  CliTest-se2 CliTest-se3 f_type=P"
      st, out = run(cmd)
      msg = "Error in %s: %s" % (cmd, out)
      self.assertEqual(st, 0, msg)
 
      # Delete some replicas (but keep FileBlock)
-     cmd = self.path + "/dls-delete -k f1 CliTest_se1"
+     cmd = self.path + "/dls-delete -k f1 CliTest-se1"
      st, out = run(cmd)
      msg = "Error in %s: %s" % (cmd, out)
      self.assertEqual(st, 0, msg)
@@ -364,7 +363,7 @@ class TestDlsCli_FromArgs_Deletion(TestDlsCli):
      st, out = run(cmd)
      msg = "Error in %s: %s" % (cmd, out)
      self.assertEqual(st, 0, msg)
-     expected = "Warning: Not deleting custodial replica in CliTest_se3 of f2"
+     expected = "Warning: Not deleting custodial replica in CliTest-se3 of f2"
      msg = "The results obtained with %s (%s) are not those expected (%s)" % (cmd, out, expected)
      self.assertEqual(out, expected, msg)
 
@@ -373,12 +372,12 @@ class TestDlsCli_FromArgs_Deletion(TestDlsCli):
      st, out = run(cmd)
      msg = "Error in %s: %s" % (cmd, out)
      self.assertEqual(st, 0, msg)
-     expected = "CliTest_se3"
+     expected = "CliTest-se3"
      msg = "The results obtained with %s (%s) are not those expected (%s)" % (cmd, out, expected)
      self.assertEqual(out, expected, msg)
 
      # Now, really delete the entry ("force" flag)
-     cmd = self.path + "/dls-delete -x f2 CliTest_se3"
+     cmd = self.path + "/dls-delete -x f2 CliTest-se3"
      st, out = run(cmd)
      msg = "Error in %s: %s" % (cmd, out)
      self.assertEqual(st, 0, msg)
@@ -393,15 +392,15 @@ class TestDlsCli_FromArgs_Deletion(TestDlsCli):
   # Test deletion of a directory using CL args
   def testDeletionDir(self):
      # Create a non-empty dir
-     cmd = self.path + "/dls-add dir1/f1 CliTest_se1"
+     cmd = self.path + "/dls-add dir1/f1 CliTest-se1"
      st, out = run(cmd)
-     msg = "Error in dls-add dir1/f1 CliTest_se1",out 
+     msg = "Error in dls-add dir1/f1 CliTest-se1",out 
      self.assertEqual(st, 0, msg)
 
      # Test wrong arguments
-     cmd = self.path + "/dls-delete dir1 CliTest_se_XXX"
+     cmd = self.path + "/dls-delete dir1 CliTest-se-XXX"
      st, out = run(cmd)
-     msg = "Error in dls-delete dir1 CliTest_se_XXX",out 
+     msg = "Error in dls-delete dir1 CliTest-se-XXX",out 
      self.assertEqual(st, 0, msg)
      expected = "Warning: Without \"all\" option, skipping directory dir1"
      msg = "The results obtained with dls-delete (%s) are not those expected (%s)" % (out, expected)
@@ -450,16 +449,16 @@ class TestDlsCli_FromArgs_AddGetSEList(TestDlsCli):
 
   # Test addition and get-se using command line arguments
   def testAdditionListGetSE(self):
-     cmd = self.path + "/dls-add c1 CliTest_se4 CliTest_se5 CliTest_se6"
+     cmd = self.path + "/dls-add c1 CliTest-se4 CliTest-se5 CliTest-se6"
      st, out = run(cmd)
-     msg = "Error in dls-add c1 CliTest_se4 CliTest_se5 CliTest_se6",out 
+     msg = "Error in dls-add c1 CliTest-se4 CliTest-se5 CliTest-se6",out 
      self.assertEqual(st, 0, msg)
 
      cmd = self.path + "/dls-get-se c1"
      st, out = run(cmd)
      msg = "Error in dls-get-se c1",out 
      self.assertEqual(st, 0, msg)
-     expected = "CliTest_se4\nCliTest_se5\nCliTest_se6"
+     expected = "CliTest-se4\nCliTest-se5\nCliTest-se6"
      msg = "The results obtained with dls-get-se (%s) are not those expected (%s)" % (out, expected)
      self.assertEqual(out, expected, msg)
      
@@ -486,16 +485,16 @@ class TestDlsCli_FromArgs_AddGetSEList(TestDlsCli):
      
   # Test addition with non-existing parent directories using CLI args 
   def testAdditionWithParent(self):
-     cmd = self.path + "/dls-add dir1/dir2/c1 CliTest_se1 CliTest_se2"
+     cmd = self.path + "/dls-add dir1/dir2/c1 CliTest-se1 CliTest-se2"
      st, out = run(cmd)
-     msg = "Error in dls-add dir1/dir2/c1 CliTest_se1 CliTest_se2",out 
+     msg = "Error in dls-add dir1/dir2/c1 CliTest-se1 CliTest-se2",out 
      self.assertEqual(st, 0, msg)
 
      cmd = self.path + "/dls-get-se dir1/dir2/c1"
      st, out = run(cmd)
      msg = "Error in dls-get-se dir1/dir2/c1",out 
      self.assertEqual(st, 0, msg)
-     expected = "CliTest_se1\nCliTest_se2"
+     expected = "CliTest-se1\nCliTest-se2"
      msg = "The results obtained with dls-get-se (%s) are not those expected (%s)" % (out, expected)
      self.assertEqual(out, expected, msg)
      
@@ -503,24 +502,42 @@ class TestDlsCli_FromArgs_AddGetSEList(TestDlsCli):
   def testErroneousAddition(self):
    
      # Erroneous root directory (not permitted)
-     cmd = self.path + "/dls-add -e %s/ c1 CliTest_se4 CliTest_se5" % (self.host)
+     cmd = self.path + "/dls-add -e %s/ c1 CliTest-se4 CliTest-se5" % (self.host)
      st, out = run(cmd)
-     msg = "Error in dls-add /c1 CliTest_se4 CliTest_se5",out 
+     msg = "Error in dls-add /c1 CliTest-se4 CliTest-se5",out 
      self.assertEqual(st, 0, msg)
      expected= "Warning: Error creating the FileBlock c1: Permission denied"
      msg = "Output obtained with dls-add /c1 (%s) is not that expected (%s)" % (out, expected)
      self.assertEqual(out, expected, msg)
 
+     # Erroneous location (wrong hostname)
+     cmd = self.path + "/dls-add /c1 CliTest_#@_WRONG"
+     st, out = run(cmd)
+     msg = "Unexpected success in %s: %s" % (cmd, out) 
+     wasError = (st!=0)
+     self.assert_(wasError, msg)
+     expected = "Wrong specified host (CliTest_#@_WRONG) of DlsLocation object:"
+     contains = out.find(expected) != -1
+     msg = "Output obtained with %s (%s) is not that expected (%s)" % (cmd, out, expected)
+     self.assert_(contains, msg)
+     cmd = self.path + "/dls-list /"
+     st, out = run(cmd)
+     msg = "Error in %s: %s" % (msg,out)
+     self.assertEqual(st, 0, msg)
+     expected = ""
+     msg = "The results obtained with %s (%s) are not those expected (%s)"%(cmd,out,expected)
+     self.assertEqual(out, expected, msg)
+     
      # Erroneous location (existing)
-     cmd = self.path + "/dls-add /c1 CliTest_se4 CliTest_se5"
+     cmd = self.path + "/dls-add /c1 CliTest-se4 CliTest-se5"
      st, out = run(cmd)
-     msg = "Error in dls-add /c1 CliTest_se4 CliTest_se5",out 
+     msg = "Error in dls-add /c1 CliTest-se4 CliTest-se5",out 
      self.assertEqual(st, 0, msg)
-     cmd = self.path + "/dls-add /c1 CliTest_se4 CliTest_se6"
+     cmd = self.path + "/dls-add /c1 CliTest-se4 CliTest-se6"
      st, out = run(cmd)
-     msg = "Error in dls-add /c1 CliTest_se4 CliTest_se6",out 
+     msg = "Error in dls-add /c1 CliTest-se4 CliTest-se6",out 
      self.assertEqual(st, 0, msg)
-     expected = "Warning: Error adding location CliTest_se4 for FileBlock"
+     expected = "Warning: Error adding location CliTest-se4 for FileBlock"
      contains = out.find(expected) != -1
      msg = "Output obtained with dls-add /c1 (%s) is not that expected (%s)" % (out, expected)
      self.assert_(contains, msg)
@@ -528,7 +545,7 @@ class TestDlsCli_FromArgs_AddGetSEList(TestDlsCli):
      st, out = run(cmd)
      msg = "Error in dls-get-se /c1",out 
      self.assertEqual(st, 0, msg)
-     expected = "CliTest_se4\nCliTest_se5\nCliTest_se6"
+     expected = "CliTest-se4\nCliTest-se5\nCliTest-se6"
      msg = "The results obtained with dls-get-se (%s) are not those expected (%s)" % (out, expected)
      self.assertEqual(out, expected, msg)
      
@@ -550,9 +567,9 @@ class TestDlsCli_FromArgs_AddGetSEList(TestDlsCli):
      surl = "sfn://my_sfn/%s" % (guid)
      rattrs="sfn=%s f_type=P ptime=45" % (surl)
      # Addition with attributes 
-     cmd = self.path + "/dls-add c2 "+fattrs+" CliTest_se1 "+rattrs
+     cmd = self.path + "/dls-add c2 "+fattrs+" CliTest-se1 "+rattrs
      st, out = run(cmd)
-     msg = "Error in dls-add c2 "+fattrs+" CliTest_se1 "+rattrs,out 
+     msg = "Error in dls-add c2 "+fattrs+" CliTest-se1 "+rattrs,out 
      self.assertEqual(st, 0, msg)
 
      # Test the fileblock attributes listing
@@ -595,7 +612,7 @@ class TestDlsCli_FromArgs_AddGetSEList(TestDlsCli):
      the_date=strftime("%b %d %H:%M")
      cmd = self.path + "/dls-get-se -l c2"
      st, out = run(cmd)
-     expected = "CliTest_se1 \t"+the_date+" \t45 \tP \tsfn://my_sfn/"+guid
+     expected = "CliTest-se1 \t"+the_date+" \t45 \tP \tsfn://my_sfn/"+guid
      msg = "Results from dls-get-se -l c2 (%s) are not those expected (%s)" % (out, expected)
      self.assertEqual(out, expected, msg)
     
@@ -621,11 +638,11 @@ class TestDlsCli_FromArgs_AddGetSEList(TestDlsCli):
 
      # Test the SURL retrieval
      fB = obj.DlsFileBlock("c2")
-     loc = obj.DlsLocation("CliTest_se1")
+     loc = obj.DlsLocation("CliTest-se1")
      entry = obj.DlsEntry(fB, [loc])
      try:        
         entry = iface.getSURL(entry)
-        retrievedSurl = (entry.getLocation("CliTest_se1")).getSurl()
+        retrievedSurl = (entry.getLocation("CliTest-se1")).getSurl()
      except dlsLfcApi.DlsLfcApiError, inst:
         msg = "Error in iface.getSURL(entry): %s" % (inst.msg) 
         self.assertEqual(-1, 0, msg)
@@ -637,19 +654,19 @@ class TestDlsCli_FromArgs_AddGetSEList(TestDlsCli):
   def testRecursiveListing(self):
    
      # First create a dir hierarchy
-     cmd = self.path + "/dls-add f1 CliTest_se1"
+     cmd = self.path + "/dls-add f1 CliTest-se1"
      st, out = run(cmd)
      msg = "Error in %s: %s" % (cmd, out)
      self.assertEqual(st, 0, msg)
-     cmd = self.path + "/dls-add dir1/f2 CliTest_se1"
+     cmd = self.path + "/dls-add dir1/f2 CliTest-se1"
      st, out = run(cmd)
      msg = "Error in %s: %s" % (cmd, out)
      self.assertEqual(st, 0, msg)
-     cmd = self.path + "/dls-add dir1/dir2/f3 CliTest_se1"
+     cmd = self.path + "/dls-add dir1/dir2/f3 CliTest-se1"
      st, out = run(cmd)
      msg = "Error in %s: %s" % (cmd, out)
      self.assertEqual(st, 0, msg)
-     cmd = self.path + "/dls-add dir1/dir3/fXX CliTest_se1"
+     cmd = self.path + "/dls-add dir1/dir3/fXX CliTest-se1"
      st, out = run(cmd)
      msg = "Error in %s: %s" % (cmd, out)
      self.assertEqual(st, 0, msg)
@@ -685,7 +702,90 @@ class TestDlsCli_FromArgs_AddGetSEList(TestDlsCli):
      msg = "The results obtained with %s (%s) are not those expected (%s)"%(cmd, out, expected)
      self.assertEqual(out, expected, msg)
 
+
+###########################################
+# Class for DLS CLI testing: replace-location
+###########################################
+
+class TestDlsCli_FromArgs_ReplaceLoc(TestDlsCli):
+  def setUp(self):
+     # Invoke parent
+     TestDlsCli.setUp(self)
      
+  def tearDown(self):
+     # Invoke parent
+     TestDlsCli.tearDown(self)
+
+  # Test replace-location works using command line arguments
+  def testReplaceLoc(self):
+     # First add
+     cmd = self.path + "/dls-add f1 CliTest-se1 CliTest-se2"
+     st, out = run(cmd)
+     msg = "Error in %s: %s" % (cmd, out) 
+     self.assertEqual(st, 0, msg)
+     cmd = self.path + "/dls-add f2 CliTest-se1"
+     st, out = run(cmd)
+     msg = "Error in %s: %s" % (cmd, out) 
+     self.assertEqual(st, 0, msg)
+
+    # Now replace one location
+     cmd = self.path + "/dls-replace-location -o CliTest-se1 -n CliTest-NEW"
+     st, out = run(cmd)
+     msg = "Error in %s: %s" % (cmd, out) 
+     self.assertEqual(st, 0, msg)
+
+    # Now check what happened
+     cmd = self.path + "/dls-get-fileblock CliTest-NEW"
+     st, out = run(cmd)
+     msg = "Error in %s: %s" % (cmd, out) 
+     self.assertEqual(st, 0, msg)
+     contains = out.find("f1") != -1
+     contains *= out.find("f2") != -1
+     msg = "The results obtained with dls-get-fileblock are not those expected",out
+     self.assert_(contains, msg)
+     cmd = self.path + "/dls-get-fileblock CliTest-se1"
+     st, out = run(cmd)
+     msg = "Error in %s: %s" % (cmd, out) 
+     self.assertEqual(st, 0, msg)
+     msg = "The results obtained with dls-get-fileblock are not those expected",out
+     self.assertEqual(out, '', msg)
+
+
+  # Test replace-location roll backs correctly on failure
+  def testReplaceLocError(self):
+     # First add
+     cmd = self.path + "/dls-add f1 CliTest-se1 CliTest-se2"
+     st, out = run(cmd)
+     msg = "Error in %s: %s" % (cmd, out) 
+     self.assertEqual(st, 0, msg)
+     cmd = self.path + "/dls-add f2 CliTest-se1 f_type=P"
+     st, out = run(cmd)
+     msg = "Error in %s: %s" % (cmd, out) 
+     self.assertEqual(st, 0, msg)
+
+     # Now try to replace (and fail)
+     cmd = self.path + "/dls-replace-location -o CliTest-se1 -n CliTest-NEW"
+     st, out = run(cmd)
+     msg = "Unexpected success in %s: %s" % (cmd, out) 
+     wasError = (st!=0)
+     self.assert_(wasError, msg)
+
+    # Now check what happened
+     cmd = self.path + "/dls-get-fileblock CliTest-NEW"
+     st, out = run(cmd)
+     msg = "Error in %s: %s" % (cmd, out) 
+     self.assertEqual(st, 0, msg)
+     msg = "The results obtained with dls-get-fileblock are not those expected",out
+     self.assertEqual(out, '', msg)
+     cmd = self.path + "/dls-get-fileblock CliTest-se1"
+     st, out = run(cmd)
+     msg = "Error in %s: %s" % (cmd, out) 
+     self.assertEqual(st, 0, msg)
+     contains = out.find("f1") != -1
+     contains *= out.find("f2") != -1
+     msg = "The results obtained with dls-get-fileblock are not those expected",out
+     self.assert_(contains, msg)
+
 
 ##############################################################################
 # Parent class for DLS CLI testing using arguments from file (-f option)
@@ -715,20 +815,20 @@ class TestDlsCli_FromFile(TestDlsCli):
      f_2_LFNs_with_SURLS_attrs = open('f_2_LFNs_with_SURLS_attrs', 'w')
      f_rename = open('f_rename', 'w')
 
-     f_2_SEs.write("CliTest_se1\nCliTest_se3\n")
+     f_2_SEs.write("CliTest-se1\nCliTest-se3\n")
      for i in xrange(10):       
         f_10_LFNs.write("f%d\n" %i)
         if ((i != 2) and (i!= 6)): 
            f_8_LFNs.write("f%d\n" %i)
         if(i < 5):
-            f_10_LFNs_with_SURLs.write("f%d CliTest_se1 CliTest_se2\n" % i)
+            f_10_LFNs_with_SURLs.write("f%d CliTest-se1 CliTest-se2\n" % i)
         else:
-            f_10_LFNs_with_SURLs.write("f%d CliTest_se3\n" %i )
+            f_10_LFNs_with_SURLs.write("f%d CliTest-se3\n" %i )
      
      f_2_LFNs.write("f2\nf6\n")
-     f_2_LFNs_with_SURLs.write("f2 CliTest_se1 CliTest_se2\n"+"f6 CliTest_se3\n")
-     f_2_LFNs_with_SURLS_attrs.write("c1 filesize=777 adsf=324 CliTest_se1 ptime=444 jjj=999\n")
-     f_2_LFNs_with_SURLS_attrs.write("f99 CliTest_se2 ptime=444 a=0\n")
+     f_2_LFNs_with_SURLs.write("f2 CliTest-se1 CliTest-se2\n"+"f6 CliTest-se3\n")
+     f_2_LFNs_with_SURLS_attrs.write("c1 filesize=777 adsf=324 CliTest-se1 ptime=444 jjj=999\n")
+     f_2_LFNs_with_SURLS_attrs.write("f99 CliTest-se2 ptime=444 a=0\n")
      f_rename.write("f1 f1_NEW\nfXXX fXXX_NEW\nf2 f2_NEW\n")
      
      f_10_LFNs.close()
@@ -749,7 +849,6 @@ class TestDlsCli_FromFile(TestDlsCli):
      chdir(self.orgdir)
      cmd = "rm -r "+self.tempdir
      st, out = run(cmd)
-
 
 ##############################################################################
 # Classes for DLS CLI testing using arguments from file (-f option)
@@ -787,7 +886,7 @@ class TestDlsCli_FromFile_AddGetSEList(TestDlsCli_FromFile):
 
      out = buffer + "\n" + out
      msg = "The results obtained with dls-add -f are not those expected",out
-     self.assertEqual(out, "CliTest_se1\nCliTest_se2\nCliTest_se3", msg)
+     self.assertEqual(out, "CliTest-se1\nCliTest-se2\nCliTest-se3", msg)
 
 
   # Test dls-list using list files
@@ -828,9 +927,9 @@ class TestDlsCli_FromFile_AddGetSEList(TestDlsCli_FromFile):
      self.assertEqual(st, 0, msg)
 
      out = buffer + "\n" + out
-     expected="  FileBlock: f2\nCliTest_se1\nCliTest_se2\n"
-     expected += "  FileBlock: f6\nCliTest_se3\n"
-     expected += "CliTest_se1\nCliTest_se2"
+     expected="  FileBlock: f2\nCliTest-se1\nCliTest-se2\n"
+     expected += "  FileBlock: f6\nCliTest-se3\n"
+     expected += "CliTest-se1\nCliTest-se2"
      msg = "Results obtained with dls-get-se -f (%s) are not those expected (%s)"%(out, expected)
      self.assertEqual(out, expected, msg)
 
@@ -914,9 +1013,9 @@ class TestDlsCli_FromFile_GetBlock(TestDlsCli_FromFile):
      self.assertEqual(st, 0, msg)
 
     # Now retrieve them
-     cmd = self.path + "/dls-get-fileblock CliTest_se1"
+     cmd = self.path + "/dls-get-fileblock CliTest-se1"
      st, out = run(cmd)
-     msg = "Error in /dls-get-fileblock CliTest_se1",out
+     msg = "Error in /dls-get-fileblock CliTest-se1",out
      self.assertEqual(st, 0, msg)
 
      for i in xrange(5):
@@ -1028,9 +1127,9 @@ class TestDlsCli_FromFile_DelUpdate(TestDlsCli_FromFile):
   # Test transactions on update (from file) 
   def testUpdateTrans(self):
     
-     cmd = self.path + "/dls-add c1 CliTest_se1 ptime=333"
+     cmd = self.path + "/dls-add c1 CliTest-se1 ptime=333"
      st, out = run(cmd)
-     msg = "Error in /dls-add c1 CliTest_se1 ptime=333",out 
+     msg = "Error in /dls-add c1 CliTest-se1 ptime=333",out 
      self.assertEqual(st, 0, msg)
 
      cmd = self.path + "/dls-update -v 2 -t -f f_2_LFNs_with_SURLS_attrs"
@@ -1090,6 +1189,7 @@ class TestDlsCli_FromFile_DelUpdate(TestDlsCli_FromFile):
 
 
 
+
 ##############################################################################
 # Module's methods to return the suites
 ##############################################################################
@@ -1099,6 +1199,7 @@ def getSuite():
   suite.append(getSuiteFromArgs_General())
   suite.append(getSuiteFromArgs_AddGetSEList())
   suite.append(getSuiteFromArgs_Deletion())
+  suite.append(getSuiteFromArgs_ReplaceLoc())
   suite.append(getSuiteFromFile_AddGetSEList())
   suite.append(getSuiteFromFile_GetBlock())
   suite.append(getSuiteFromFile_DelUpdate())
@@ -1112,6 +1213,9 @@ def getSuiteFromArgs_AddGetSEList():
    
 def getSuiteFromArgs_Deletion():
   return unittest.makeSuite(TestDlsCli_FromArgs_Deletion)
+  
+def getSuiteFromArgs_ReplaceLoc():
+  return unittest.makeSuite(TestDlsCli_FromArgs_ReplaceLoc)
    
 def getSuiteFromFile_AddGetSEList():
   return unittest.makeSuite(TestDlsCli_FromFile_AddGetSEList)
@@ -1139,11 +1243,12 @@ def help():
   print "An optional additional argument may be used to execute only a subset"
   print "of the tests."
   print "   \"args_general\" ==> Tests on general options and setup, using command line args"
-  print "   \"args_add\"   ==> Tests on add, get-se, list, using command line args"
-  print "   \"args_del\"   ==> Tests on del, using command line args"
-  print "   \"file_add\"   ==> Tests on add, get-se, list, rename using args from a file (-f)"
-  print "   \"file_getfb\" ==> Tests on get-fileblock, using args from a file (-f)"
-  print "   \"file_del\"   ==> Tests on del, update, using args from a file (-f)"
+  print "   \"args_add\"     ==> Tests on add, get-se, list, using command line args"
+  print "   \"args_del\"     ==> Tests on del, using command line args"
+  print "   \"args_replace\" ==> Tests on replace-location, using command line args"
+  print "   \"file_add\"     ==> Tests on add, get-se, list, rename, using args from a file (-f)"
+  print "   \"file_getfb\"   ==> Tests on get-fileblock, using args from a file (-f)"
+  print "   \"file_del\"     ==> Tests on del, update, using args from a file (-f)"
   
 def usage():
   print "Usage:  DlsLfcCliTest.py <conf_file> [<subset_of_tests>]"
@@ -1169,6 +1274,8 @@ def main():
         suite = getSuiteFromArgs_AddGetSEList()
      if(sys.argv[2] == "args_del"):
         suite = getSuiteFromArgs_Deletion()
+     if(sys.argv[2] == "args_replace"):
+        suite = getSuiteFromArgs_ReplaceLoc()
      if(sys.argv[2] == "file_add"):
         suite = getSuiteFromFile_AddGetSEList()
      if(sys.argv[2] == "file_getfb"):
