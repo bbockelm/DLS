@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #
-# $Id: dls-update,v 1.4 2006/04/24 23:47:53 afanfani Exp $
+# $Id: dls-update,v 1.5 2006/04/25 10:43:41 afanfani Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -13,7 +13,7 @@
 import dlsApi
 DLS_VERB_HIGH = dlsApi.DLS_VERB_HIGH
 DLS_VERB_WARN = dlsApi.DLS_VERB_WARN
-from dlsDataObjects import DlsLocation, DlsFileBlock, DlsEntry
+from dlsDataObjects import DlsLocation, DlsFileBlock, DlsEntry, DlsDataObjectError
 import dlsClient
 import os
 import sys
@@ -309,6 +309,11 @@ def main(pArgs):
       else:           err = -1
       msg = "Error in the entry(ies) update: %s." % str(inst)
       sys.stderr.write(msg+'\n')
+   except DlsDataObjectError, inst:
+     msg = "Error preparing the DLS request: %s." % str(inst)
+     sys.stderr.write(msg+"\n")
+     sys.exit(-2)  
+
 
 
  # Finally, return error code

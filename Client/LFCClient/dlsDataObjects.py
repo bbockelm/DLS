@@ -1,5 +1,5 @@
 #
-# $Id: dlsDataObjects.py,v 1.5 2006/09/06 11:47:38 delgadop Exp $
+# $Id: dlsDataObjects.py,v 1.6 2006/09/19 13:59:12 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -37,12 +37,12 @@ class DlsDataObjectError(dlsApi.DlsApiError):
   
 class TypeError(DlsDataObjectError):
   """
-  Exception class for invocations of DlsApi methods with an incorrect argument type.
+  Exception class for invocations of object methods with an incorrect argument type.
   """
   
 class ValueError(DlsDataObjectError):
   """
-  Exception class for invocations of DlsApi methods with an incorrect value as argument.
+  Exception class for invocations of object methods with an incorrect value as argument.
   """
 
 
@@ -218,6 +218,9 @@ class DlsLocation(object):
     @param host: the location holding a copy of a FileBlock, as a string. Required.
     @param attributes: the location copy attribute list, as a dictionary. May be set.
     @param surl: the copy SURL, as a string. Normally should not be set.
+
+    @exception TypeError: on wrong type for the specified attributes
+    @exception ValueError: on wrong hostname format for the specified host
     """
 
     self.host = host
@@ -288,6 +291,19 @@ class DlsLocation(object):
   docstr = "Attributes of the location (python dictionary)"
   attribs = property(_getAttr, _setAttr, _delAttr, docstr)
 
+  def _getHost(self): return self._host
+    
+  def _setHost(self, value):
+    try:
+       _checkHname(value)
+       self._host = value 
+    except ValueError, inst:
+       inst.msg = "Wrong specified host (%s) of DlsLocation object: %s"%(value, inst.msg)
+       raise inst
+  def _delHost(self): del self._host
+
+  hostDocstr = "Host of the location (hname formatted string)"
+  host = property(_getHost, _setHost, _delHost, hostDocstr)
 
 
 #########################################
@@ -449,3 +465,33 @@ class DlsEntry(object):
 
   docstr = "Locations of the FileBlock copies (list of DlsLocation objects)"
   locations = property(_getLoc, _setLoc, _delLoc, docstr)
+
+
+#########################################
+# Some local utilities
+#########################################
+
+def _checkHname(hname):
+
+  if(not hname):
+     msg = "Empty hostname"
+     raise ValueError(msg)
+
+  parts=hname.split(".")
+  
+  for part in parts:
+     if(not part):
+        msg = "Empty name between dots"
+        raise ValueError(msg)
+     if(not (part[0]).isalnum()):
+        msg = "First character (after dot) is not alphanumeric: %s " % part[0]
+        raise ValueError(msg)
+     for char in part[1:len(part)-1]:
+        if(not (char=='-' or char.isalnum())):
+           msg = "Wrong character -not alphanumeric nor hyphen- found: %s" % char
+           raise ValueError(msg)
+     if(not (part[len(part)-1]).isalnum()): 
+        msg = "Last character (before dot) is not alphanumeric: %s" % part[len(part)-1]
+        raise ValueError(msg)
+
+  return True
