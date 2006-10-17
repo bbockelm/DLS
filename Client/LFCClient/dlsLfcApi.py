@@ -1,5 +1,5 @@
 #
-# $Id: dlsLfcApi.py,v 1.28 2006/09/24 15:17:42 afanfani Exp $
+# $Id: dlsLfcApi.py,v 1.29 2006/10/16 12:21:27 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -523,9 +523,15 @@ class DlsLfcApi(dlsApi.DlsApi):
             
             # But before removal, check if it is custodial
             if ((filerep.f_type == 'P') and (not force)):
-               if(self.verb >= DLS_VERB_WARN):
-                  print "Warning: Not deleting custodial replica in",filerep.host,"of",userlfn
-               continue
+               code = -3
+               msg = "Can't delete custodial replica in",filerep.host,"of",userlfn
+               if(not errorTolerant): 
+                  if(session): self.endSession()
+                  raise DlsLfcApiError(msg, code)
+               else: 
+                  if(self.verb >= DLS_VERB_WARN):
+                     print "Warning: Not deleting custodial replica in",filerep.host,"of",userlfn
+                  continue
                
             # Perform the deletion
             try:
