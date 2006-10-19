@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #
-# $Id: dls-add,v 1.9 2006/10/17 15:41:28 delgadop Exp $
+# $Id: dls-add,v 1.10 2006/10/19 10:21:16 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -181,13 +181,16 @@ def insertEntries(iface, lineList, createParent, trans, verbose, checkHost, allo
       # Then the SEs
       attrDict = {}      
       se = ''
+      locList = []
       for token in line:
          pos = token.find('=')
          if( pos == -1):
             if(se):
-               loc = DlsLocation(se, checkHost = checkHost)
-               loc.attribs = attrDict
-               entry.locations.append(loc)
+#               loc = DlsLocation(se, checkHost = checkHost)
+               loc = DlsLocation(se)
+               loc.attribs = attrDict               
+#               entry.locations.append(loc)
+               locList.append(loc)
             se = token
             attrDict = {}
          else:
@@ -195,16 +198,40 @@ def insertEntries(iface, lineList, createParent, trans, verbose, checkHost, allo
 
       # And the last one, that is left... 
       if(se):
-         entry.locations.append(DlsLocation(se, attrDict, checkHost = checkHost))
+#         entry.locations.append(DlsLocation(se, attrDict, checkHost = checkHost))
+         locList.append(DlsLocation(se, attrDict))
 
+      # Now check the locations (unless told otherwise)
+      if(checkHost):
+          for loc in locList:
+             try:             
+               loc.checkHost = True
+               loc.host = loc.host
+               entry.locations.append(loc)
+             except DlsDataObjectError, inst:
+               msg = "Wrong location %s for "%(loc.host)
+               msg += "FileBlock %s: %s" % (entry.fileBlock.name, inst.msg)
+               if(trans):
+                  inst.msg += msg
+                  raise inst
+               else:
+                  if(verbose >= 1):
+                     print "Warning: Skipping location. " + msg
+      else:
+          entry.locations = locList
+
+      # Check there was some location left
       if(not allowEmpty):
          if(not entry.locations):
-            if(verbose >= 1):
-                print "warning: Skipping FileBlock %s with no associated location" % (lfn)
-            continue
-         
+            msg = "FileBlock %s with no associated location." % (lfn)
+            if(trans):
+               raise dlsApi.DlsApiError("Error: "+msg)
+            else:
+               if(verbose >= 1):
+                   print "Warning: Skipping " + msg
+               continue
 
-      # Store all the entries
+      # Store entry
       entryList.append(entry)
 
    if(verbose >= 2):
@@ -337,7 +364,6 @@ def main(pArgs):
       sys.stderr.write(msg+"\n")
       return -1
 
-      
    try:
      insertEntries(iface, lineList, createParent, trans, verbose, checkHost, allowEmpty)
    except dlsApi.DlsApiError, inst:         
@@ -348,7 +374,9 @@ def main(pArgs):
    except DlsDataObjectError, inst:
      msg = "Error preparing the DLS request: %s." % str(inst)
      sys.stderr.write(msg+"\n")
-     sys.exit(-2)  
+     sys.exit(-2)
+
+
 
  # Finally, return error code
    return err
