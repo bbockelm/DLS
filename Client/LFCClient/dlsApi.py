@@ -1,5 +1,5 @@
 #
-# $Id: dlsApi.py,v 1.17 2006/09/19 11:43:40 delgadop Exp $
+# $Id: dlsApi.py,v 1.18 2006/09/21 15:19:48 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -138,7 +138,13 @@ class DlsApi(object):
     For each specified DlsEntry with a non-registered FileBlock, a new entry is
     created in the DLS, and all locations listed in the DlsLocation list of the object
     are also registered. For the DlsEntry objects with an already registered FileBlock,
-    only the locations are added.
+    only the locations are added. If no locations are specified, then the FileBlock
+    itself is not created, unless the allowEmptyBlocks (**kwd) flag is set to True.
+
+    If the checkLocations (**kwd) flag is set to True (default), before adding
+    any location to a FileBlock, all of its specified locations are checked to
+    be resolvable into IP adresses in order to be admitted as valid locations.
+    If it is set to False, no check is made.
 
     For DLS implementations with hierarchical FileBlock namespace, the method may
     support a flag, createParent (**kwd), that, if true, will cause the check for
@@ -178,10 +184,12 @@ class DlsApi(object):
 
     @param dlsEntryList: the DlsEntry object (or list of objects) to be added to the DLS
     @param kwd: Flags:
+      - checkLocations: boolean (default True) for checking existence of added locations
       - createParent: boolean (default True) for parent directory creation
       - errorTolerant: boolean (default True) for raising an exception after failure
       - trans: boolean (default False) for using a transaction for the operations
       - session: boolean (default False) for using a session for the operations
+      - allowEmptyBlocks: booleand (default False) for adding FileBlocks without location
     """
 
     msg = "This is just a base class!"

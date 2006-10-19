@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #
-# $Id: dls-add,v 1.8 2006/09/19 11:42:12 delgadop Exp $
+# $Id: dls-add,v 1.9 2006/10/17 15:41:28 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -44,6 +44,8 @@ def options():
    -e, --endpoint <endpoint>
    -i, --interface-type <iface_type>
    -f, --from-file <filename>
+       --skip-location-check
+       --allow-empty-blocks
    """
 
 def example():
@@ -75,6 +77,14 @@ Currently understood replica attributes are:
 
 For hierarchical DLS catalogs, the parent directories of the specified FileBlock
 are checked for existence, and created if non existing.
+
+The "--skip-location-check" option can be used to skip the check of locations
+to be added. If not used, the location hostname is checked for IP resolution
+in order to be accepted as valid location.
+
+The "--allowEmptyBlocks" option indicates that FileBlocks with no associated
+locations may be added to DLS (default is any FileBlock requires at least
+one location to be defined).
 
 The "-f" option can be used to retrieve FileBlock names from a file rather than
 from the given arguments. The file must contain one line per FileBlock to be added,
@@ -125,7 +135,7 @@ If "-h" is specified, help information is displayed.
 
 
 
-def insertEntries(iface, lineList, createParent, trans, verbose):
+def insertEntries(iface, lineList, createParent, trans, verbose, checkHost, allowEmpty):
    """
     Tries to add the specified FileBlocks and locations for each of the lines
     in lineList. These lines are strings containing information regarding the
@@ -175,7 +185,7 @@ def insertEntries(iface, lineList, createParent, trans, verbose):
          pos = token.find('=')
          if( pos == -1):
             if(se):
-               loc = DlsLocation(se)
+               loc = DlsLocation(se, checkHost = checkHost)
                loc.attribs = attrDict
                entry.locations.append(loc)
             se = token
@@ -185,7 +195,14 @@ def insertEntries(iface, lineList, createParent, trans, verbose):
 
       # And the last one, that is left... 
       if(se):
-         entry.locations.append(DlsLocation(se, attrDict))
+         entry.locations.append(DlsLocation(se, attrDict, checkHost = checkHost))
+
+      if(not allowEmpty):
+         if(not entry.locations):
+            if(verbose >= 1):
+                print "warning: Skipping FileBlock %s with no associated location" % (lfn)
+            continue
+         
 
       # Store all the entries
       entryList.append(entry)
@@ -196,7 +213,7 @@ def insertEntries(iface, lineList, createParent, trans, verbose):
       print ")"
 
    # Finally, do the insertion (and let the caller deal with the exception...)
-   iface.add(entryList, createParent=createParent, trans = trans, session = not trans)
+   iface.add(entryList, createParent=createParent, trans=trans,session=not trans, checkLocations=False,allowEmptyBlocks=allowEmpty)
 
             
 
@@ -209,7 +226,7 @@ def main(pArgs):
    """
 
  # Options and args... 
-   longoptions=["help", "usage", "transaction", "endpoint", "interface-type", "verbose","from-file"]
+   longoptions=["help", "usage", "transaction", "endpoint", "interface-type", "verbose","from-file", "skip-location-check", "allow-empty-blocks"]
    try:
       optlist, args = getopt.getopt(pArgs, 'hute:i:v:f:', longoptions)
    except getopt.GetoptError, inst:
@@ -220,6 +237,8 @@ def main(pArgs):
    err=0
    createParent = True
    trans = False
+   checkHost = True
+   allowEmpty = False
    admitted_verb_values = [0, 1, 2]
    verbose = 1
    endpoint = None
@@ -236,6 +255,12 @@ def main(pArgs):
            usage()
            return -1
            
+       elif opt in ("", "--skip-location-check"):
+           checkHost = False
+
+       elif opt in ("", "--allow-empty-blocks"):
+           allowEmpty = True
+
        elif opt in ("-t", "--transaction"):
            trans = True
 
@@ -314,7 +339,7 @@ def main(pArgs):
 
       
    try:
-     insertEntries(iface, lineList, createParent, trans, verbose)
+     insertEntries(iface, lineList, createParent, trans, verbose, checkHost, allowEmpty)
    except dlsApi.DlsApiError, inst:         
       if(inst.rc):  err = inst.rc 
       else:           err = -1

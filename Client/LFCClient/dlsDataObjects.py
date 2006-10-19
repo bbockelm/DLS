@@ -1,5 +1,5 @@
 #
-# $Id: dlsDataObjects.py,v 1.6 2006/09/19 13:59:12 delgadop Exp $
+# $Id: dlsDataObjects.py,v 1.7 2006/10/17 15:41:28 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -19,6 +19,7 @@
 # Imports 
 #########################################
 import dlsApi   # for the parent exception
+import socket   # for the hostname check
 
 #########################################
 # Module globals
@@ -182,10 +183,15 @@ class DlsLocation(object):
   of the copy in the catalog, but that is not always the case.
 
   The name of the SE holding the copy is accessible on the data member "host".
-  It is a string that can be read and set. The form of the string should be that
-  of a hostname, something like "myhost.mydomain.es".
-  It does not make much sense that this member is left empty.
+  It is a string that can be read and set. The string should be the name
+  of an existing hostname. The data member "checkHost" controls whether prior
+  to an assignment, the host is tried to be resolved, to verify it exists.
+  By default is False, but the check can be enabled by setting it to True.
+  It does not make much sense that the host member is left empty.
 
+  There checkHost argument controls whether the specified host
+  is tried to be resolved 
+    
   The attribute list is accessible on the data member "attribs". It is a
   dictionary that can be read and set. Any attribute key and value can be set
   but only some of them are supported by methods manipulating DlsLocation
@@ -211,18 +217,24 @@ class DlsLocation(object):
   # Methods defining the public interface
   ############################################
   
-  def __init__(self, host, attributes = None, surl = ""):
+  def __init__(self, host, attributes = None, surl = "", checkHost = False):
     """
     Constructor of the class.
+
+    If checkHost = True, the specified host is tried to be resolved (to IP
+    address) to check that it really exists. While checkHost's value is True, 
+    the check is done every time the host is set.
 
     @param host: the location holding a copy of a FileBlock, as a string. Required.
     @param attributes: the location copy attribute list, as a dictionary. May be set.
     @param surl: the copy SURL, as a string. Normally should not be set.
+    @param checkHost: boolean (default False) for checking existence of host
 
     @exception TypeError: on wrong type for the specified attributes
-    @exception ValueError: on wrong hostname format for the specified host
+    @exception ValueError: on wrong hostname for the specified host
     """
 
+    self.checkHost = checkHost
     self.host = host
     self.attribs = attributes
     self.setSurl(surl)
@@ -294,12 +306,16 @@ class DlsLocation(object):
   def _getHost(self): return self._host
     
   def _setHost(self, value):
-    try:
-       _checkHname(value)
-       self._host = value 
-    except ValueError, inst:
-       inst.msg = "Wrong specified host (%s) of DlsLocation object: %s"%(value, inst.msg)
-       raise inst
+    if (not self.checkHost):
+       self._host = value
+    else:
+       try:
+          _checkHname(value)
+          self._host = value 
+       except ValueError, inst:
+          inst.msg = "Wrong specified host (%s) of DlsLocation object: %s"%(value, inst.msg)
+          raise inst
+
   def _delHost(self): del self._host
 
   hostDocstr = "Host of the location (hname formatted string)"
@@ -477,21 +493,33 @@ def _checkHname(hname):
      msg = "Empty hostname"
      raise ValueError(msg)
 
-  parts=hname.split(".")
-  
-  for part in parts:
-     if(not part):
-        msg = "Empty name between dots"
-        raise ValueError(msg)
-     if(not (part[0]).isalnum()):
-        msg = "First character (after dot) is not alphanumeric: %s " % part[0]
-        raise ValueError(msg)
-     for char in part[1:len(part)-1]:
-        if(not (char=='-' or char.isalnum())):
-           msg = "Wrong character -not alphanumeric nor hyphen- found: %s" % char
-           raise ValueError(msg)
-     if(not (part[len(part)-1]).isalnum()): 
-        msg = "Last character (before dot) is not alphanumeric: %s" % part[len(part)-1]
-        raise ValueError(msg)
+  try:
+     socket.gethostbyname(hname)
+  except socket.error,inst:
+     raise ValueError(str(inst))
 
-  return True
+
+#def _checkHname(hname):
+#
+#  if(not hname):
+#     msg = "Empty hostname"
+#     raise ValueError(msg)
+#
+#  parts=hname.split(".")
+#  
+#  for part in parts:
+#     if(not part):
+#        msg = "Empty name between dots"
+#        raise ValueError(msg)
+#     if(not (part[0]).isalnum()):
+#        msg = "First character (after dot) is not alphanumeric: %s " % part[0]
+#        raise ValueError(msg)
+#     for char in part[1:len(part)-1]:
+#        if(not (char=='-' or char.isalnum())):
+#           msg = "Wrong character -not alphanumeric nor hyphen- found: %s" % char
+#           raise ValueError(msg)
+#     if(not (part[len(part)-1]).isalnum()): 
+#        msg = "Last character (before dot) is not alphanumeric: %s" % part[len(part)-1]
+#        raise ValueError(msg)
+#
+#  return True

@@ -1,5 +1,5 @@
 #
-# $Id: dlsLfcApi.py,v 1.29 2006/10/16 12:21:27 delgadop Exp $
+# $Id: dlsLfcApi.py,v 1.30 2006/10/17 15:42:16 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -30,7 +30,7 @@ import dlsApi
 DLS_VERB_HIGH = dlsApi.DLS_VERB_HIGH
 DLS_VERB_WARN = dlsApi.DLS_VERB_WARN
 #import dlsDliClient   # for a fast getLocations implementation
-from dlsDataObjects import DlsLocation, DlsFileBlock, DlsEntry
+from dlsDataObjects import DlsLocation, DlsFileBlock, DlsEntry, DlsDataObjectError
 # TODO: From what comes next, should not import whole modules, but what is needed...
 import lfc
 import sys
@@ -187,6 +187,14 @@ class DlsLfcApi(dlsApi.DlsApi):
     """
 
     # Keywords
+    allowEmptyBlocks = False
+    if(kwd.has_key("allowEmptyBlocks")):
+       allowEmptyBlocks = kwd.get("allowEmptyBlocks")
+       
+    checkLocations = True
+    if(kwd.has_key("checkLocations")):
+       checkLocations = kwd.get("checkLocations")       
+       
     createParent = True
     if(kwd.has_key("createParent")):
        createParent = kwd.get("createParent")
@@ -206,7 +214,7 @@ class DlsLfcApi(dlsApi.DlsApi):
     if(trans):
       errorTolerant = False
       session = False
-   
+
     # Make sure the argument is a list
     if (isinstance(dlsEntryList, list)):
        theList = dlsEntryList 
@@ -220,6 +228,37 @@ class DlsLfcApi(dlsApi.DlsApi):
 
     # Loop on the entries
     for entry in theList:
+    
+      # First check locations if asked for (not to leave empty blocks)
+      if(checkLocations):
+         locList = []
+         exitLoop = False
+         for loc in entry.locations:
+            try:
+               loc.checkHost = True
+               loc.host = loc.host
+               locList.append(loc)
+            except DlsDataObjectError, inst:
+               msg = "Error in location %s for "%(loc.host)
+               msg += "FileBlock %s: %s" % (entry.fileBlock.name, inst.msg)
+               if(self.verb >= DLS_VERB_WARN):
+                  print "Warning: " + msg
+               if(not errorTolerant):
+                  if(session): self.endSession()
+                  if(trans):
+                     self.abortTrans()
+                     inst.msg += ". Transaction operations rolled back"
+                  raise DlsLfcApiError(msg)
+      else:
+         locList = entry.locations
+
+      # Do not to leave empty fileBlocks (unless specified)
+      if((not allowEmptyBlocks) and (not locList)):  
+         if(self.verb >= DLS_VERB_WARN):
+             print "Warning: No locations for fileblock %s. Skipping."%(entry.fileBlock.name)
+         continue
+
+
       # FileBlock
       try:
          guid = self._addFileBlock(entry.fileBlock, createParent=createParent)
@@ -230,10 +269,10 @@ class DlsLfcApi(dlsApi.DlsApi):
                   self.abortTrans()
                   inst.msg += ". Transaction operations rolled back"
            raise inst
-         else: # Can't add locations without guid, so go to next FileBlock
-           continue
+         else: continue # Can't add locations without guid, so go to next FileBlock
+         
       # Locations
-      for loc in entry.locations:
+      for loc in locList:
          try:
             self._addLocationToGuid(guid, loc, entry.fileBlock.name)
          except DlsLfcApiError, inst:
