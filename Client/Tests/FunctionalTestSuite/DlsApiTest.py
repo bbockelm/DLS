@@ -1,7 +1,7 @@
 #!/usr/bin/env python
  
 #
-# $Id: DlsApiTest.py,v 1.5 2006/09/25 09:06:26 delgadop Exp $
+# $Id: DlsApiTest.py,v 1.6 2006/10/17 15:38:13 delgadop Exp $
 #
 # DLS Client Functional Test Suite. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -150,39 +150,38 @@ class TestDlsApi_General_Basic(TestDlsApi_General):
   # Test wrong hostname detection
   def testCheckHostname(self):
      try:
-        se = "-asdaf"
-        loc = DlsLocation(se)
-        msg = "Unexpected success in DlsLocation(%s) creation" % (se)
+        se = "asdaf"
+        loc = DlsLocation(se, checkHost = True)
+        msg = "Unexpected success in DlsLocation(%s, checkHost = True) creation" % (se)
         self.assertEqual(0, 1, msg)
      except DlsObjValueError, inst:
         pass
         
      try:
-        se = "a&d"
-        loc = DlsLocation(se)
-        msg = "Unexpected success in DlsLocation(%s) creation" % (se)
+        se = "asf&asdf.es"
+        loc = DlsLocation(se, checkHost = True)
+        msg = "Unexpected success in DlsLocation(%s, checkHost = True) creation" % (se)
         self.assertEqual(0, 1, msg)
      except DlsObjValueError, inst:
         pass 
         
      try:
-        se = "sdaf-"
-        loc = DlsLocation(se)
-        msg = "Unexpected success in DlsLocation(%s) creation" % (se)
-        self.assertEqual(0, 1, msg)
-     except DlsObjValueError, inst:
-        pass
-
-     try:
-        se = "asdaf%"
-        loc = DlsLocation(se)
-        msg = "Unexpected success in DlsLocation(%s) creation" % (se)
+        se = "dpmsrmX.ciemat.es"
+        loc = DlsLocation(se, checkHost = True)
+        msg = "Unexpected success in DlsLocation(%s, checkHost = True) creation" % (se)
         self.assertEqual(0, 1, msg)
      except DlsObjValueError, inst:
         pass
         
      try:
-        se = "13as-45daf4"
+        se = "www.google.es"
+        loc = DlsLocation(se, checkHost = True)
+     except DlsObjValueError, inst:
+        msg = "Unexpected error in DlsLocation(%s, checkHost = True) creation" % (se)
+        self.assertEqual(0, 1, msg)
+
+     try:
+        se = "sdaf-"
         loc = DlsLocation(se)
      except DlsObjValueError, inst:
         msg = "Unexpected error in DlsLocation(%s) creation" % (se)
@@ -208,21 +207,21 @@ class TestDlsApi_General_Basic(TestDlsApi_General):
      # First add
      entry = DlsEntry(fB, [loc1, loc2])
      try:
-       self.api.add(entry)
+       self.api.add(entry, checkLocations = False)
      except DlsApiError, inst:
        msg = "Error in add(%s): %s" % (entry, inst)
        self.assertEqual(0, 1, msg)
        
      entry2 = DlsEntry(fB, [loc2, loc3])
      try:
-       self.api.add(entry2)
+       self.api.add(entry2, checkLocations = False)
      except DlsApiError, inst:
        msg = "Error in add(%s): %s" % (entry2, inst)
        self.assertEqual(0, 1, msg)
 
      entry3 = DlsEntry(fB2, [])
      try:
-       self.api.add(entry3)
+       self.api.add(entry3, checkLocations = False, allowEmptyBlocks = True)
      except DlsApiError, inst:
        msg = "Error in add(%s): %s" % (entry3, inst)
        self.assertEqual(0, 1, msg)
@@ -245,7 +244,9 @@ class TestDlsApi_General_Basic(TestDlsApi_General):
      except DlsApiError, inst:
        msg = "Error in listFileBlocks(%s): %s" % ("/", inst)
        self.assertEqual(0, 1, msg)
-     fb_got = [res[0].name, res[1].name]
+     fb_got = []
+     for i in res:
+        fb_got.append(i.name)
      correct = ("f1" in fb_got)
      correct *= ("f2" in fb_got)
      msg = "FileBlocks were not correctly retrieved (entry: %s)" % (res[0])
@@ -286,7 +287,7 @@ class TestDlsApi_General_Basic(TestDlsApi_General):
      # First add
      entry = DlsEntry(fB, [loc1, loc2, loc3])
      try:
-       self.api.add(entry)
+       self.api.add(entry, checkLocations = False)
      except DlsApiError, inst:
        msg = "Error in add(%s): %s" % (entry, inst)
        self.assertEqual(0, 1, msg)
@@ -337,7 +338,7 @@ class TestDlsApi_General_Basic(TestDlsApi_General):
      # First add
      entry = DlsEntry(fB, [loc1, loc2])
      try:
-       self.api.add(entry)
+       self.api.add(entry, checkLocations = False)
      except DlsApiError, inst:
        msg = "Error in add(%s): %s" % (entry, inst)
        self.assertEqual(0, 1, msg)
@@ -382,7 +383,7 @@ class TestDlsApi_General_Basic(TestDlsApi_General):
      # First add
      entry = DlsEntry(fB, [loc1, loc2])
      try:
-       self.api.add(entry)
+       self.api.add(entry, checkLocations = False)
      except DlsApiError, inst:
        msg = "Error in add(%s): %s" % (entry, inst)
        self.assertEqual(0, 1, msg)
@@ -461,14 +462,14 @@ class TestDlsApi_General_MultipleArgs(TestDlsApi_General):
      entry2 = DlsEntry(fB2, [loc2, loc3])
      entry3 = DlsEntry(fB3, [loc3])
      try:
-       self.api.add([entry, entry2, entry3])
+       self.api.add([entry, entry2, entry3], checkLocations = False)
      except DlsApiError, inst:
        msg = "Error in add([%s, %s, %s]): %s" % (entry, entry2, entry3, inst)
        self.assertEqual(0, 1, msg)
        
      entry4 = DlsEntry(fB, [loc2, loc3])
      try:
-       self.api.add(entry4)
+       self.api.add(entry4, checkLocations = False)
      except DlsApiError, inst:
        msg = "Error in add(%s): %s" % (entry4, inst)
        self.assertEqual(0, 1, msg)
@@ -538,7 +539,7 @@ class TestDlsApi_General_MultipleArgs(TestDlsApi_General):
      entry2 = DlsEntry(fB2, [loc2, loc3])
      entry3 = DlsEntry(fB3, [loc3])
      try:
-       self.api.add([entry, entry2, entry3])
+       self.api.add([entry, entry2, entry3], checkLocations = False)
      except DlsApiError, inst:
        msg = "Error in add([%s, %s, %s]): %s" % (entry, entry2, entry3, inst)
        self.assertEqual(0, 1, msg)
@@ -625,7 +626,7 @@ class TestDlsApi_General_GetFileBlocks(TestDlsApi_General):
 
      # First add
      try:
-       self.api.add(entryList)
+       self.api.add(entryList, checkLocations = False)
      except DlsApiError, inst:
        msg = "Error in add([%s, %s, %s]): %s" % (entryList[0], entryList[1], entryList[2], inst)
        self.assertEqual(0, 1, msg)
@@ -666,7 +667,7 @@ class TestDlsApi_General_GetFileBlocks(TestDlsApi_General):
 
      # First add
      try:
-       self.api.add(entryList)
+       self.api.add(entryList, checkLocations = False)
      except DlsApiError, inst:
        msg = "Error in add([%s, %s, %s]): %s" % (entryList[0], entryList[1], entryList[2], inst)
        self.assertEqual(0, 1, msg)
@@ -724,7 +725,7 @@ class TestDlsApi_General_Dump(TestDlsApi_General):
 
      # First add
      try:
-       self.api.add(entryList)
+       self.api.add(entryList, checkLocations = False)
      except DlsApiError, inst:
        msg = "Error in add([%s, %s, %s]): %s" % (entryList[0], entryList[1], entryList[2], inst)
        self.assertEqual(0, 1, msg)
@@ -780,7 +781,7 @@ class TestDlsApi_General_Dump(TestDlsApi_General):
 
      # First add
      try:
-       self.api.add(entryList)
+       self.api.add(entryList, checkLocations = False)
      except DlsApiError, inst:
        msg = "Error in add([%s, %s, %s]): %s" % (entryList[0], entryList[1], entryList[2], inst)
        self.assertEqual(0, 1, msg)
