@@ -1,7 +1,7 @@
 #!/usr/bin/env python
  
 #
-# $Id: DlsLfcCliTest.py,v 1.14 2006/10/17 15:38:13 delgadop Exp $
+# $Id: DlsLfcCliTest.py,v 1.15 2006/10/19 10:22:36 delgadop Exp $
 #
 # DLS Client Functional Test Suite. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -464,7 +464,7 @@ class TestDlsCli_FromArgs_AddGetSEList(TestDlsCli):
      
      cmd = self.path + "/dls-add --skip-location-check --allow-empty-blocks c2"
      st, out = run(cmd)
-     msg = "Error in dls-add --skip-location-check c2",out 
+     msg = "Error in %s: %s" % (cmd, out)
      self.assertEqual(st, 0, msg)
 
      cmd = self.path + "/dls-list /"
@@ -545,12 +545,12 @@ class TestDlsCli_FromArgs_AddGetSEList(TestDlsCli):
      self.assertEqual(out, expected, msg)
 
      # Erroneous location (wrong hostname)
-     cmd = self.path + "/dls-add /c1 CliTest_#@_WRONG"
+     cmd = self.path + "/dls-add -t /c1 CliTest_#@_WRONG"
      st, out = run(cmd)
      msg = "Unexpected success in %s: %s" % (cmd, out) 
      wasError = (st!=0)
      self.assert_(wasError, msg)
-     expected = "Wrong specified host (CliTest_#@_WRONG) of DlsLocation object:"
+     expected = "Wrong specified host (CliTest_#@_WRONG) of DlsLocation object"
      contains = out.find(expected) != -1
      msg = "Output obtained with %s (%s) is not that expected (%s)" % (cmd, out, expected)
      self.assert_(contains, msg)
@@ -848,6 +848,7 @@ class TestDlsCli_FromFile(TestDlsCli):
      f_2_LFNs_with_SURLs = open('2_LFNs_with_SURLs', 'w')
      f_2_LFNs_with_SURLS_attrs = open('f_2_LFNs_with_SURLS_attrs', 'w')
      f_rename = open('f_rename', 'w')
+     f_check_locs= open('f_check_locs', 'w')
 
      f_2_SEs.write("CliTest-se1\nCliTest-se3\n")
      for i in xrange(10):       
@@ -864,6 +865,7 @@ class TestDlsCli_FromFile(TestDlsCli):
      f_2_LFNs_with_SURLS_attrs.write("c1 filesize=777 adsf=324 CliTest-se1 ptime=444 jjj=999\n")
      f_2_LFNs_with_SURLS_attrs.write("f99 CliTest-se2 ptime=444 a=0\n")
      f_rename.write("f1 f1_NEW\nfXXX fXXX_NEW\nf2 f2_NEW\n")
+     f_check_locs.write("f_EMPTY\nfSTH2 sdf\nfSTH1  www.google.com asfsd  www.cern.ch\n")
      
      f_10_LFNs.close()
      f_8_LFNs.close()
@@ -873,6 +875,7 @@ class TestDlsCli_FromFile(TestDlsCli):
      f_2_LFNs_with_SURLs.close()
      f_2_LFNs_with_SURLS_attrs.close()
      f_rename.close()
+     f_check_locs.close()
 
 
   def tearDown(self):
@@ -1022,6 +1025,27 @@ class TestDlsCli_FromFile_AddGetSEList(TestDlsCli_FromFile):
      expected = "f1_NEW\nf2_NEW"
      msg = "The results obtained with dls-list / (%s) are not those expected (%s)" %(out, expected)
      self.assertEqual(out, expected, msg)
+
+  # Test host and empty fB checks using list files
+  def testHostEmptyChecks(self):
+     cmd = self.path + "/dls-add -f f_check_locs"
+     st, out = run(cmd)
+     msg = "Error in %s: %s" % (cmd, out)
+     self.assertEqual(st, 0, msg)
+     contains = out.find("Warning: Skipping FileBlock f_EMPTY with no associated location.") != -1
+     contains *= out.find("Warning: Skipping location. Wrong location sdf for FileBlock fSTH2: Wrong specified host (sdf) of DlsLocation object") != -1
+     contains *= out.find("Warning: Skipping FileBlock fSTH2 with no associated location.") != -1
+     contains *= out.find("Warning: Skipping location. Wrong location asfsd for FileBlock fSTH1: Wrong specified host") != -1
+     msg = "The results obtained with dls-get-dabablock are not those expected",out
+     self.assert_(contains, msg)
+
+     cmd = self.path + "/dls-get-se fSTH1"
+     st, out = run(cmd)
+     msg = "Error in dls-get-se fSTH1", out
+     self.assertEqual(st, 0, msg)
+
+     msg = "The results obtained with dls-add -f are not those expected:",out
+     self.assertEqual(out, "www.cern.ch\nwww.google.com", msg)
 
 
 
