@@ -13,8 +13,8 @@ import os,sys,getopt
 #   //
 #  // Get DBS instance to use
 # //
-usage="\n Purpose of the script: \n - get the fileblocks name in DBS for a given dataset \n - migrate those fileblock locations from an input DLS to a destination DLS \n \n Usage: python dlsMigrate.py <options> \n Options: \n --datasetPath=/primarydataset/datatier/procdataset \t dataset path (wildcard are accepted) \n --DBSAddress=<MCGlobal/Writer> \t\t\t DBS database instance \n --DBSURL=<URL> \t\t\t\t DBS URL \n --InputDLSAddress=<lfc-cms-test.cern.ch/grid/cms/DLS/MCLocal_Test>\t input DLS instance \n --InputDLSType=<DLS_TYPE_LFC> \t\t\t\t DLS type \n --OutputDLSAddress=<lfc-cms-test.cern.ch/grid/cms/DLS/LFC>\t DLS output instance \n --OutputDLSType=<DLS_TYPE_LFC> \t\t\t\t DLS type \n --help \t\t\t\t\t print this help \n\n  For example: \n  python dlsMigrate.py --DBSAddress=MCGlobal/Writer --InputDLSAddress=prod-lfc-cms-central.cern.ch/grid/cms/DLS/MCLocal_Test --InputDLSType DLS_TYPE_LFC --OutputDLSAddress=prod-lfc-cms-central.cern.ch/grid/cms/DLS/LFC --datasetPath=/CSA06-103-os-EWKSoup0-0/RECOSIM/CMSSW_1_0_4-hg_HiggsWW_WWFilter-1161045561 \n"
-valid = ['DBSAddress=','DBSURL=','InputDLSAddress=','InputDLSType=','OutputDLSAddress=','OutputDLSType=','datasetPath=','help']
+usage="\n Purpose of the script: \n - get the fileblocks name in DBS for a given dataset \n - migrate those fileblock locations from an input DLS to a destination DLS \n \n Usage: python dlsMigrate.py <options> \n Options: \n --datasetPath=/primarydataset/datatier/procdataset \t dataset path (wildcard are accepted) \n --DBSAddress=<MCGlobal/Writer> \t\t\t DBS database instance \n --DBSURL=<URL> \t\t\t\t DBS URL \n --InputDLSAddress=<lfc-cms-test.cern.ch/grid/cms/DLS/MCLocal_Test>\t input DLS instance \n --InputDLSType=<DLS_TYPE_LFC> \t\t\t\t DLS type \n --OutputDLSAddress=<lfc-cms-test.cern.ch/grid/cms/DLS/LFC>\t DLS output instance \n --OutputDLSType=<DLS_TYPE_LFC> \t\t\t\t DLS type \n  --skip-blockcheck migrate all the blocks, regardless of their status (by default only closed blocks are migrated) \n --help \t\t\t\t\t print this help \n\n  For example: \n  python dlsMigrate.py --DBSAddress=MCGlobal/Writer --InputDLSAddress=prod-lfc-cms-central.cern.ch/grid/cms/DLS/MCLocal_Test --InputDLSType DLS_TYPE_LFC --OutputDLSAddress=prod-lfc-cms-central.cern.ch/grid/cms/DLS/LFC --datasetPath=/CSA06-103-os-EWKSoup0-0/RECOSIM/CMSSW_1_0_4-hg_HiggsWW_WWFilter-1161045561 \n"
+valid = ['DBSAddress=','DBSURL=','InputDLSAddress=','InputDLSType=','OutputDLSAddress=','OutputDLSType=','datasetPath=','skip-blockcheck','help']
 try:
     opts, args = getopt.getopt(sys.argv[1:], "", valid)
 except getopt.GetoptError, ex:
@@ -29,6 +29,7 @@ outputdlsendpoint = None
 inputdlstype = None
 outputdlstype = None
 datasetPath = None
+skipStatusCheck = False
 
 for opt, arg in opts:
     if opt == "--DBSAddress":
@@ -45,6 +46,8 @@ for opt, arg in opts:
         outptdlstype = arg
     if opt == "--datasetPath":
         datasetPath = arg
+    if opt == "--skip-blockcheck":
+        skipStatusCheck = True
     if opt == "--help":
         print usage
         sys.exit(1)
@@ -176,5 +179,11 @@ for dataset in datasets:
 
 
  for fileBlock in fileBlockList:
+  print fileBlock.get('blockName')
+  print fileBlock.get('blockStatus')
+  if skipStatusCheck:
+     UploadBlock(fileBlock.get('blockName'))
+  else:
+   if fileBlock.get('blockStatus')=="closed": 
      UploadBlock(fileBlock.get('blockName'))
 
