@@ -1,5 +1,5 @@
 #
-# $Id: dlsLfcApi.py,v 1.30 2006/10/17 15:42:16 delgadop Exp $
+# $Id: dlsLfcApi.py,v 1.31 2006/10/19 10:21:16 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -32,6 +32,8 @@ DLS_VERB_WARN = dlsApi.DLS_VERB_WARN
 #import dlsDliClient   # for a fast getLocations implementation
 from dlsDataObjects import DlsLocation, DlsFileBlock, DlsEntry, DlsDataObjectError
 # TODO: From what comes next, should not import whole modules, but what is needed...
+import warnings
+warnings.filterwarnings("ignore","Python C API version mismatch for module _lfc",RuntimeWarning)
 import lfc
 import sys
 import commands
@@ -81,7 +83,7 @@ class NotAccessibleError(DlsLfcApiError):
   """
 
 #########################################
-# DlsApì class
+# DlsApi class
 #########################################
 
 class DlsLfcApi(dlsApi.DlsApi):
