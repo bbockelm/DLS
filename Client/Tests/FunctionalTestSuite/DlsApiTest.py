@@ -1,7 +1,7 @@
 #!/usr/bin/env python
  
 #
-# $Id: DlsApiTest.py,v 1.6 2006/10/17 15:38:13 delgadop Exp $
+# $Id: DlsApiTest.py,v 1.7 2006/10/19 10:22:36 delgadop Exp $
 #
 # DLS Client Functional Test Suite. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -20,6 +20,7 @@ from stat import *
 # Need a global variable here
 conf = {}
 name = "DlsApiTest.py"
+
 
 ##############################################################################
 # Parent Class for DLS API testing
@@ -196,6 +197,7 @@ class TestDlsApi_General_Basic(TestDlsApi_General):
 
      fB = DlsFileBlock("f1")
      fB2 = DlsFileBlock("f2")
+     fBXX = DlsFileBlock("fXX")
      loc1 = DlsLocation("DlsApiTest-se1")
      loc2 = DlsLocation("DlsApiTest-se2")
      loc3 = DlsLocation("DlsApiTest-se3")
@@ -230,12 +232,28 @@ class TestDlsApi_General_Basic(TestDlsApi_General):
      try:
        res = self.api.getLocations(fB)
      except DlsApiError, inst:
-       msg = "Error in getLocations(%s): %s" % (entry, inst)
+       msg = "Error in getLocations(%s): %s" % ("f1", inst)
        self.assertEqual(0, 1, msg)
      correct = (res[0].getLocation("DlsApiTest-se1") != None)
      correct *= (res[0].getLocation("DlsApiTest-se2") != None)
      correct *= (res[0].getLocation("DlsApiTest-se3") != None)
      msg = "Locations were not correctly retrieved (entry: %s)" % (res[0])
+     self.assert_(correct, msg)
+
+     # Now get wrong location (w/ and w/out errorTolerant)
+     try:
+       res = self.api.getLocations(fBXX)
+       msg = "Unexpected success in getLocations(%s): %s" % ("fBXX", inst)
+       self.assertEqual(0, 1, msg)
+     except DlsApiError, inst:
+       pass
+     try:
+       res = self.api.getLocations(fBXX, errorTolerant = True)
+     except DlsApiError, inst:
+       msg = "Error in getLocations(%s): %s" % ("fBXX, errorTolerant=True", inst)
+       self.assertEqual(0, 1, msg)
+     correct = (res == [])
+     msg = "Empty list should have been retrieved (entry list: %s)" % (res)
      self.assert_(correct, msg)
 
      # Now list FileBlocks passing name

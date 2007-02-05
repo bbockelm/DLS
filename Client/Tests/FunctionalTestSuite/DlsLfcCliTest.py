@@ -22,7 +22,7 @@ run = getstatusoutput
 conf_file = ""
 
 
-# TODO: Basic tests for rename, dump, get-all-locations... but already tested in the API
+# TODO: Basic tests for dump, get-all-locations... but already tested in the API
 
 
 ##############################################################################
@@ -228,16 +228,28 @@ class TestDlsCli_FromArgs_General(TestDlsCli):
            % (out, expected)
        self.assert_(contains, msg)
 
+     # This is no longer the case, as we don't go through DLI now
+#     cmd = self.path + "/dls-get-se -v 2 c1"
+#     st, out = run(cmd)
+#     msg = "Error in dls-get-se c1",out 
+#     self.assertEqual(st, 0, msg)
+#     for i in ["--Starting session", "--Ending session"]:
+#       not_expected = i
+#       not_contains = out.find(not_expected) == -1
+#       msg = "The results obtained (%s) with dls-get-se should not contain: %s"\
+#           % (out, not_expected)
+#       self.assert_(not_contains, msg)
+
      cmd = self.path + "/dls-get-se -v 2 c1"
      st, out = run(cmd)
-     msg = "Error in dls-get-se c1",out 
+     msg = "Error in dls-get-se -v 2 c1",out 
      self.assertEqual(st, 0, msg)
      for i in ["--Starting session", "--Ending session"]:
-       not_expected = i
-       not_contains = out.find(not_expected) == -1
-       msg = "The results obtained (%s) with dls-get-se should not contain: %s"\
-           % (out, not_expected)
-       self.assert_(not_contains, msg)
+       expected = i
+       contains = out.find(expected) != -1
+       msg = "The results obtained (%s) with dls-get-se -v 2 are not those expected  (%s)"\
+           % (out, expected)
+       self.assert_(contains, msg)
 
 
   # Test transactions on addition (from CL arguments) 
@@ -848,6 +860,7 @@ class TestDlsCli_FromFile(TestDlsCli):
      f_2_LFNs_with_SURLs = open('2_LFNs_with_SURLs', 'w')
      f_2_LFNs_with_SURLS_attrs = open('f_2_LFNs_with_SURLS_attrs', 'w')
      f_rename = open('f_rename', 'w')
+     f_partial = open('f_partial', 'w')
      f_check_locs= open('f_check_locs', 'w')
 
      f_2_SEs.write("CliTest-se1\nCliTest-se3\n")
@@ -865,6 +878,7 @@ class TestDlsCli_FromFile(TestDlsCli):
      f_2_LFNs_with_SURLS_attrs.write("c1 filesize=777 adsf=324 CliTest-se1 ptime=444 jjj=999\n")
      f_2_LFNs_with_SURLS_attrs.write("f99 CliTest-se2 ptime=444 a=0\n")
      f_rename.write("f1 f1_NEW\nfXXX fXXX_NEW\nf2 f2_NEW\n")
+     f_partial.write("f2\nfXXX\nf6\n")
      f_check_locs.write("f_EMPTY\nfSTH2 sdf\nfSTH1  www.google.com asfsd  www.cern.ch\n")
      
      f_10_LFNs.close()
@@ -875,6 +889,7 @@ class TestDlsCli_FromFile(TestDlsCli):
      f_2_LFNs_with_SURLs.close()
      f_2_LFNs_with_SURLS_attrs.close()
      f_rename.close()
+     f_partial.close()
      f_check_locs.close()
 
 
@@ -947,7 +962,7 @@ class TestDlsCli_FromFile_AddGetSEList(TestDlsCli_FromFile):
      msg = "The results obtained with dls-list -f (%s) are not those expected (%s)" %(out, expected)
      self.assertEqual(out, expected, msg)
 
-  # Test get-se using list files
+  # Test get-se using list files (including partially correct list (-p option))
   def testGetSE(self):
      cmd = self.path + "/dls-add --skip-location-check -f 10_LFNs_with_SURLs"
      st, out = run(cmd)
@@ -960,7 +975,7 @@ class TestDlsCli_FromFile_AddGetSEList(TestDlsCli_FromFile):
      self.assertEqual(st, 0, msg)
      cmd = self.path + "/dls-get-se f1"
      st, out = run(cmd)
-     msg = "Error in dls-get-se f6",out 
+     msg = "Error in dls-get-se f1",out 
      self.assertEqual(st, 0, msg)
 
      out = buffer + "\n" + out
@@ -969,6 +984,26 @@ class TestDlsCli_FromFile_AddGetSEList(TestDlsCli_FromFile):
      expected += "CliTest-se1\nCliTest-se2"
      msg = "Results obtained with dls-get-se -f (%s) are not those expected (%s)"%(out, expected)
      self.assertEqual(out, expected, msg)
+
+     # Now partially correct list with and without -p
+     cmd = self.path + "/dls-get-se -f f_partial"
+     st, buffer = run(cmd)
+     msg = "Unexpected success in %s: %s" % (cmd, buffer)
+     self.assert_(st != 0, msg)
+   
+     cmd = self.path + "/dls-get-se -p -f f_partial"
+     st, out = run(cmd)
+     msg = "Error in %s: %s" % (cmd, out)
+     self.assertEqual(st, 0, msg)
+
+     out = buffer + "\n" + out
+     expected = "Error in the DLS query: Error retrieving locations for fXXX: No such file or directory.\n"
+     expected += "Warning: Error retrieving locations for fXXX: No such file or directory\n"
+     expected += "  FileBlock: f2\nCliTest-se1\nCliTest-se2\n"
+     expected += "  FileBlock: f6\nCliTest-se3"
+     msg = "Results obtained with dls-get-se -f (%s) are not those expected (%s)"%(out, expected)
+     self.assertEqual(out, expected, msg)
+
 
 
   # Test dls-rename using list files
@@ -1164,8 +1199,7 @@ class TestDlsCli_FromFile_DelUpdate(TestDlsCli_FromFile):
      msg = "Error in dls-delete -f 2_LFNs",out 
      self.assertEqual(st, 0, msg)
 
-     expected = "Error in the DLS query: Error querying for f2: Error accessing DLI " 
-     expected += "%s for %s/f2 of type lfn. SOAP-ENV:Client, InputData." %(self.host, self.testdir)
+     expected = "Error in the DLS query: Error retrieving locations for f2: No such file or directory."
 
      cmd = self.path + "/dls-get-se -f 2_LFNs"
      st, out = run(cmd)
