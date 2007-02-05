@@ -1,5 +1,5 @@
 #
-# $Id: dlsApi.py,v 1.18 2006/09/21 15:19:48 delgadop Exp $
+# $Id: dlsApi.py,v 1.19 2006/10/19 10:21:16 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -316,14 +316,19 @@ class DlsApi(object):
     the specified FileBlock name, and a composing DlsLocation object list holding
     the corresponding retrieved locations.
 
+    By default, the method may raise an exception if an error in the DLS operation
+    occurs. But if errorTolerant (**kwd) is set to true, the method will not
+    break on the first error, but will warn and try to keep on with the rest
+    of fileblocks in the argument list. In this case, the returned list will
+    contain only the entries for which the associated replicas could be
+    successfully retrieved. It is also possible that, even if errorTolerant is
+    used, an exception is raised in case of general failure.
+
     If longList (**kwd) is set to true, some location attributes are also included
     in the returned DlsLocation objects. Check the documentation of the concrete
     DLS client API implementation for the list of attributes.
 
-    NOTE: In some implementations, the long listing may be quite more expensive
-    (slow) than the normal invocation.
-
-    The method may raise an exception if an error in the DLS operation occurs.
+    NOTE: Some implementations may not support the long listing.
 
     If session(**kwd) is set to True, the whole operation of the method is
     performed within a session (if the DLS implementation supports it).
@@ -344,6 +349,7 @@ class DlsApi(object):
     @param kwd: Flags:
      - longList: boolean (default false) for the listing of location attributes
      - session: boolean (default False) for using a session for the operations
+     - errorTolerant: boolean (default False) for raising an exception after failure
 
     @return: a list of DlsEntry objects containing the locations
     """
