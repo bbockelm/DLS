@@ -1,5 +1,5 @@
 #
-# $Id: dlsDliClient.py,v 1.3 2006/04/25 18:27:03 afanfani Exp $
+# $Id: dlsDliClient.py,v 1.4 2006/05/03 14:59:18 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -157,6 +157,10 @@ class DlsDliClient(dlsApi.DlsApi):
     @exception DlsDliClientError: On errors in the interaction with the DLI interface
     """
 
+    # Keywords (flags)
+    errorTolerant = False
+    if(kwd.has_key("errorTolerant")):   errorTolerant = kwd.get("errorTolerant")
+
     result = []
     
     # Make sure the argument is a list
@@ -186,25 +190,55 @@ class DlsDliClient(dlsApi.DlsApi):
       except dliClient.DliClientError, inst:
         msg = inst.msg
         msg = "Error querying for %s: %s" % (userlfn, inst.msg)
-        e = DlsDliClientError(msg)
         if(isinstance(inst, dliClient.SoapError)):
            for i in [inst.actor, inst.detail]:
-              if(i):  e.msg += ". " + str(i)
-           if(inst.faultcode):  
-              if(inst.faultstring):  e.code = inst.faultcode + ", " + inst.faultstring
-              else:                  e.code = inst.faultcode    
-           else:
-              if(inst.faultstring):  e.code = inst.faultstring
-        raise e
-
-      entry.locations = locList
-      result.append(entry)
+               if(i):  msg += ". " + str(i)
+        if(errorTolerant):
+           if(self.verb >= DLS_VERB_WARN):
+              print "Warning: " + msg
+           locList = None 
+        else:
+           e = DlsDliClientError(msg)
+           if(isinstance(inst, dliClient.SoapError)):
+              if(inst.faultcode):  
+                 if(inst.faultstring):  e.code = inst.faultcode + ", " + inst.faultstring
+                 else:                  e.code = inst.faultcode    
+              else:
+                 if(inst.faultstring):  e.code = inst.faultstring
+           raise e
+      if(locList != None):
+         entry.locations = locList
+         result.append(entry)
 
     # Return
     return result
 
 
 
+  def startSession(self):
+    """
+    Implementation of the dlsApi.DlsApi.startSession method.
+    Refer to that method's documentation.
+    
+    Implementation specific remarks:
+
+    Since DLI does not support sessions, this method does nothing.
+    """
+    if(self.verb >= DLS_VERB_HIGH):
+      print "--Starting session with %s (no action)" % (self.server)
+
+ 
+  def endSession(self):
+    """
+    Implementation of the dlsApi.DlsApi.endSession method.
+    Refer to that method's documentation.
+    
+    Implementation specific remarks:
+
+    Since DLI does not support sessions, this method does nothing.
+    """
+    if(self.verb >= DLS_VERB_HIGH):
+      print "--Ending session with %s (no action)" % (self.server)
 
 
   #########################
