@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #
-# $Id: dls-get-fileblock,v 1.8 2006/09/06 11:54:30 delgadop Exp $
+# $Id: dls-get-fileblock,v 1.9 2006/10/10 12:09:44 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -244,9 +244,11 @@ def main(pArgs):
             if(verbose == 1):
                iface.setVerbosity(dlsApi.DLS_VERB_WARN)
    except dlsApi.DlsApiError, inst:
+      if(inst.rc):  err = inst.rc 
+      else:           err = -1
       msg = "Error when binding the DLS interface: " + str(inst)
       sys.stderr.write(msg+"\n")
-      return -1
+      return err
 
    
  # Do the query (under session)

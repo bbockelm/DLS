@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #
-# $Id: dls-delete,v 1.7 2006/10/17 15:41:28 delgadop Exp $
+# $Id: dls-delete,v 1.8 2006/10/19 10:21:16 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -331,9 +331,11 @@ def main(pArgs):
             if(verbose == 1):
                iface.setVerbosity(dlsApi.DLS_VERB_WARN)
    except dlsApi.DlsApiError, inst:
+      if(inst.rc):  err = inst.rc 
+      else:           err = -1
       msg = "Error when binding the DLS interface: " + str(inst)
       sys.stderr.write(msg+"\n")
-      return -1
+      return err
 
       
  # Do the deletion (under session)
