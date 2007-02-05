@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #
-# $Id: dls-add,v 1.11 2006/10/19 12:34:22 delgadop Exp $
+# $Id: dls-add,v 1.12 2006/10/19 12:50:47 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -27,8 +27,8 @@ def usage():
    """
     Provides usage information
    """
-   print "Usage: dls-add [-v, -t, -e, -i] <fileblock> [attr=val ..] [<SE> [attr=val ..] ..]"
-   print "       dls-add [-v, -t, -e, -i] -f <listing_file>"
+   print "Usage: dls-add [-v, -t, -e, -i, ...] <fileblock> [attr=val ..] [<SE> [attr=val ..] ..]"
+   print "       dls-add [-v, -t, -e, -i, ...] -f <listing_file>"
    print "       dls-add -u"
    print "       dls-add -h"
 
@@ -90,7 +90,7 @@ The "-f" option can be used to retrieve FileBlock names from a file rather than
 from the given arguments. The file must contain one line per FileBlock to be added,
 optionally with some attributes, then the SEs to associate as locations and
 perhaps the attributes for them; all in the same line and separated by whitespaces.
-In this case, the "-p" option has the same meaning as before and affects all
+In this case, the other options have the same meaning as before and affect all
 FileBlocks in <listfile>.
 
 The "-t" option indicates if transactions should be used. In that case, any error
