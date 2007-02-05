@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #
-# $Id: dls-get-se,v 1.9 2006/10/10 12:09:44 delgadop Exp $
+# $Id: dls-get-se,v 1.10 2006/10/17 15:42:43 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -31,7 +31,7 @@ def usage():
     Provides usage information
    """
    print "Usage: dls-get-se [-v, -e, -i, -l] <fileblock>"
-   print "       dls-get-se [-v, -e, -i, -l] -f <listing_file>"
+   print "       dls-get-se [-v, -e, -i, -l, -p] -f <listing_file>"
    print "       dls-get-se -u"
    print "       dls-get-se -h"
 
@@ -47,6 +47,7 @@ def options():
    -e, --endpoint <endpoint>
    -i, --interface-type <iface_type>
    -l, --long
+   -p, --partial-list
    -f, --from-file <filename>
    """
 def example():
@@ -73,6 +74,13 @@ file type ('P' for permanent or 'V' for volatile) and SURL.
 The "-f" option can be used to retrieve FileBlock names from a file rather
 than from the given arguments. The file must contain one line per FileBlock
 to be listed.
+
+The "-p" option can be used together with "-f" to specify that even if there
+are errors in the listing of locations for a fileblock specified in the file, 
+the command must keep trying with the rest of fileblocks (by default, it will
+break on error at the first problem). In the case of errors, a warning is
+printed and the corresponding fileblock is skipped in the resulting locations
+list. The "-p" option makes no sense if "-f" is not used.
 
 The "-e" option can be used to set the DLS endpoint to use. If not specified,
 the endpoint is retrieved from:
@@ -106,7 +114,7 @@ If "-h" is specified, help information is displayed.
 
 
 
-def showLocations(iface, lineList, longList, verbose):
+def showLocations(iface, lineList, longList, errorTolerant, verbose):
    """
     Prints the locations which hold a copy of the specified
     FileBlock. lineList is a list of strings, each holding 
@@ -115,7 +123,7 @@ def showLocations(iface, lineList, longList, verbose):
     If longList is True, some attributes are also printed.
     Currently printed attributes are: atime, ptime, f_type.
     
-    Throws DlsLfcApiError if there is a problem in the DLS operation.
+    Throws DlsApiError if there is a problem in the DLS operation.
    """
 
    fbList = []
@@ -138,7 +146,7 @@ def showLocations(iface, lineList, longList, verbose):
       print ")"
 
    # Get the locations (and let the caller deal with the exception...)
-   entryList = iface.getLocations(fbList, longList = longList, session = longList)
+   entryList = iface.getLocations(fbList, longList = longList, session = True, errorTolerant = errorTolerant)
 
    # Print the entries
    for entry in entryList:
@@ -182,9 +190,9 @@ def main(pArgs):
 
  # Options and args... 
  
-   longoptions=["help", "usage", "long", "endpoint", "interface-type", "verbose","from-file"]
+   longoptions=["help", "usage", "long", "endpoint", "interface-type", "verbose", "from-file", "partial-list"]
    try:
-      optlist, args = getopt.getopt(pArgs, 'hule:i:v:f:', longoptions)
+      optlist, args = getopt.getopt(pArgs, 'hule:i:v:f:p', longoptions)
    except getopt.GetoptError, inst:
       sys.stderr.write("Bad usage: "+str(inst)+'\n')
       usage()
@@ -199,6 +207,7 @@ def main(pArgs):
    admitted_iface_types = ["DLS_TYPE_LFC", "DLS_TYPE_DLI", "DLS_TYPE_MYSQL"]
    fromFile = False
    fname=""
+   errorTolerant = False
    for opt, val in optlist:
        if opt in ("-h", "--help"):
            help()
@@ -213,6 +222,9 @@ def main(pArgs):
            
        elif opt in ("-e","--endpoint"):
            endpoint = val
+
+       elif opt in ("-p","--partial-list"):
+           errorTolerant = True
 
        elif opt in ("-i", "--interface-type"):
            if (not (val in admitted_iface_types)):
@@ -240,8 +252,12 @@ def main(pArgs):
            fromFile = True
            fname = val
 
-  
- # Build the arguments 
+
+ # Check option combinations...
+   if(errorTolerant and (not fromFile)):
+      sys.stderr.write("Bad usage: The -p option can only be used together with -f"+'\n')
+      usage()
+      return -1
 
    # From file
    if(fromFile):
@@ -277,14 +293,16 @@ def main(pArgs):
             if(verbose == 1):
                iface.setVerbosity(dlsApi.DLS_VERB_WARN)
    except dlsApi.DlsApiError, inst:
+      if(inst.rc):  err = inst.rc 
+      else:           err = -1
       msg = "Error when binding the DLS interface: " + str(inst)
       sys.stderr.write(msg+"\n")
-      return -1
+      return err
 
    
- # Do the query (under session only for long listing)
+ # Do the query (under session)
    try:
-     showLocations(iface, lineList, longList, verbose)
+     showLocations(iface, lineList, longList, errorTolerant, verbose)
    except dlsApi.DlsApiError, inst:         
       if(inst.rc):  err = inst.rc 
       else:           err = -1
