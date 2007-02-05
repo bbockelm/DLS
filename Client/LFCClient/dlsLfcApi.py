@@ -1,5 +1,5 @@
 #
-# $Id: dlsLfcApi.py,v 1.31 2006/10/19 10:21:16 delgadop Exp $
+# $Id: dlsLfcApi.py,v 1.32 2006/11/19 00:47:01 afanfani Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -646,10 +646,8 @@ class DlsLfcApi(dlsApi.DlsApi):
      - ptime
      - f_type.
 
-    NOTE: The long listing may be quite more expensive (slow) than the normal
-    invocation, since the first one has to query the LFC directly (secure),
-    while the normal gets the information from the DLI (insecure), by using
-    the dlsDliClient.DlsDliClient class.
+    In the current implementation the cost of doing a long listing
+    is the same as doing a normal one.
 
     NOTE: Normally, it makes no sense to use this method within a transaction,
     so please avoid it. 
@@ -661,6 +659,9 @@ class DlsLfcApi(dlsApi.DlsApi):
     session = False
     if(kwd.has_key("session")):    session = kwd.get("session")
 
+    errorTolerant = False
+    if(kwd.has_key("errorTolerant")):   errorTolerant = kwd.get("errorTolerant")
+
     # Make sure the argument is a list
     if (isinstance(fileBlockList, list)):
        theList = fileBlockList 
@@ -668,84 +669,63 @@ class DlsLfcApi(dlsApi.DlsApi):
        theList = [fileBlockList]
 
     entryList = []
-    
-    # For long listing (need to query the LFC directly)    
-    if(longList):
+
+    # We always query LFC directly (faster than DLI right now)
 
       # Start session
-      if(session): self.startSession()
+    if(session): self.startSession()
 
-      # Loop on the entries
-      for fB in theList:
-         # Check what was passed (DlsFileBlock or string)
-         if(isinstance(fB, DlsFileBlock)):
-           lfn = fB.name
-         else:
-           lfn = fB
-         lfn = self._checkDlsHome(lfn)
-         try:
-            userlfn = self._removeRootPath(lfn, strict = True)
-         except ValueError, inst:
-            if(not errorTolerant): 
-               if(session): self.endSession()
-               raise 
-            else: continue
+    # Loop on the entries
+    for fB in theList:
+       # Check what was passed (DlsFileBlock or string)
+       if(isinstance(fB, DlsFileBlock)):
+         lfn = fB.name
+       else:
+         lfn = fB
+       lfn = self._checkDlsHome(lfn)
+       try:
+          userlfn = self._removeRootPath(lfn, strict = True)
+       except ValueError, inst:
+          if(not errorTolerant): 
+             if(session): self.endSession()
+             raise 
+          else: continue
 
-         entry = DlsEntry(DlsFileBlock(userlfn))
+       entry = DlsEntry(DlsFileBlock(userlfn))
  
-         # Get the locations for the given FileBlock
-         if(self.verb >= DLS_VERB_HIGH):
-             print "--lfc.lfc_getreplica(\""+lfn+"\", \"\", \"\")"   
-         err, filerepList = lfc.lfc_getreplica(lfn, "", "")
-         if(err):
-            if(session): self.endSession()
-            code = lfc.cvar.serrno
-            msg = "Error retrieving locations for %s: %s" % (userlfn, lfc.sstrerror(code))
-            raise DlsLfcApiError(msg, code)
-         
-         # Build the result
-         locList = []
-         for filerep in filerepList:
-            attrs = {"atime": filerep.atime, "ptime": filerep.ptime,
-                     "f_type": filerep.f_type, "sfn": filerep.sfn}
-            
-            loc = DlsLocation(filerep.host, attrs)
-            locList.append(loc)
-         entry.locations = locList
-         entryList.append(entry)
+       # Get the locations for the given FileBlock
+       if(self.verb >= DLS_VERB_HIGH):
+           print "--lfc.lfc_getreplica(\""+lfn+"\", \"\", \"\")"   
+       err, filerepList = lfc.lfc_getreplica(lfn, "", "")
+       if(err):
+          code = lfc.cvar.serrno
+          msg = "Error retrieving locations for %s: %s" % (userlfn, lfc.sstrerror(code))
+          if(not errorTolerant): 
+             if(session): self.endSession()
+             raise DlsLfcApiError(msg, code)
+          else:
+             if(self.verb >= DLS_VERB_WARN):
+                print "Warning: " + msg
+             filerepList = None
 
-      # End session
-      if(session): self.endSession()
+       
+       # Build the result
+       if(filerepList != None):
+          locList = []
+          for filerep in filerepList:
+             attrs = {}
+             if(longList):
+                attrs = {"atime": filerep.atime, "ptime": filerep.ptime,
+                      "f_type": filerep.f_type, "sfn": filerep.sfn}
+             loc = DlsLocation(filerep.host, attrs)
+             locList.append(loc)
+          entry.locations = locList
+          entryList.append(entry)
+
+    # End session
+    if(session): self.endSession()
 
     
-
-    # For normal listing (go through the DLI)
-    else:      
-
-      import dlsDliClient
-
-      # Build a FileBlock name list with absolute paths
-      dliList = []
-      for fB in theList:
-         # Check what was passed (DlsFileBlock or string)
-         if(isinstance(fB, DlsFileBlock)):
-           lfn = fB.name
-         else:
-           lfn = fB
-         dliList.append(lfn)
-         
-      # Create the binding 
-      try:
-        dliIface = dlsDliClient.DlsDliClient(self.server+self.root, verbosity = self.verb)
-      except dlsDliClient.SetupError, inst:
-        raise DlsLfcApiError("Error creating the binding with the DLI interface: "+str(inst))
-
-      # Query the DLI 
-      try:
-          entryList = dliIface.getLocations(dliList)
-      except dlsDliClient.DlsDliClientError, inst:
-        raise DlsLfcApiError(inst.msg)
-
 
     # Return what we got
     return entryList
