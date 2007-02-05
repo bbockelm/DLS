@@ -1,5 +1,5 @@
 #
-# $Id: dliClient.py,v 1.5 2006/04/25 18:28:21 afanfani Exp $
+# $Id: dliClient.py,v 1.6 2006/10/13 13:18:02 delgadop Exp $
 #
 # DliClient. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -138,6 +138,16 @@ class DliClient:
     if (not self.endpoint):
        raise SetupError("Could not set the DLI endpoint to use")
 
+    try:
+       # Get the SOAP binding
+       self.iface = dliClient_types.DliSOAP(self.endpoint)       
+    except Exception, inst:
+       msg = "ZSI error when creating the SOAP binding: " + str(inst)
+       if(isinstance(inst, ZSIException)):
+          raise ZsiLibError(msg)
+       else:
+          raise SetupError(msg)
+ 
 
 
   def listSurls(self, file, fileType = "lfn"):
@@ -158,22 +168,12 @@ class DliClient:
     """
 
 
-    try:
-       # Get the SOAP binding
-       iface = dliClient_types.DliSOAP(self.endpoint)       
-    except Exception, inst:
-       msg = "ZLI error when creating the SOAP binding: " + str(inst)
-       if(isinstance(inst, ZSIException)):
-          raise ZsiLibError(msg)
-       else:
-          raise DliClientError(msg)
- 
     # Build the SOAP request 
     request = dliClient_types.new_listReplicasRequest(file, fileType)
 
     try:
        # Query
-       response  = iface.listReplicas(request)
+       response  = self.iface.listReplicas(request)
        result = response.urlList
     except ZSIFaultException, inst:
        # This hack is due to extrange behaviour of DLI when an LFN has no replica
