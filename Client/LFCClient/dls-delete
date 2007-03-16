@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #
-# $Id: dls-delete,v 1.8 2006/10/19 10:21:16 delgadop Exp $
+# $Id: dls-delete,v 1.9 2007/02/05 15:39:56 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -15,7 +15,8 @@ DLS_VERB_HIGH = dlsApi.DLS_VERB_HIGH
 DLS_VERB_WARN = dlsApi.DLS_VERB_WARN
 from dlsDataObjects import DlsLocation, DlsFileBlock, DlsEntry, DlsDataObjectError
 import dlsClient
-import os
+from dlsCommandsCommon import *
+from os import environ
 import sys
 import commands
 import getopt
@@ -28,9 +29,9 @@ def usage():
    """
     Provides usage information
    """
-   print "Usage: dls-delete [-v, -e, -i, -k | -l, -x]    <fileblock> [<SE_1> <SE_2> ..]"
-   print "       dls-delete [-v, -e, -i, -k | -l, -x] -a <fileblock>"
-   print "       dls-delete [-v, -e, -i, -k | -l, -x] -f <listing_file>"
+   print "Usage: dls-delete [-v, -k | -l, -x, ...]    <fileblock> [<SE_1> <SE_2> ..]"
+   print "       dls-delete [-v, -k | -l, -x, ...] -a <fileblock>"
+   print "       dls-delete [-v, -k | -l, -x, ...] -f <listing_file>"
    print "       dls-delete -u"
    print "       dls-delete -h"
 
@@ -49,6 +50,8 @@ def options():
    -k, --keepFileBlock
    -x, --force
    -f, --from-file <filename>
+       --not-error-tolerant
+       --dbs-conf <conf_file>
    """
 def example():
   """
@@ -64,51 +67,80 @@ def help():
    print """Deletes the specified non-custodial locations (located in <SE_1>
 <SE_2> ..) for the given <fileblock> FileBlock in the DLS server.
 
-Custodial locations (f_type = "P") are not deleted unless "--force" is specified.
+If custodial locations exist, they are not deleted unless "--force" is
+specified. If the "-a" option is specified (no location must then be specified),
+all the locations are removed.
 
-If the "-a" option is specified (no location must then be specified), all the
-locations are removed and also the specified FileBlock (or symlink if such
-exists) is deleted. If one of the locations is custodial, though, that one cannot
-be removed unless "--force" is used, and thus the FileBlock cannot be removed either.
 
-In any case, if the last location associated in the catalog with the specified
-FileBlock is deleted, the FileBlock itself is also removed, unless --keepFileBlock
-is used.
+Specific notes for DBS back-end (DLS_TYPE_DBS):
 
-For DLS implementations with a hierarchical FileBlock namespace, for the "-a"
-case, the command will also delete empty directories in the hierarchy.
-Non empty directories will refuse to be removed.
+  For the DBS back-end implementation, the DLS interface cannot be used to
+  delete FileBlocks, and so only locations associated to those FileBlocks may
+  be removed. The "-k" option is silently ignored.
+  
+  Currently, DBS holds no custodial replicas, since there are no replica
+  attributes yet. The "--force" option is at this point superfluous.
 
-For DLS implementations supporting symlinks to FileBlock names, the "-l" option 
-can be used to cause the deletion of all the symlinks -- including the main FileBlock
-name. THIS ADVANCED OPTION IS NOT YET IMPLEMENTED.
+  The server endpoint is got from a string in the URL form, usually:
+    "http[s]://hname[:port]/path/to/DLS".
+  This endpoint is retrieved from several sources (in order of precedence):   
+     - specified value for --endpoint option 
+     - DLS_ENDPOINT environmental variable
+     - specified URL in the configuration file (see --dbs-conf)
 
-If the "-k" option is given, then only the locations are removed, but not the
-FileBlock or symlinks, no matter if the last location is removed.
+  Apart from DBS endpoint, other configuration options may be specified for
+  the underlying DBS interface (e.g. the compulsory DBS client version) in a
+  configuration file. The name of this file can be indicated with,
+  in this order:
+     - specified value for --dbs-conf option
+     - DBS_CLIENT_CONFIG environmental variable
 
-The "-k' and "-l" options cannot be specified together.
 
-NOTE for LFC-based DLS: If you plan to delete a whole DLS directory (including any
-custodial replicas), rather use lfc-del-dir. If you want to delete a sym link but not
-any replica, rather use lfc-rm.
+Specific notes for LFC back-end (DLS_TYPE_LFC):
+
+  LFC support custodial replicas (with attribute f_type = "P). They will not
+  be removed unless "--force" is used.
+
+  If the last location associated with a Fileblock is deleted, the FileBlock
+  itself is also removed, unless --keepFileBlock is used.
+
+  LFC implements a hierarchical FileBlock namespace. If the "-a" option is
+  used, the command will also delete empty directories in the hierarchy.
+  Non empty directories will refuse to be removed.
+
+  The server endpoint should be of the form: "hname[:port][/path/to/DLS]",
+  where a default port is used if not specified, and the path to DLS is
+  required. The server endpoint is retrieved from (in orden of precedence):
+     - specified value for --endpoint option 
+     - DLS_ENDPOINT environmental variable
+
+
+Options:
+
+The "-k" option indicates that the FileBlock should not be removed, even if
+all its associated locations have been removed.
+
+The "-l" option is currently not implemented. It should deal with symlinks
+removal for LFC back-ends.
 
 The "-f" option can be used to specify fileblocks and SEs in a file rather than in
 the arguments. The file must contain one fileblock per line, with the list of the SE
 of the replicas to be removed in the same line and separated by whitespaces. In this
-case, the "-k", "-l" and "--force" options have the same meaning as before and affects
+case, the "-k", "-l" and "--force" options have the same meaning as before and affect
 all fileblocks in <listfile>.
 
 ATTENTION: The "-a" option cannot be specified together with "-f", but if in a line
 of <listfile> no replica is specified with the fileblock, then the functionality of
 the"-a" option is assumed for that line and all replicas are removed. 
 
-The "-e" option can be used to set the DLS endpoint to use. If not specified,
-the endpoint is retrieved from:
-    - DLS_ENDPOINT environmental variable
-If the DLS endpoint cannot be retrieved in any of these ways, the command fails.
-The endpoint should be of the form: "hname[:port][/path/to/DLS]", where a
-default port is used if not specified, and the path to DLS may be required for
-some DLS implementations (and ignored otherwise).
+The "not-error-tolerant" option will cause the command to break on first error
+deleting a FileBlock or location. Otherwise (default), after a failure in one
+replica, the tool tries to go on with next locations (and FileBlocks).
+
+The "--dbs-conf" option can be used to specify a configuration file for the
+DBS interface.
+
+The "-e" option can be used to set the DLS endpoint to use.
 
 The "-i" option specifies the type of interface that should be used (which
 depends on the DLS backend to access). If not specified, the interface type
@@ -116,8 +148,8 @@ is retrieved from:
     - DLS_TYPE environmental variable
 If the interface type cannot be retrieved in any of these ways, the command fails.
 Currently accepted values are:
+    - DLS_TYPE_DBS =>   DLS_TYPE_DBS class (complete API with DBS back-end)
     - DLS_TYPE_LFC  =>  DlsLfcApi class (complete API with LFC back-end)
-    - DLS_TYPE_DLI  =>  DlsDliClient class (getLocations only API with LFC back-end)
     - DLS_TYPE_MYSQL =>  DlsMySQLApi  class (complete API with MySQL proto back-end) 
 
 The "-v" option sets the verbosity level for the command. Accepted values are:
@@ -133,7 +165,7 @@ If "-h" is specified, help information is displayed.
    usage()
 
 
-def deleteEntries(iface, lineList, keepFileBlock, removeLinks, force, verbose):
+def deleteEntries(iface, lineList, keepFileBlock, removeLinks, force, errorTolerant, verbose):
    """
     Tries to delete the specified locations of the specified FileBlocks 
     (or all the locations for those FileBlocks for which there are no 
@@ -175,7 +207,7 @@ def deleteEntries(iface, lineList, keepFileBlock, removeLinks, force, verbose):
                % (str(entry), str(all), str(force), str(keepFileBlock), str(removeLinks))
                
       iface.delete(entry, force = force, all = all, keepFileBlock = keepFileBlock,\
-                   removeLinks=removeLinks, session = True)
+                   removeLinks=removeLinks, session = True, errorTolerant = errorTolerant)
 
 
 ###################### MAIN FUNCTION ########################
@@ -187,82 +219,81 @@ def main(pArgs):
    """
 
  # Options and args... 
-
    longoptions=["help", "usage", "verbose", "endpoint", "interface-type", "all",\
-                "remove-links", "keepFileBlock", "force", "from-file"]
+        "remove-links", "keepFileBlock", "force", "from-file", "dbs-conf=", "not-error-tolerant"]
    try:
       optlist, args = getopt.getopt(pArgs, 'huv:e:i:alkxf:', longoptions)
    except getopt.GetoptError, inst:
       sys.stderr.write("Bad usage: "+str(inst)+'\n')
       usage()
-      sys.exit(-1)
+      sys.exit(OPT_ERROR)
 
    err=0
    all = False
    removeLinks = False
    keepFileBlock = False
    force = False
+   errorTolerant = True
+   dbsConf = None
    admitted_verb_values = [0, 1, 2]
    verbose = 1
    endpoint = None
    iface_type = None
-   admitted_iface_types = ["DLS_TYPE_LFC", "DLS_TYPE_DLI", "DLS_TYPE_MYSQL"]
+   admitted_iface_types = ["DLS_TYPE_LFC", "DLS_TYPE_DBS", "DLS_TYPE_MYSQL"]
    fromFile = False
    fname=""
 
    for opt, val in optlist:
      if opt in ("-h", "--help"):
          help()
-         return -1
+         return OPT_ERROR
 
      elif opt in ("-u", "--usage"):
          usage()
-         return -1
+         return OPT_ERROR
+
+     elif opt in ("", "--not-error-tolerant"):
+         errorTolerant = False
          
      elif opt in ("-v", "--verbose"):
          try: 
            val = int(val)
          except ValueError, inst:
            sys.stderr.write("Unsupported verbosity value: " + val + "\n")
-           return -1
+           return OPT_ERROR 
          if (not (val in admitted_verb_values)):
             sys.stderr.write("Unsupported verbosity value: " + val + "\n")
-            return -1             
+            return OPT_ERROR
          verbose = val
          
+     elif opt in ("", "--dbs-conf"):
+           dbsConf = val
+
      elif opt in ("-e","--endpoint"):
          endpoint = val
 
      elif opt in ("-i", "--interface-type"):
-         if (not (val in admitted_iface_types)):
-            sys.stderr.write("Unsupported interface type: " + val + "\nSuppported values: %s\n"%admitted_iface_types)
-            return -1
-         if(val == "DLS_TYPE_LFC"):
-            iface_type = dlsClient.DLS_TYPE_LFC
-         if(val == "DLS_TYPE_DLI"):
-            iface_type = dlsClient.DLS_TYPE_DLI
-         if(val == "DLS_TYPE_MYSQL"):
-            iface_type = dlsClient.DLS_TYPE_MYSQL
+         iface_type = val
 
      elif opt in ("-a", "--all"):
          if(fromFile):
             sys.stderr.write("Bad usage: The -a and -f options are incompatible"+'\n')
             usage()
-            return -1
+            return OPT_ERROR
          all = True
          
      elif opt in ("-l", "--remove-links"):       
          if(keepFileBlock):
             sys.stderr.write("Bad usage: The -k and -l options are incompatible"+'\n')
             usage()
-            return -1
+            return OPT_ERROR
          removeLinks = True
          
      elif opt in ("-k", "--keepFileBlock"):
          if(removeLinks):
             sys.stderr.write("Bad usage: The -k and -l options are incompatible"+'\n')
             usage()
-            return -1
+            return OPT_ERROR
          keepFileBlock = True
          
      elif opt in ("-x", "--force"):
@@ -272,7 +303,7 @@ def main(pArgs):
          if(all):
             sys.stderr.write("Bad usage: The -a and -f options are incompatible"+'\n')
             usage()
-            return -1
+            return OPT_ERROR 
          fromFile = True
          fname = val
 
@@ -281,10 +312,27 @@ def main(pArgs):
 #          msg = "Bad usage: The -l option can only be specified together with -a or -f"
 #          sys.stderr.write(msg + '\n')
 #          usage()
-#          return -1
+#          return OPT_ERROR
  
   
- # Build the arguments 
+   # Check the interface type (from options or environ)
+   if (not iface_type):
+      iface_type = environ.get("DLS_TYPE")
+   val = iface_type
+   if (not (val in admitted_iface_types)):
+      msg = "Unsupported interface type: "+str(val)+"\nSupported values: "+str(admitted_iface_types)
+      sys.stderr.write(msg+'\n')
+      return TYPE_ERROR 
+   if(val == "DLS_TYPE_DBS"):
+      iface_type = dlsClient.DLS_TYPE_DBS
+   if(val == "DLS_TYPE_LFC"):
+      iface_type = dlsClient.DLS_TYPE_LFC
+   if(val == "DLS_TYPE_MYSQL"):
+      iface_type = dlsClient.DLS_TYPE_MYSQL
+
+
+
+ # Build the arguments
 
    # From file
    if(fromFile):
@@ -293,7 +341,7 @@ def main(pArgs):
       except IOError, inst:
          msg="The file "+fname+" could not be opened: "+str(inst)+"\n"
          sys.stderr.write(msg)
-         return -1
+         return FILE_ERROR
       lineList=file.readlines()
       
    # From command line options
@@ -301,17 +349,17 @@ def main(pArgs):
       if(len(args)<1):
          print "Bad usage: Not enough input arguments"
          usage()
-         return -1
+         return OPT_ERROR 
       if(len(args)<2):
          if(not all):
             print "Bad usage: Not enough input arguments (either -a is used, or a SE is specified)"
             usage()
-            return -1
+            return OPT_ERROR 
       else:
          if(all):
             sys.stderr.write("Bad usage: The -a option is incompatible with a SE argument"+'\n')
             usage()
-            return -1
+            return OPT_ERROR 
             
       line = ""
       for token in args:
@@ -321,7 +369,7 @@ def main(pArgs):
 
  # Create the interface binding
    try:
-      iface = dlsClient.getDlsApi(iface_type, endpoint)
+      iface = dlsClient.getDlsApi(iface_type, endpoint, dbs_client_config = dbsConf)
       if(verbose == 2):
          iface.setVerbosity(dlsApi.DLS_VERB_HIGH)
       else:
@@ -332,7 +380,7 @@ def main(pArgs):
                iface.setVerbosity(dlsApi.DLS_VERB_WARN)
    except dlsApi.DlsApiError, inst:
       if(inst.rc):  err = inst.rc 
-      else:           err = -1
+      else:           err = GENERIC_ERROR
       msg = "Error when binding the DLS interface: " + str(inst)
       sys.stderr.write(msg+"\n")
       return err
@@ -340,10 +388,10 @@ def main(pArgs):
       
  # Do the deletion (under session)
    try:
-     deleteEntries(iface, lineList, keepFileBlock, removeLinks, force, verbose)
+     deleteEntries(iface, lineList, keepFileBlock, removeLinks, force, errorTolerant, verbose)
    except dlsApi.DlsApiError, inst:         
       if(inst.rc):  err = inst.rc 
-      else:           err = -1
+      else:           err = GENERIC_ERROR
       msg = "Error in the entry(ies) deletion: %s." % str(inst)
       sys.stderr.write(msg+'\n')
 

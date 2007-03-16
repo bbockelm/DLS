@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #
-# $Id: dls-dli-get-se,v 1.1 2006/04/07 09:36:00 delgadop Exp $
+# $Id: dls-dli-get-se,v 1.2 2006/04/21 11:47:11 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -163,7 +163,7 @@ def main(pArgs):
       msg = "Error in the DLI interface instantiation: " + str(inst) + "\n"
       sys.stderr.write(msg)
       return -1
-        
+
 
    # From file
    if(fromFile):

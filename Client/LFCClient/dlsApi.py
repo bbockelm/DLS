@@ -1,5 +1,5 @@
 #
-# $Id: dlsApi.py,v 1.19 2006/10/19 10:21:16 delgadop Exp $
+# $Id: dlsApi.py,v 1.20 2007/02/05 15:20:31 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -22,6 +22,7 @@
 # Imports 
 #########################################
 from os import environ
+from sys import stdout
 
 
 #########################################
@@ -37,37 +38,41 @@ DLS_VERB_HIGH = 20   # print warnings (stdout) and error messages (stderr)
 # DlsApiError class
 #########################################
 
-class DlsApiError(Exception):
-  """
-  Exception class for the interaction with the DLS catalog using the DlsApi class.
-  It normally contains a string message (empty by default), and optionally an
-  error code (e.g.: if such is returned from the DLS).
+# Just get all the exceptions from the appropriate module
+from dlsApiExceptions import *
 
-  The exception may be printed directly, or its data members accessed.
 
-  Actual (instantiable) implementations of the DLS API may extend this class to 
-  define their own exceptions.
-  """
-
-  def __init__(self, message="", error_code=0):
-    self.msg = message
-    self.rc = error_code
-
-  def __str__(self):
-    return str(self.msg)
-
-class NotImplementedError(DlsApiError):
-  """
-  Exception class for methods of the DlsApi that are not implemented (and
-  should be by a instantiable API class).
-  """
-
-class ValueError(DlsApiError):
-  """
-  Exception class for invocations of DlsApi methods with an incorrect
-  value as argument.
-  """
-
+#class DlsApiError(Exception):
+#  """
+#  Exception class for the interaction with the DLS catalog using the DlsApi class.
+#  It normally contains a string message (empty by default), and optionally an
+#  error code (e.g.: if such is returned from the DLS).
+#
+#  The exception may be printed directly, or its data members accessed.
+#
+#  Actual (instantiable) implementations of the DLS API may extend this class to 
+#  define their own exceptions.
+#  """
+#
+#  def __init__(self, message="", error_code=0):
+#    self.msg = message
+#    self.rc = error_code
+#
+#  def __str__(self):
+#    return str(self.msg)
+#
+#class NotImplementedError(DlsApiError):
+#  """
+#  Exception class for methods of the DlsApi that are not implemented (and
+#  should be by a instantiable API class).
+#  """
+#
+#class ValueError(DlsApiError):
+#  """
+#  Exception class for invocations of DlsApi methods with an incorrect
+#  value as argument.
+#  """
+#
 
 
 #########################################
@@ -90,7 +95,7 @@ class DlsApi(object):
   should be provided by those implementations documentation.
   """
 
-  def __init__(self, dls_endpoint = None, verbosity = DLS_VERB_WARN):
+  def __init__(self, dls_endpoint = None, verbosity = DLS_VERB_WARN, **kwd):
     """
     This constructor is used as a general data members initialiser.
     But remember that this class should not be instantiated, since no method
@@ -106,6 +111,7 @@ class DlsApi(object):
     DLS endpoint can be retrieved from (in this order):
          - specified dls_endpoint
          - DLS_ENDPOINT environmental variable
+         - DLS config file (for some implementations, check specific documentation)
          - DLS catalog advertised in the Information System (if implemented)
          - Possibly some default value (if defined in a given implementation)
   
@@ -117,6 +123,8 @@ class DlsApi(object):
 
     @param dls_endpoint: the DLS server, as a string "hostname[:port][/path/to/DLS]"
     @param verbosity: value for the verbosity level
+    @param **kwd: Flags: any other parameters for the DLS server
+                  e.g. a dbs_client_config file or version for DLS with DBS back-end
     """
 
     self.setVerbosity(verbosity)
@@ -125,6 +133,28 @@ class DlsApi(object):
 
     if(not self.server):
       self.server = environ.get("DLS_ENDPOINT")
+    
+    self.warnfd = stdout
+    self.debugfd = stdout
+
+  
+  def __del__(self):
+    """
+    Destructor. May need to close the file used to log the warnings and debug
+    info
+    """
+    
+    if(self.warnfd != stdout):
+       try:
+          self.warnfd.close()
+       except Exception, inst:
+          pass
+
+    if(self.debugfd != stdout):
+       try:
+          self.debugfd.close()
+       except Exception, inst:
+          pass
 
 
   ############################################
@@ -747,3 +777,47 @@ class DlsApi(object):
 
     self.verb = value
 
+
+  def setWarningLogFile(self, fname = None):
+    """
+    Sets a file to redirect the warning messages of the API (by default is just stdout)
+    
+    @exception Exception: if the file cannot be opened in append mode
+
+    @param fname: the name of the file to be used for the warning messages
+    """
+    if(file):
+       # May raise an exception (for user to deal with)
+       self.warnfd = open(fname, 'a')
+    else:
+       self.warnfd = stdout
+
+  def setDebugLogFile(self, fname = None):
+    """
+    Sets a file to redirect the debug messages of the API (by default is just stdout)
+    
+    @exception Exception: if the file cannot be opened in append mode
+
+    @param fname: the name of the file to be used for the debug messages
+    """
+    if(file):
+       # May raise an exception (for user to deal with)
+       self.debugfd = open(fname, 'a')
+    else:
+       self.debugfd = stdout
+
+ 
+ 
+  ##################################
+  # Private methods
+  ##################################
+
+  def _warn(self, msg):
+    if(self.verb >= DLS_VERB_WARN):
+       self.warnfd.write("Warning: %s\n\n" % (msg))
+       self.warnfd.flush()
+
+  def _debug(self, msg):
+    if(self.verb >= DLS_VERB_HIGH):
+       self.debugfd.write("--%s\n\n" % (msg))
+       self.debugfd.flush()

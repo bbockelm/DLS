@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #
-# $Id: dls-get-fileblock,v 1.9 2006/10/10 12:09:44 delgadop Exp $
+# $Id: dls-get-fileblock,v 1.10 2007/02/05 15:39:56 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -15,8 +15,9 @@ DLS_VERB_HIGH = dlsApi.DLS_VERB_HIGH
 DLS_VERB_WARN = dlsApi.DLS_VERB_WARN
 from dlsDataObjects import DlsLocation, DlsFileBlock, DlsEntry
 import dlsClient
+from dlsCommandsCommon import *
 import time
-import os
+from os import environ
 import sys
 import commands
 import getopt
@@ -32,8 +33,8 @@ def usage():
    """
     Provides usage information
    """
-   print "Usage: dls-get-fileblock [-v, -e, -i] <location>"
-   print "       dls-get-fileblock [-v, -e, -i] -f <listing_file>"
+   print "Usage: dls-get-fileblock [-v, -e, -i, --dbs-conf] <location>"
+   print "       dls-get-fileblock [-v, -e, -i, --dbs-conf] -f <listing_file>"
    print "       dls-get-fileblock -u"
    print "       dls-get-fileblock -h"
 
@@ -49,6 +50,7 @@ def options():
    -e, --endpoint <endpoint>
    -i, --interface-type <iface_type>
    -f, --from-file <filename>
+       --dbs-conf <conf_file>
    """
 def example():
   """
@@ -62,21 +64,49 @@ def help():
     Provides some help information
    """
    print """This script will print the FileBlock entries that are associated with the
-specified location (i.e., there is a copycopy of that FileBlock in that location (SE)).
+specified location (i.e., there is a copy of that FileBlock in that location (SE)).
+
+
+Specific notes for DBS back-end (DLS_TYPE_DBS):
+
+  The argument of this command will be taken as a Storage Element name pattern.
+  All the Fileblocks associated with the matching SEs will be returned.
+
+  The server endpoint is got from a string in the URL form, usually:
+    "http[s]://hname[:port]/path/to/DLS".
+  This endpoint is retrieved from several sources (in order of precedence):   
+     - specified value for --endpoint option 
+     - DLS_ENDPOINT environmental variable
+     - specified URL in the configuration file (see --dbs-conf)
+
+  Apart from DBS endpoint, other configuration options may be specified for
+  the underlying DBS interface (e.g. the compulsory DBS client version) in a
+  configuration file. The name of this file can be indicated with,
+  in this order:
+     - specified value for --dbs-conf option
+     - DBS_CLIENT_CONFIG environmental variable
+
+
+Specific notes for LFC back-end (DLS_TYPE_LFC):
+
+  The argument of this command is the a Storage Element name.
 
    NOTE: Depending on the implementation, this method may be a very expensive
    operation and affect DLS response, so use it only with care!!
 
+  The server endpoint should be of the form: "hname[:port][/path/to/DLS]",
+  where a default port is used if not specified, and the path to DLS is
+  required. The server endpoint is retrieved from (in orden of precedence):
+     - specified value for --endpoint option 
+     - DLS_ENDPOINT environmental variable
+
+
+Options:
+
 The "-f" option can be used to retrieve locations from a file rather than from the
 given arguments. The file must contain one line per SE to be listed.
 
-The "-e" option can be used to set the DLS endpoint to use. If not specified,
-the endpoint is retrieved from:
-    - DLS_ENDPOINT environmental variable
-If the DLS endpoint cannot be retrieved in any of these ways, the command fails.
-The endpoint should be of the form: "hname[:port][/path/to/DLS]", where a
-default port is used if not specified, and the path to DLS may be required for
-some DLS implementations (and ignored otherwise).
+The "-e" option can be used to set the DLS endpoint to use. 
 
 The "-i" option specifies the type of interface that should be used (which
 depends on the DLS backend to access). If not specified, the interface type
@@ -84,8 +114,8 @@ is retrieved from:
     - DLS_TYPE environmental variable
 If the interface type cannot be retrieved in any of these ways, the command fails.
 Currently accepted values are:
+    - DLS_TYPE_DBS =>   DLS_TYPE_DBS class (complete API with DBS back-end)
     - DLS_TYPE_LFC  =>  DlsLfcApi class (complete API with LFC back-end)
-    - DLS_TYPE_DLI  =>  DlsDliClient class (getLocations only API with LFC back-end)
     - DLS_TYPE_MYSQL =>  DlsMySQLApi  class (complete API with MySQL proto back-end) 
 
 The "-v" option sets the verbosity level for the command. Accepted values are:
@@ -131,16 +161,27 @@ def showFileBlocks(iface, lineList, verbose):
 
    # Get the FileBlocks (and let the caller deal with the exception...)
    entryList = iface.getFileBlocks(locList, session = True)
-   
-   # Print the list
-   prev_loc = None
+
+
+
+   # Extract the locations returned
+   locsDict = {}
    for entry in entryList:
-      if(len(locList) > 1):
-         loc = entry.locations[0].host
-         if(loc != prev_loc):
-            print "  Location: " + loc 
-         prev_loc = loc
-      print entry.fileBlock.name
+      for loc in entry.locations:
+         if(locsDict.has_key(loc.host)):
+            locsDict[loc.host].append(entry.fileBlock.name)
+         else:
+            locsDict[loc.host] = [entry.fileBlock.name]
+   
+   # Do we print the header? Always, unless we asked for 1, and without patterns.
+   with_heathers = (len(locList) > 1) or (len(locsDict.keys()) > 1) or (locsDict.keys() != locList)
+   
+   # Print the list   
+   for loc in locsDict.keys():
+      if(with_heathers):
+         print "  Location: " + loc 
+      for block in locsDict[loc]:
+         print block
 
             
 
@@ -154,61 +195,74 @@ def main(pArgs):
 
  # Options and args... 
  
-   longoptions=["help", "usage", "endpoint", "interface-type", "verbose","from-file"]
+   longoptions=["help", "usage", "endpoint", "interface-type", "verbose","from-file", "dbs-conf="]
    try:
       optlist, args = getopt.getopt(pArgs, 'hue:i:v:f:', longoptions)
    except getopt.GetoptError, inst:
       sys.stderr.write("Bad usage: "+str(inst)+'\n')
       usage()
-      sys.exit(-1)
+      sys.exit(OPT_ERROR)
 
    err=0
+   dbsConf = None
    admitted_verb_values = [0, 1, 2]
    verbose = 1
    endpoint = None
    iface_type = None
-   admitted_iface_types = ["DLS_TYPE_LFC", "DLS_TYPE_DLI", "DLS_TYPE_MYSQL"]
+   admitted_iface_types = ["DLS_TYPE_LFC", "DLS_TYPE_DBS", "DLS_TYPE_MYSQL"]
    fromFile = False
    fname=""
    for opt, val in optlist:
        if opt in ("-h", "--help"):
            help()
-           return -1
+           return OPT_ERROR
 
        elif opt in ("-u", "--usage"):
            usage()
-           return -1
+           return OPT_ERROR
            
+       elif opt in ("", "--dbs-conf"):
+           dbsConf = val
+
        elif opt in ("-e","--endpoint"):
            endpoint = val
 
        elif opt in ("-i", "--interface-type"):
-           if (not (val in admitted_iface_types)):
-              sys.stderr.write("Unsupported interface type: " + val + "\nSuppported values: %s\n"%admitted_iface_types)
-              return -1
-           if(val == "DLS_TYPE_LFC"):
-              iface_type = dlsClient.DLS_TYPE_LFC
-           if(val == "DLS_TYPE_DLI"):
-              iface_type = dlsClient.DLS_TYPE_DLI
-           if(val == "DLS_TYPE_MYSQL"):
-              iface_type = dlsClient.DLS_TYPE_MYSQL
+           iface_type = val
 
        elif opt in ("-v", "--verbose"):
            try: 
              val = int(val)
            except ValueError, inst:
              sys.stderr.write("Unsupported verbosity value: " + val + "\n")
-             return -1
+             return OPT_ERROR
            if (not (val in admitted_verb_values)):
               sys.stderr.write("Unsupported verbosity value: " + val + "\n")
-              return -1             
+              return OPT_ERROR             
            verbose = val
 
        elif opt in ("-f","--from-file"):
            fromFile = True
            fname = val
 
- # Build the arguments 
+   # Check the interface type (from options or environ)
+   if (not iface_type):
+      iface_type = environ.get("DLS_TYPE")
+   val = iface_type
+   if (not (val in admitted_iface_types)):
+      msg = "Unsupported interface type: "+str(val)+"\nSupported values: "+str(admitted_iface_types)
+      sys.stderr.write(msg+'\n')
+      return TYPE_ERROR
+   if(val == "DLS_TYPE_DBS"):
+      iface_type = dlsClient.DLS_TYPE_DBS
+   if(val == "DLS_TYPE_LFC"):
+      iface_type = dlsClient.DLS_TYPE_LFC
+   if(val == "DLS_TYPE_MYSQL"):
+      iface_type = dlsClient.DLS_TYPE_MYSQL
+
+
+
+ # Build the arguments
 
    # From file
    if(fromFile):
@@ -217,7 +271,7 @@ def main(pArgs):
       except IOError, inst:
          msg="The file "+fname+" could not be opened: "+str(inst)+"\n"
          sys.stderr.write(msg)
-         return -1
+         return FILE_ERROR
       lineList=file.readlines()
       
    # From command line options
@@ -225,7 +279,7 @@ def main(pArgs):
       if(len(args)<1):
          sys.stderr.write("Not enough input arguments\n")
          usage()
-         return(-1)
+         return(OPT_ERROR)
 
       line=""
       for token in args:
@@ -234,7 +288,7 @@ def main(pArgs):
 
  # Create the interface binding
    try:
-      iface = dlsClient.getDlsApi(iface_type, endpoint)
+      iface = dlsClient.getDlsApi(iface_type, endpoint, dbs_client_config = dbsConf)
       if(verbose == 2):
          iface.setVerbosity(dlsApi.DLS_VERB_HIGH)
       else:
@@ -245,7 +299,7 @@ def main(pArgs):
                iface.setVerbosity(dlsApi.DLS_VERB_WARN)
    except dlsApi.DlsApiError, inst:
       if(inst.rc):  err = inst.rc 
-      else:           err = -1
+      else:           err = GENERIC_ERROR
       msg = "Error when binding the DLS interface: " + str(inst)
       sys.stderr.write(msg+"\n")
       return err
@@ -256,7 +310,7 @@ def main(pArgs):
      showFileBlocks(iface, lineList, verbose)
    except dlsApi.DlsApiError, inst:         
       if(inst.rc):  err = inst.rc 
-      else:           err = -1
+      else:           err = GENERIC_ERROR
       msg = "Error in the DLS query: %s." % str(inst)
       sys.stderr.write(msg+'\n')
 

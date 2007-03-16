@@ -1,5 +1,5 @@
 #
-# $Id: dlsMySQLApi.py,v 1.11 2006/05/18 01:47:03 afanfani Exp $
+# $Id: dlsMySQLApi.py,v 1.13 2006/09/24 17:21:06 afanfani Exp $
 #
 # DLC Client. $Name:  $. 
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -92,7 +92,7 @@ class DlsMySQLApi(dlsApi.DlsApi):
   derived from DlsMySQLApiError.
   """
 
-  def __init__(self, dls_endpoint= None, verbosity = dlsApi.DLS_VERB_WARN):
+  def __init__(self, dls_endpoint= None, verbosity = dlsApi.DLS_VERB_WARN, **kwd):
     """
     Constructor of the class. It sets the DLS (MySQL proto) server to communicate with
     and the verbosity level.
@@ -104,6 +104,7 @@ class DlsMySQLApi(dlsApi.DlsApi):
 
     @param dls_endpoint: the DLS server to be used, as a string of form "hostname[:port]"
     @param verbosity: value for the verbosity level
+    @param **kwd: Flags (currently none, only for compatibility with DlsApi)
     """
 
     dlsApi.DlsApi.__init__(self, dls_endpoint, verbosity)    

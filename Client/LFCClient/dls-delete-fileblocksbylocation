@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #
-# $Id: dls-delete-fileblocksbylocation,v 1.2 2006/05/24 09:11:59 delgadop Exp $
+# $Id: dls-delete-fileblocksbylocation,v 1.3 2007/02/05 15:39:56 delgadop Exp $
 #
 # DLS Client. $Name:  $
 # Alessandra Fanfani Univ./INFN Bologna. CMS.
@@ -15,7 +15,8 @@ DLS_VERB_HIGH = dlsApi.DLS_VERB_HIGH
 DLS_VERB_WARN = dlsApi.DLS_VERB_WARN
 from dlsDataObjects import DlsLocation, DlsFileBlock, DlsEntry
 import dlsClient
-import os
+from dlsCommandsCommon import *
+from os import environ
 import sys
 import commands
 import getopt
@@ -56,13 +57,28 @@ def help():
    """
    print """Deletes all fileblocks for the given <location> in the DLS server.
 
-The "-e" option can be used to set the DLS endpoint to use. If not specified,
-the endpoint is retrieved from:
-    - DLS_ENDPOINT environmental variable
-If the DLS endpoint cannot be retrieved in any of these ways, the command fails.
-The endpoint should be of the form: "hname[:port][/path/to/DLS]", where a
-default port is used if not specified, and the path to DLS may be required for
-some DLS implementations (and ignored otherwise).
+
+Specific notes for DBS back-end (DLS_TYPE_DBS):
+
+  At this point, this command does not support DLS's with DBS back-end.
+
+  For the DBS back-end implementation, the DLS interface cannot be used to
+  delete FileBlocks, and so only locations associated to those FileBlocks may
+  be removed. 
+  
+
+Specific notes for LFC back-end (DLS_TYPE_LFC):
+
+  The server endpoint should be of the form: "hname[:port][/path/to/DLS]",
+  where a default port is used if not specified, and the path to DLS is
+  required. The server endpoint is retrieved from (in orden of precedence):
+     - specified value for --endpoint option 
+     - DLS_ENDPOINT environmental variable
+
+
+Options:
+
+The "-e" option can be used to set the DLS endpoint to use.
 
 The "-i" option specifies the type of interface that should be used (which
 depends on the DLS backend to access). If not specified, the interface type
@@ -71,7 +87,6 @@ is retrieved from:
 If the interface type cannot be retrieved in any of these ways, the command fails.
 Currently accepted values are:
     - DLS_TYPE_LFC  =>  DlsLfcApi class (complete API with LFC back-end)
-    - DLS_TYPE_DLI  =>  DlsDliClient class (getLocations only API with LFC back-end)
     - DLS_TYPE_MYSQL =>  DlsMySQLApi  class (complete API with MySQL proto back-end) 
 
 The "-v" option sets the verbosity level for the command. Accepted values are:
@@ -103,76 +118,71 @@ def main(pArgs):
    except getopt.GetoptError, inst:
       sys.stderr.write("Bad usage: "+str(inst)+'\n')
       usage()
-      sys.exit(-1)
+      sys.exit(OPT_ERROR)
 
    err=0
    admitted_verb_values = [0, 1, 2]
    verbose = 1
    endpoint = None
    iface_type = None
-   admitted_iface_types = ["DLS_TYPE_LFC", "DLS_TYPE_DLI", "DLS_TYPE_MYSQL"]
+   admitted_iface_types = ["DLS_TYPE_LFC", "DLS_TYPE_MYSQL"]
    fname=""
 
    for opt, val in optlist:
      if opt in ("-h", "--help"):
          help()
-         return -1
+         return OPT_ERROR
 
      elif opt in ("-u", "--usage"):
          usage()
-         return -1
+         return OPT_ERROR
          
      elif opt in ("-v", "--verbose"):
          try: 
            val = int(val)
          except ValueError, inst:
            sys.stderr.write("Unsupported verbosity value: " + val + "\n")
-           return -1
+           return OPT_ERROR
          if (not (val in admitted_verb_values)):
             sys.stderr.write("Unsupported verbosity value: " + val + "\n")
-            return -1             
+            return OPT_ERROR 
          verbose = val
          
      elif opt in ("-e","--endpoint"):
          endpoint = val
 
      elif opt in ("-i", "--interface-type"):
-         if (not (val in admitted_iface_types)):
-            sys.stderr.write("Unsupported interface type: " + val + "\nSuppported values: %s\n"%admitted_iface_types)
-            return -1
-         if(val == "DLS_TYPE_LFC"):
-            iface_type = dlsClient.DLS_TYPE_LFC
-         if(val == "DLS_TYPE_DLI"):
-            iface_type = dlsClient.DLS_TYPE_DLI
-         if(val == "DLS_TYPE_MYSQL"):
-            iface_type = dlsClient.DLS_TYPE_MYSQL
-
-#   if endpoint==None:
-#      usage()
-#      msg = "error: --endpoint <DLS endpoint> is required"
-#      sys.stderr.write(msg+"\n")
-#      sys.exit(-1)
-#   if iface_type==None:
-#      usage()
-#      msg = "error: --interface-type <DLS type> is required. Suppported values: %s\n"%admitted_iface_types
-#      sys.stderr.write(msg+"\n")
-#      sys.exit(-1)
+         iface_type = val
 
  
   
- # Build the arguments 
+   # Check the interface type (from options or environ)
+   if (not iface_type):
+      iface_type = environ.get("DLS_TYPE")
+   val = iface_type
+   if (not (val in admitted_iface_types)):
+      msg = "Unsupported interface type: "+str(val)+"\nSupported values: "+str(admitted_iface_types)
+      sys.stderr.write(msg+'\n')
+      return TYPE_ERROR
+   if(val == "DLS_TYPE_LFC"):
+      iface_type = dlsClient.DLS_TYPE_LFC
+   if(val == "DLS_TYPE_MYSQL"):
+      iface_type = dlsClient.DLS_TYPE_MYSQL
 
-   
+
+
+ # Build the arguments
+
    if(len(args)<1):
          msg = "Bad usage: Not enough input arguments"
          sys.stderr.write(msg+"\n")
          usage()
-         return -1
+         return OPT_ERROR 
    if(len(args)>1):
          msg = "Bad usage: Too many input arguments"
          sys.stderr.write(msg+"\n")
          usage()
-         return -1
+         return OPT_ERROR 
 
 
    location = ""
@@ -191,7 +201,7 @@ def main(pArgs):
                iface.setVerbosity(dlsApi.DLS_VERB_WARN)
     except dlsApi.DlsApiError, inst:
       if(inst.rc):  err = inst.rc 
-      else:           err = -1
+      else:           err = GENERIC_ERROR 
       msg = "Error when binding the DLS interface: " + str(inst)
       sys.stderr.write(msg+"\n")
       return err
@@ -206,7 +216,7 @@ def main(pArgs):
       entryList=iface.getFileBlocks(location)
     except dlsApi.DlsApiError, inst:
       if(inst.rc):  err = inst.rc 
-      else:           err = -1
+      else:           err = GENERIC_ERROR 
       msg = "Error in the DLS query: %s." % str(inst)
       sys.stderr.write(msg+"\n")
       sys.exit(err) 

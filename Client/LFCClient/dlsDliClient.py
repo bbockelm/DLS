@@ -1,5 +1,5 @@
 #
-# $Id: dlsDliClient.py,v 1.4 2006/05/03 14:59:18 delgadop Exp $
+# $Id: dlsDliClient.py,v 1.5 2007/02/05 15:20:13 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -75,7 +75,7 @@ class DlsDliClient(dlsApi.DlsApi):
   supported by the DLS back-end.
   """
 
-  def __init__(self, dli_endpoint = None, verbosity = dlsApi.DLS_VERB_WARN):
+  def __init__(self, dli_endpoint = None, verbosity = dlsApi.DLS_VERB_WARN, **kwd):
     """
     Constructor of the class. It sets the DLI endpoint to communicate with
     and the verbosity level, and creates the binding with the DLI interface.
@@ -100,6 +100,7 @@ class DlsDliClient(dlsApi.DlsApi):
 
     @param dli_endpoint: the DLI endpoint, as a string "hname[:port][/path/to/DLS]"
     @param verbosity: value for the verbosity level
+    @param **kwd: Flags (currently none, only for compatibility with DlsApi)
     """
 
     # Let the parent set the server (if possible) and verbosity

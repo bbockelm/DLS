@@ -1,5 +1,5 @@
 #
-# $Id: dlsLfcApi.py,v 1.32 2006/11/19 00:47:01 afanfani Exp $
+# $Id: dlsLfcApi.py,v 1.33 2007/02/05 15:20:52 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -9,10 +9,6 @@
  This module implements a CMS Dataset Location Service (DLS) client
  interface as defined by the dlsApi module. This implementation relies
  on a DLS server using a LCG File Catalog (LFC) as back-end.
-
- For the implementation of the getLocations method, the dlsDliClient
- module is used (for performance reasons). Check that module for
- dependencies.
 
  The module contains the DlsLfcApi class that implements all the methods
  defined in dlsApi.DlsApi class and a couple of extra convenient
@@ -83,7 +79,7 @@ class NotAccessibleError(DlsLfcApiError):
   """
 
 #########################################
-# DlsApi class
+# DlsLfcApi class
 #########################################
 
 class DlsLfcApi(dlsApi.DlsApi):
@@ -96,7 +92,7 @@ class DlsLfcApi(dlsApi.DlsApi):
   derived from DlsLfcApiError.
   """
 
-  def __init__(self, dls_endpoint= None, verbosity = DLS_VERB_WARN):
+  def __init__(self, dls_endpoint= None, verbosity = DLS_VERB_WARN, **kwd):
     """
     Constructor of the class. It sets the DLS (LFC) server to communicate
     with, the path to the root directory of the server, and the verbosity level.
@@ -120,6 +116,7 @@ class DlsLfcApi(dlsApi.DlsApi):
 
     @param dls_endpoint: the DLS server to be used, as a string "hname[:port]/path/to/DLS"
     @param verbosity: value for the verbosity level
+    @param **kwd: Flags (currently none, only for compatibility with DlsApi)
     """
 
     # Let the parent set the server (if possible) and verbosity
@@ -730,7 +727,7 @@ class DlsLfcApi(dlsApi.DlsApi):
     # Return what we got
     return entryList
 
-      
+
   
   def getFileBlocks(self, locationList, **kwd):
     """

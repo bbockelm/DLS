@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #
-# $Id: dls-replace-location,v 1.5 2006/10/19 10:21:16 delgadop Exp $
+# $Id: dls-replace-location,v 1.6 2007/02/05 15:39:56 delgadop Exp $
 #
 # DLS Client. $Name:  $
 # Alessandra Fanfani Univ./INFN Bologna. CMS.
@@ -15,7 +15,8 @@ DLS_VERB_HIGH = dlsApi.DLS_VERB_HIGH
 DLS_VERB_WARN = dlsApi.DLS_VERB_WARN
 from dlsDataObjects import DlsLocation, DlsFileBlock, DlsEntry, DlsDataObjectError
 import dlsClient
-import os
+from dlsCommandsCommon import *
+from os import environ
 import sys
 import commands
 import getopt
@@ -28,13 +29,18 @@ from time import localtime, mktime
 # Max duration of a transaction (in seconds)
 DLS_MAX_TRANS_TIME = 10.5
 
+
+# TODO: When custodial flag is there, before replacing location we need to think
+#       what we do in that case.
+
+
 ######################### FUNCTIONS ########################
 
 def usage():
    """
     Provides usage information
    """
-   print "Usage: dls-replace-location [-v, -e, -i] -o <old_loc> -n <new_loc>"
+   print "Usage: dls-replace-location [-v, -e, -i, ...] -o <old_loc> -n <new_loc>"
    print "       dls-replace-location -u"
    print "       dls-replace-location -h"
 
@@ -51,6 +57,7 @@ def options():
    -i, --interface-type <iface_type>
    -o, --oldlocation <oldlocation>
    -n, --newlocation <newlocation>
+       --dbs-conf <conf_file>
    """
 def example():
   """
@@ -63,24 +70,57 @@ def help():
    """
     Provides some help information
    """
-   print """Replaces the location for all fileblocks for the given <oldlocation> to
-the given <newlocation> in the DLS server. For DLS with LFC back-end, this is done
-as an atomic operation (using transactions), so either the whole replacement is
-performed or nothing is done. This may not be the case for other implementations.
 
-NOTE: Depending on the DLS implementation this operation may take some time to complete.
+   print """Replaces the location for all fileblocks for the given <oldlocation> to
+the given <newlocation> in the DLS server.
+
+
+Specific notes for DBS back-end (DLS_TYPE_DBS):
+
+  Currently, this operation is not atomic. For each FileBlock, insertion in the new
+  location is performed first and if there is no error, the old location is removed
+  afterwards. Be aware, that if the command is interrupted in the middle of operations, 
+  some of the FileBlocks may result to be associated to both old and new location, or
+  just remain associated to old location, while for others the replacement may
+  have taken place correctly. Running the same command again should correct the
+  situation.
+
+  The server endpoint is got from a string in the URL form, usually:
+    "http[s]://hname[:port]/path/to/DLS".
+  This endpoint is retrieved from several sources (in order of precedence):   
+     - specified value for --endpoint option 
+     - DLS_ENDPOINT environmental variable
+     - specified URL in the configuration file (see --dbs-conf)
+
+  Apart from DBS endpoint, other configuration options may be specified for
+  the underlying DBS interface (e.g. the compulsory DBS client version) in a
+  configuration file. The name of this file can be indicated with,
+  in this order:
+     - specified value for --dbs-conf option
+     - DBS_CLIENT_CONFIG environmental variable
+
+
+Specific notes for LFC back-end (DLS_TYPE_LFC):
+
+  For LFC back-end, this operation is performed as an atomic operation (using
+  transactions), so either the whole replacement is performed or nothing is done.
+
+   NOTE: This operation is costly, and will take some time to complete.
+
+  The server endpoint should be of the form: "hname[:port][/path/to/DLS]",
+  where a default port is used if not specified, and the path to DLS is
+  required. The server endpoint is retrieved from (in orden of precedence):
+     - specified value for --endpoint option 
+     - DLS_ENDPOINT environmental variable
+
+
+Options:
 
 The "--skip-location-check" option can be used to skip the check of the new 
 location. If not used, the location hostname is checked for IP resolution
 in order to be accepted as valid location.
 
-The "-e" option can be used to set the DLS endpoint to use. If not specified,
-the endpoint is retrieved from:
-    - DLS_ENDPOINT environmental variable
-If the DLS endpoint cannot be retrieved in any of these ways, the command fails.
-The endpoint should be of the form: "hname[:port][/path/to/DLS]", where a
-default port is used if not specified, and the path to DLS may be required for
-some DLS implementations (and ignored otherwise).
+The "-e" option can be used to set the DLS endpoint to use.
 
 The "-i" option specifies the type of interface that should be used (which
 depends on the DLS backend to access). If not specified, the interface type
@@ -88,8 +128,8 @@ is retrieved from:
     - DLS_TYPE environmental variable
 If the interface type cannot be retrieved in any of these ways, the command fails.
 Currently accepted values are:
+    - DLS_TYPE_DBS =>   DLS_TYPE_DBS class (complete API with DBS back-end)
     - DLS_TYPE_LFC  =>  DlsLfcApi class (complete API with LFC back-end)
-    - DLS_TYPE_DLI  =>  DlsDliClient class (getLocations only API with LFC back-end)
     - DLS_TYPE_MYSQL =>  DlsMySQLApi  class (complete API with MySQL proto back-end) 
 
 The "-v" option sets the verbosity level for the command. Accepted values are:
@@ -115,80 +155,96 @@ def main(pArgs):
 
  # Options and args... 
 
-   longoptions=["help", "usage", "verbose", "endpoint", "interface-type","oldlocation","newlocation", "skip-location-check"]
+   longoptions=["help", "usage", "verbose", "endpoint", "interface-type", "oldlocation",\
+                "newlocation", "skip-location-check", "dbs-conf="]
    try:
       optlist, args = getopt.getopt(pArgs, 'huv:e:i:o:n:', longoptions)
    except getopt.GetoptError, inst:
       sys.stderr.write("Bad usage: "+str(inst)+'\n')
       usage()
-      sys.exit(-1)
+      sys.exit(OPT_ERROR)
 
    err=0
+   dbsConf = None
    admitted_verb_values = [0, 1, 2]
    verbose = 1
    checkHost = True
    endpoint = None
    iface_type = None
-   admitted_iface_types = ["DLS_TYPE_LFC", "DLS_TYPE_DLI", "DLS_TYPE_MYSQL"]
+   admitted_iface_types = ["DLS_TYPE_LFC", "DLS_TYPE_DBS", "DLS_TYPE_MYSQL"]
    oldlocation = None
    newlocation = None
 
    for opt, val in optlist:
      if opt in ("-h", "--help"):
          help()
-         return -1
+         return OPT_ERROR
 
      elif opt in ("-u", "--usage"):
          usage()
-         return -1
+         return OPT_ERROR
          
      elif opt in ("-v", "--verbose"):
          try: 
            val = int(val)
          except ValueError, inst:
            sys.stderr.write("Unsupported verbosity value: " + val + "\n")
-           return -1
+           return OPT_ERROR
          if (not (val in admitted_verb_values)):
             sys.stderr.write("Unsupported verbosity value: " + val + "\n")
-            return -1             
+            return OPT_ERROR             
          verbose = val
          
      elif opt in ("", "--skip-location-check"):
-           checkHost = False
+         checkHost = False
+
+     elif opt in ("", "--dbs-conf"):
+         dbsConf = val
 
      elif opt in ("-e","--endpoint"):
          endpoint = val
 
      elif opt in ("-i", "--interface-type"):
-         if (not (val in admitted_iface_types)):
-            sys.stderr.write("Unsupported interface type: " + val + "\nSuppported values: %s\n"%admitted_iface_types)
-            return -1
-         if(val == "DLS_TYPE_LFC"):
-            iface_type = dlsClient.DLS_TYPE_LFC
-         if(val == "DLS_TYPE_DLI"):
-            iface_type = dlsClient.DLS_TYPE_DLI
-         if(val == "DLS_TYPE_MYSQL"):
-            iface_type = dlsClient.DLS_TYPE_MYSQL
+           iface_type = val
 
      elif opt in ("-o", "--oldlocation"):
          oldlocation=val
      elif opt in ("-n", "--newlocation"):
          newlocation=val
 
+
+   # Check the interface type (from options or environ)
+   if (not iface_type):
+      iface_type = environ.get("DLS_TYPE")
+   val = iface_type
+   if (not (val in admitted_iface_types)):
+      msg = "Unsupported interface type: "+str(val)+"\nSupported values: "+str(admitted_iface_types)
+      sys.stderr.write(msg+'\n')
+      return TYPE_ERROR
+   if(val == "DLS_TYPE_DBS"):
+      iface_type = dlsClient.DLS_TYPE_DBS
+   if(val == "DLS_TYPE_LFC"):
+      iface_type = dlsClient.DLS_TYPE_LFC
+   if(val == "DLS_TYPE_MYSQL"):
+      iface_type = dlsClient.DLS_TYPE_MYSQL
+
+
+   # Check other options
    if oldlocation==None:
       msg = "Error: --oldlocation <oldlocation> is required"
       sys.stderr.write(msg+"\n")
       usage()
-      sys.exit(-1)
+      sys.exit(OPT_ERROR)
    if newlocation==None:
       msg = "Error: --newlocation <newlocation> is required"
       sys.stderr.write(msg+"\n")
       usage()
-      sys.exit(-1)
+      sys.exit(OPT_ERROR)
    if oldlocation == newlocation:
       msg = "Error: <newlocation> (%s) and <oldlocation> (%s) are equal"%(oldlocation, newlocation)
       sys.stderr.write(msg+"\n")
-      sys.exit(-1)
+      sys.exit(OPT_ERROR)
+
 
  # Build the object for new location
    try:
@@ -200,7 +256,7 @@ def main(pArgs):
 
  # Create the interface binding
    try:
-      iface = dlsClient.getDlsApi(iface_type, endpoint)
+      iface = dlsClient.getDlsApi(iface_type, endpoint, dbs_client_config = dbsConf)
       if(verbose == 2):
          iface.setVerbosity(dlsApi.DLS_VERB_HIGH)
       else:
@@ -211,7 +267,7 @@ def main(pArgs):
                iface.setVerbosity(dlsApi.DLS_VERB_WARN)
    except dlsApi.DlsApiError, inst:
       if(inst.rc):  err = inst.rc 
-      else:         err = -1
+      else:         err = GENERIC_ERROR
       msg = "Error when binding the DLS interface: " + str(inst)
       sys.stderr.write(msg+"\n")
       return err
@@ -225,18 +281,19 @@ def main(pArgs):
    except dlsApi.DlsApiError, inst:
       msg = "Error in the DLS query: %s." % str(inst)
       sys.stderr.write(msg+"\n")
-      sys.exit(-1)  
+      if(inst.rc):  err = inst.rc 
+      else:         err = GENERIC_ERROR
+      return err  
 
    if(verbose >= 2):
-      print "*** Delete all DLS entries with location=%s"%oldlocation
       print "*** Add all DLS entries with location=%s"%newlocation
-
+      print "*** Delete all DLS entries with location=%s"%oldlocation
      
    newList = []
    t0 = mktime(localtime())
    iface.startTrans()
    try:
-     # NOTE: Here we delete inside a transaction. This is dangerous and should
+     # NOTE for LFC: Here we delete inside a transaction. This is dangerous and should
      # be normally avoided! This particular case is known to behave correctly (hope).
      for oldEntry in entryList:
         newEntry = DlsEntry(oldEntry.fileBlock,[newDlsLocation])
@@ -251,9 +308,13 @@ def main(pArgs):
 
    except dlsApi.DlsApiError, inst:
      msg = "Error in deleting DLS entry: %s." % str(inst)
+     msg += "\nPlease check for FileBlocks still in old location (maybe in new as well)."
+     msg += " If the error was temporary, running the command again may fix it."
+     if(inst.rc):  err = inst.rc 
+     else:         err = GENERIC_ERROR
      sys.stderr.write(msg+"\n")
      iface.abortTrans()
-     sys.exit(-1)  
+     sys.exit(err)  
 
    iface.endTrans()
 

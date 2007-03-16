@@ -1,5 +1,5 @@
 #
-# $Id: dlsDataObjects.py,v 1.7 2006/10/17 15:41:28 delgadop Exp $
+# $Id: dlsDataObjects.py,v 1.8 2006/10/19 10:21:16 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -30,23 +30,25 @@ import socket   # for the hostname check
 # DlsDataObejctError class
 #########################################
 
-class DlsDataObjectError(dlsApi.DlsApiError):
-  """
-  Exception class for the creation and handling of DLS data objects (classes
-  defined in the dlsDataObject module).
-  """
-  
-class TypeError(DlsDataObjectError):
-  """
-  Exception class for invocations of object methods with an incorrect argument type.
-  """
-  
-class ValueError(DlsDataObjectError):
-  """
-  Exception class for invocations of object methods with an incorrect value as argument.
-  """
+from dlsApiExceptions import DlsDataObjectError
+from dlsApiExceptions import DlsDataObjectTypeError as TypeError
+from dlsApiExceptions import DlsDataObjectValueError as ValueError
 
-
+#class DlsDataObjectError(dlsApi.DlsApiError):
+#  """
+#  Exception class for the creation and handling of DLS data objects (classes
+#  defined in the dlsDataObject module).
+#  """
+#  
+#class TypeError(DlsDataObjectError):
+#  """
+#  Exception class for invocations of object methods with an incorrect argument type.
+#  """
+#  
+#class ValueError(DlsDataObjectError):
+#  """
+#  Exception class for invocations of object methods with an incorrect value as argument.
+#  """
 
 #########################################
 # DlsFileBlock class
