@@ -1,5 +1,5 @@
 #
-# $Id: dlsDataObjects.py,v 1.8 2006/10/19 10:21:16 delgadop Exp $
+# $Id: dlsDataObjects.py,v 1.9 2007/03/16 12:39:51 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -191,7 +191,7 @@ class DlsLocation(object):
   By default is False, but the check can be enabled by setting it to True.
   It does not make much sense that the host member is left empty.
 
-  There checkHost argument controls whether the specified host
+  The checkHost argument controls whether the specified host
   is tried to be resolved 
     
   The attribute list is accessible on the data member "attribs". It is a
