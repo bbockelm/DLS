@@ -1,7 +1,7 @@
 #!/usr/bin/env python
  
 #
-# $Id: DlsLfcCliTest.py,v 1.15 2006/10/19 10:22:36 delgadop Exp $
+# $Id: DlsLfcCliTest.py,v 1.17 2007/02/05 15:17:47 delgadop Exp $
 #
 # DLS Client Functional Test Suite. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -109,32 +109,35 @@ class TestDlsCli_FromArgs_General(TestDlsCli):
      # First, wrong interface selection
      cmd = self.path + "/dls-add --skip-location-check -i SOMETHING c1"
      st, out = run(cmd)
-     expected = "Unsupported interface type: SOMETHING\nSuppported values: ['DLS_TYPE_LFC', 'DLS_TYPE_DLI', 'DLS_TYPE_MYSQL']"
+     expected = "Unsupported interface type: SOMETHING\nSuppported values: ['DLS_TYPE_LFC', 'DLS_TYPE_MYSQL', 'DLS_TYPE_DBS']"
      msg = "Results (%s) are not those expected (%s)" % (out, expected)
      self.assertEqual(out, expected, msg)
 
      # Next the LFC host
      cmd = self.path + "/dls-add --skip-location-check c1"
      st, out = run(cmd)
-     expected = "Error when binding the DLS interface: Could not set the DLS server to use"
-     msg = "Results (%s) are not those expected (%s)" % (out, expected)
-     self.assertEqual(out, expected, msg)
+     expected = "Error when binding the DLS interface"
+     expected2 = "Could not set the DLS server to use"
+     msg = "Results (%s) don't contain expected (%s, %s)" % (out, expected, expected2)
+     contains = (out.find(expected) != -1) and (out.find(expected2) != -1)
+     self.assert_(contains, msg)
      
      # Now the LFC root path
      cmd = self.path + "/dls-add --skip-location-check -e %s c1" % (self.host)
      st, out = run(cmd)
      expected = "Error when binding the DLS interface: "
-     expected += "No LFC's root directory specified for DLS use"
-     msg = "Results (%s) are not those expected (%s)" % (out, expected)
-     self.assertEqual(out, expected, msg)
+     expected2 = "No LFC's root directory specified for DLS use"
+     msg = "Results (%s) don't contain expected (%s, %s)" % (out, expected, expected2)
+     contains = (out.find(expected) != -1) and (out.find(expected2) != -1)
+     self.assert_(contains, msg)
      
      # Now correct endpoint but incorrect type
      cmd = self.path + "/dls-add --skip-location-check -e %s%s -i DLS_TYPE_DLI c1 CliTest-se1" % (self.host, self.testdir)
      st, out = run(cmd)
-     expected = "Error in the entry(ies) insertion: This is just a base class! "
-     expected += "This method should be implemented in an instantiable DLS API class."
-     msg = "Results (%s) are not those expected (%s)" % (out, expected)
-     self.assertEqual(out, expected, msg)
+     expected = "Unsupported interface type: DLS_TYPE_DLI"
+     msg = "Results (%s) don't contain expected (%s)" % (out, expected)
+     contains = (out.find(expected) != -1)
+     self.assert_(contains, msg)
    
      # With everything right, the thing should work 
      cmd = self.path + "/dls-add --skip-location-check -e %s%s c1 CliTest-se1" % (self.host, self.testdir)
@@ -440,10 +443,10 @@ class TestDlsCli_FromArgs_Deletion(TestDlsCli):
      # Test the dir went away
      cmd = self.path + "/dls-get-se -l dir1"
      st, out = run(cmd)
-     expected = "Error in the DLS query: Error retrieving locations for dir1: "
-     expected += "No such file or directory."
-     msg = "The results obtained with dls-delete (%s) are not those expected (%s)" % (out, expected)
-     self.assertEqual(out, expected, msg)
+     expected = "Error in the DLS query"
+     expected2 = "Error retrieving locations for dir1: No such file or directory."
+     msg = "Results (%s) don't contain expected (%s, %s)" % (out, expected, expected2)
+     contains = (out.find(expected) != -1) and (out.find(expected2) != -1)
 
 
 ##################################################
@@ -997,12 +1000,13 @@ class TestDlsCli_FromFile_AddGetSEList(TestDlsCli_FromFile):
      self.assertEqual(st, 0, msg)
 
      out = buffer + "\n" + out
-     expected = "Error in the DLS query: Error retrieving locations for fXXX: No such file or directory.\n"
+     expected = "Error retrieving locations for fXXX: No such file or directory.\n"
      expected += "Warning: Error retrieving locations for fXXX: No such file or directory\n"
      expected += "  FileBlock: f2\nCliTest-se1\nCliTest-se2\n"
      expected += "  FileBlock: f6\nCliTest-se3"
-     msg = "Results obtained with dls-get-se -f (%s) are not those expected (%s)"%(out, expected)
-     self.assertEqual(out, expected, msg)
+     msg = "Results (%s) don't contain expected (%s)" % (out, expected)
+     contains = (out.find(expected) != -1)
+     self.assert_(contains, msg)
 
 
 
@@ -1139,10 +1143,15 @@ class TestDlsCli_FromFile_GetBlock(TestDlsCli_FromFile):
         
      for i in xrange(6,12):
         secondhalf += outlist[i] + "\n"
+
+     if(firsthalf.find("CliTest-se3") != -1): 
+         half = firsthalf
+         firsthalf = secondhalf
+         secondhalf = half
     
      for i in xrange(5):
        contains = firsthalf.find("f%d" % i) != -1
-       msg = "The results obtained (%s) with dls-get-fileblock -f are not those \
+       msg = "The results obtained (%s) with dls-get-fileblock -f do not contain \
               expected (f%d)"  % (firsthalf, i)
        self.assert_(contains, msg)
            
@@ -1199,14 +1208,14 @@ class TestDlsCli_FromFile_DelUpdate(TestDlsCli_FromFile):
      msg = "Error in dls-delete -f 2_LFNs",out 
      self.assertEqual(st, 0, msg)
 
-     expected = "Error in the DLS query: Error retrieving locations for f2: No such file or directory."
-
      cmd = self.path + "/dls-get-se -f 2_LFNs"
      st, out = run(cmd)
-
-     msg = "The results obtained with dls-get-se -f (%s) are not those \
-            expected (%s)" % (out,expected)
-     self.assertEqual(out, expected, msg)
+     expected = "Error in the DLS query:"
+     expected2 = "Error retrieving locations for f2"
+     expected3 = "No such file or directory."
+     msg = "Results (%s) don't contain expected (%s, %s, %s)"%(out, expected,expected2,expected3)
+     contains = (out.find(expected)!=-1) and (out.find(expected2)!=-1) and (out.find(expected3)!=-1)
+     self.assert_(contains, msg)
 
      # Delete the entry
      cmd = self.path + "/dls-delete -f 8_LFNs"

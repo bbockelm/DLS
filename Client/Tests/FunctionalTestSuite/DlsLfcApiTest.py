@@ -1,7 +1,7 @@
 #!/usr/bin/env python
  
 #
-# $Id: DlsLfcApiTest.py,v 1.3 2006/10/17 15:38:13 delgadop Exp $
+# $Id: DlsLfcApiTest.py,v 1.4 2006/10/19 10:22:36 delgadop Exp $
 #
 # DLS Client Functional Test Suite. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -645,8 +645,9 @@ class TestDlsApi_LFC_Other(TestDlsApi_LFC):
        api2.setVerbosity(self.api.verb)
      except DlsApiError, inst:
        expected = "No LFC's root directory specified for DLS use"
-       msg = "Results (%s) are not those expected (%s)" % (inst, expected)
-       self.assertEqual(str(inst), expected, msg)
+       msg = "Results (%s) don't contain expected (%s)" % (inst, expected)
+       contains = (str(inst)).find(expected) != -1
+       self.assert_(contains, msg)
      
      # Now correct endpoint but incorrect type (DLI not supporting addition)
      try:
@@ -656,8 +657,9 @@ class TestDlsApi_LFC_Other(TestDlsApi_LFC):
      except DlsApiError, inst:
        expected = "This is just a base class! This method should "
        expected += "be implemented in an instantiable DLS API class"
-       msg = "Results (%s) are not those expected (%s)" % (inst, expected)
-       self.assertEqual(str(inst), expected, msg)
+       msg = "Results (%s) don't contain expected (%s)" % (inst, expected)
+       contains = (str(inst)).find(expected) != -1
+       self.assert_(contains, msg)
 
 
   # Test erroneous addition in non-accessible location
@@ -735,8 +737,9 @@ class TestDlsApi_LFC_Other(TestDlsApi_LFC):
      except DlsApiError, inst:
        msg = "Error in listFileBlocks(%s): %s" % (fB2, inst)
        expected = "Error accessing FileBlock %s: No such file or directory" % (fB2.name)
-       msg = "Obtained error in listFileBlock(%s) is not that expected (%s)" % (inst, expected)
-       self.assertEqual(str(inst), expected, msg)
+       msg = "Results (%s) don't contain expected (%s)" % (inst, expected)
+       contains = (str(inst)).find(expected) != -1
+       self.assert_(contains, msg)
      
      # Clean: Delete the entries
      try:
@@ -784,8 +787,9 @@ class TestDlsApi_LFC_Other(TestDlsApi_LFC):
        self.assertEqual(0, 1, msg)
      except DlsApiError, inst:
        expected = "Error deleting FileBlock directory dir1: File exists"
-       msg = "Results (%s) of delete non empty are not those expected (%s)" % (inst, expected)
-       self.assertEqual(str(inst), expected, msg)
+       msg = "Results (%s) of delete non empty don't contain expected (%s)" % (inst, expected)
+       contains = (str(inst)).find(expected) != -1
+       self.assert_(contains, msg)
 
      # Now delete the file and remove the dir correctly
      try:
@@ -808,8 +812,9 @@ class TestDlsApi_LFC_Other(TestDlsApi_LFC):
      except DlsApiError, inst:
        msg = "Error in listFileBlocks(%s): %s" % ("dir1", inst)
        expected = "Error accessing FileBlock %s: No such file or directory" % ("dir1")
-       msg = "Obtained error in listFileBlock(%s) is not that expected (%s)" % (inst, expected)
-       self.assertEqual(str(inst), expected, msg)
+       msg = "Error msg of listFileBlock (%s) doesn't contain expected (%s)" % (inst, expected)
+       contains = (str(inst)).find(expected) != -1
+       self.assert_(contains, msg)
        self.clean = False
        self.cleanDirs = False
 
