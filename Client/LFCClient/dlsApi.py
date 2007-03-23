@@ -1,5 +1,5 @@
 #
-# $Id: dlsApi.py,v 1.20 2007/02/05 15:20:31 delgadop Exp $
+# $Id: dlsApi.py,v 1.21 2007/03/16 12:39:51 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -741,16 +741,24 @@ class DlsApi(object):
   # Other public methods (utilities)
   ##################################
 
-  def changeFileBlocksLocation(self, org_location, dest_location):
+  def changeFileBlocksLocation(self, org_location, dest_location, **kwd):
     """
     For all the FileBlocks registered in the DLS server in the location
     "org_location", changes them so that they no longer exist in "org_location",
     but they are now in "dest_location".
 
+    If the checkLocations (**kwd) flag is set to True (default), before adding
+    any performing the replacement the specified new location is checked to
+    be resolvable into IP adresses in order to be admitted as valid location.
+    If the test is not passed, the renaming is not performed. If the flag is set
+    to False, this check is skipped.
+
     The method may raise an exception if there is an error in the operation.
 
     @param org_location: original location to be changed (hostname), as a string
     @param dest_location: new location for FileBlocks (hostname), as a string
+    @param kwd: Flags:
+      - checkLocations: boolean (default True) for checking validity of dest_location
     """
     msg = "This is just a base class!"
     msg += " This method should be implemented in an instantiable DLS API class"

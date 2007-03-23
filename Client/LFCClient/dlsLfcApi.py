@@ -1,5 +1,5 @@
 #
-# $Id: dlsLfcApi.py,v 1.33 2007/02/05 15:20:52 delgadop Exp $
+# $Id: dlsLfcApi.py,v 1.34 2007/03/16 12:39:51 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -1139,7 +1139,7 @@ class DlsLfcApi(dlsApi.DlsApi):
   # Other public methods (utilities)
   ##################################
 
-  def changeFileBlocksLocation(self, org_location, dest_location):
+  def changeFileBlocksLocation(self, org_location, dest_location, **kwd):
     """
     NOT YET IMPLEMENTED (IF EVER).
 

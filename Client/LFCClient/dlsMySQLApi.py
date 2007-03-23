@@ -1,5 +1,5 @@
 #
-# $Id: dlsMySQLApi.py,v 1.13 2006/09/24 17:21:06 afanfani Exp $
+# $Id: dlsMySQLApi.py,v 1.14 2007/03/16 12:39:51 delgadop Exp $
 #
 # DLC Client. $Name:  $. 
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -378,7 +378,7 @@ class DlsMySQLApi(dlsApi.DlsApi):
   # Other public methods (utilities)
   ##################################
 
-  def changeFileBlocksLocation(self, org_location, dest_location):
+  def changeFileBlocksLocation(self, org_location, dest_location, **kwd):
     """
     Implementation of the dlsApi.DlsApi.changeFileBlocksLocation method.
     Refer to that method's documentation.
