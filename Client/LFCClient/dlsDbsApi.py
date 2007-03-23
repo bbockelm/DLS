@@ -1,5 +1,5 @@
 #
-# $Id$
+# $Id: dlsDbsApi.py,v 1.1 2007/03/16 12:34:09 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -231,7 +231,7 @@ class DlsDbsApi(dlsApi.DlsApi):
                msg += "FileBlock %s: %s" % (entry.fileBlock.name, inst.msg)
                self._warn(msg)
                if(not errorTolerant):
-                  raise DlsApiError(msg)
+                  raise DlsInvalidLocation(msg)
       else:
          locList = entry.locations
 
@@ -244,9 +244,9 @@ class DlsDbsApi(dlsApi.DlsApi):
       # Add locations
       for loc in locList:
          dbsSE = self._mapLocToDbs(loc)
-         self._debug("dbs.insertStorageElement(%s,%s)" % (entry.fileBlock.name, loc))
+         self._debug("dbs.addReplicaToBlock(%s,%s)" % (entry.fileBlock.name, loc))
          try:
-            self.dbsapi.insertStorageElement(entry.fileBlock.name, dbsSE)
+            self.dbsapi.addReplicaToBlock(entry.fileBlock.name, dbsSE)
          except DbsApiException, inst:
             msg = "Error inserting locations for fileblock %s" % (entry.fileBlock.name)
             w_msg = msg + ". Skipping"
@@ -401,8 +401,8 @@ class DlsDbsApi(dlsApi.DlsApi):
                
             # Perform the deletion
             try:
-               self._debug("dbs.deleteSEFromBlock(%s, %s)" % (lfn, host))
-               self.dbsapi.deleteSEFromBlock(lfn, host) 
+               self._debug("dbs.deleteReplicaFromBlock(%s, %s)" % (lfn, host))
+               self.dbsapi.deleteReplicaFromBlock(lfn, host) 
                remainingLocs.remove(host)
             except DbsApiException, inst:
                msg = "Error removing location %s from FileBlock %s"%(host,lfn)
@@ -712,18 +712,42 @@ class DlsDbsApi(dlsApi.DlsApi):
   # Other public methods (utilities)
   ##################################
 
-  def changeFileBlocksLocation(self, org_location, dest_location):
+  def changeFileBlocksLocation(self, org_location, dest_location, **kwd):
     """
-    NOT YET IMPLEMENTED (IF EVER).
-
     Implementation of the dlsApi.DlsApi.changeFileBlocksLocation method.
     Refer to that method's documentation.
     """
 
-    # Implement here...
-    msg += "Not yet implemented"
-    raise NotImplementedError(msg)
+    # Keywords
+    checkLocations = True
+    if(kwd.has_key("checkLocations")):
+       checkLocations = kwd.get("checkLocations")       
 
+    # First check the new location if asked for it
+    if(checkLocations):
+       try:
+          loc = DlsLocation(dest_location, checkHost = True)
+       except DlsDataObjectError, inst:
+          msg = "Error replacing location %s with %s: %s"%(org_location,dest_location,inst.msg)
+          raise DlsInvalidLocation(msg)
+
+    # Perform the replacement
+    self._debug("dbs.renameSE(%s, %s)"%(org_location, dest_location))
+    try:
+       self.dbsapi.renameSE(org_location, dest_location)
+    except DbsApiException, inst:
+       msg = "Error replacing location in DLS"
+       try:       
+         rc = int(inst.getErrorCode())
+       except Exception:
+         rc = 0
+       if(rc in [2000]):
+         msg += ". New location (%s) exists in DLS server already" % (dest_location)
+         caught_msg = inst.getClassName() + ' ' + inst.getErrorMessage()
+         msg = msg + '. Caught: [%d] %s' % (rc, caught_msg)
+         raise DlsInvalidLocation(msg, server_error_code=rc)
+         
+       self._mapException(inst, msg, msg, errorTolerant = False)
 
 
 
