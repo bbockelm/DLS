@@ -1,5 +1,5 @@
 #
-# $Id: dlsDbsApi.py,v 1.1 2007/03/16 12:34:09 delgadop Exp $
+# $Id: dlsDbsApi.py,v 1.2 2007/03/23 10:28:03 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -77,18 +77,17 @@ class DlsDbsApi(dlsApi.DlsApi):
   def __init__(self, dls_endpoint=None, verbosity=dlsApi.DLS_VERB_WARN, **kwd):
     """
     Constructor of the class. It creates a DBS interface object using the
-    necessary parameters for that, and sets the verbosity of the DLS API.
+    specified dls_endpoint and optionally additional parameters in **kwd. 
+    It also sets the verbosity of the DLS API.
     
-    The necessary arguments to create the DBS interface may be specified
-    as part of **kwd. Otherwise they may be specified in a DBS configuration 
-    file (see below). The only exception to this rule is the DBS server
-    endpoint, which for compatibility with other implementations may be also
-    specified by other means (see below). For every case, the arguments
-    in the configuration file take less precedence.
+    Any additional arguments for the DBS interface may be specified as part
+    of **kwd. Otherwise they may be specified in a DBS configuration 
+    file (see below). For every case, the arguments in the configuration
+    file take less precedence.
 
-    At the time of writing, the minimum arguments required to build the DBS
-    interface are the DBS server endpoint and the client version, but some
-    others may be specified (check DBS client documentation).
+    At the time of writing, the minimum argument required to build the DBS
+    interface is the DBS server endpoint. For others, please check DBS
+    client documentation.
     
     The server endpoint is got from a string in the URL form, usually:
     "http[s]://hname[:port]/path/to/DLS". This API tries to retrieve that
@@ -99,13 +98,13 @@ class DlsDbsApi(dlsApi.DlsApi):
          - specified URL in the configuration file (see below)
          - DLS catalog advertised in the Information System (if implemented)
          
-    The DBS client version and any other DBS-specific parameter can be specified
-    in the following ways (in order of precedence):
+    Any other DBS-specific parameter can be specified in the following ways
+    (in order of precedence):
          - variable within **kwd (version, for the DBS client version)
          - variable within the DBS configuration file
     
     The DBS configuration file (see DBS documentation) will be passed to the
-    DBS interface. It can specify server endpoint, client version, and other
+    DBS interface. It can specify server endpoint, logging level, and other
     variables, but it is overwritten by values specified by other means 
     (as explained above). The config file will be searched in (in this order):
        - specified dbs_client_config argument (in **kwd)
