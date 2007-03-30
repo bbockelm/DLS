@@ -1,5 +1,5 @@
 #
-# $Id: dlsMySQLApi.py,v 1.14 2007/03/16 12:39:51 delgadop Exp $
+# $Id: dlsMySQLApi.py,v 1.15 2007/03/23 10:26:52 delgadop Exp $
 #
 # DLC Client. $Name:  $. 
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -73,15 +73,6 @@ class SetupError(DlsMySQLApiError):
 # DlsApi class
 #########################################
 
-class DlsMySQLApiError(dlsApi.DlsApiError):
-  """
-  Exception class for the interaction with the DLS catalog using the DlsMySQLApi
-  class. It normally contains a string message (empty by default), and optionally
-  an  error code (e.g.: if such is returned from the DLS).
-                                                                                                     
-  The exception may be printed directly, or its data members accessed.
-  """
-
 class DlsMySQLApi(dlsApi.DlsApi):
   """
   This class is an implementation of the DLS client interface, defined by
@@ -104,7 +95,7 @@ class DlsMySQLApi(dlsApi.DlsApi):
 
     @param dls_endpoint: the DLS server to be used, as a string of form "hostname[:port]"
     @param verbosity: value for the verbosity level
-    @param **kwd: Flags (currently none, only for compatibility with DlsApi)
+    @param kwd: Flags (currently none, only for compatibility with DlsApi)
     """
 
     dlsApi.DlsApi.__init__(self, dls_endpoint, verbosity)    

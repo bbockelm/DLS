@@ -1,5 +1,5 @@
 #
-# $Id: dlsLfcApi.py,v 1.34 2007/03/16 12:39:51 delgadop Exp $
+# $Id: dlsLfcApi.py,v 1.35 2007/03/23 10:26:52 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -116,7 +116,7 @@ class DlsLfcApi(dlsApi.DlsApi):
 
     @param dls_endpoint: the DLS server to be used, as a string "hname[:port]/path/to/DLS"
     @param verbosity: value for the verbosity level
-    @param **kwd: Flags (currently none, only for compatibility with DlsApi)
+    @param kwd: Flags (currently none, only for compatibility with DlsApi)
     """
 
     # Let the parent set the server (if possible) and verbosity

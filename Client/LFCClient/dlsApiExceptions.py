@@ -1,5 +1,5 @@
 #
-# $Id: dlsApi.py,v 1.20 2007/02/05 15:20:31 delgadop Exp $
+# $Id: dlsApiExceptions.py,v 1.1 2007/03/16 12:34:53 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -12,49 +12,49 @@
 
  Summary of exceptions, error codes and meaning:
 
-  DlsErrorWithServer        01  Generic error in server interaction.
-                                 
-  DlsConfigError            05  Error when setting up the interface (configuration)
-                                 
-  DlsArgumentError          10  Generic wrong argument for a DLS method
-                                  
-  DlsValueError             11  Generic wrong value as argument for a DLS method
-                                 
-  DlsInvalidBlockName       12  The specified fileblock is incorrect.
-                                 
-  DlsInvalidLocation        13  The specified location is incorrect.
-                                 
-  DlsTypeError              15  Generic wrong type in argument for a DLS method
-                                  
-  NotImplementedError       20  Exception for methods of the DlsApi that are not implemented 
-                                  (and should be by a instantiable API class).
-                                  
-  DlsConnectionError        25  Problems in the connection with the DLS server
-                                  (e.g. host unknown, service unknown).
-                                  
-  DlsUnexistingBlockError   30  The specified fileblock does not exist.
-                                  
-  DlsUnexistingReplicaError 31  The specified replica (fileblock + location) does not exist.
-                                 
-  DlsBlockExistsError       32  The specified fileblock exists already.
-                                  
-  DlsReplicaExistsError     33  The specified replica (fileblock + location) exists already.
-                                  
-  DlsNotAccessibleError     35  Generic errors when trying to access a FileBlock
-                                  (or directory) or replica.
-                                  
-  DlsNotAuthorized          40  User not authorized to perform action.
-                                 
-  DlsAuthenticationError    45  Problems when trying to authenticate user.
-                                 
-  DlsDataObjectError        100  Error in the creation or handling of DLS data objects
-                                  (classes defined in the dlsDataObject module).
-                                                                                        
-  DlsDataObjectTypeError    101  Exception for invocations of methods of the DlsDataObject
-                                  module with an incorrect argument type.
-                                  
-  DlsDataObjectValueError   102  Exception for invocations of methods of the DlsDataObject
-                                  module with an incorrect value as argument.
+ DlsErrorWithServer        01  Generic error in server interaction.
+
+ DlsConfigError            05  Error when setting up the interface (configuration)
+
+ DlsArgumentError          10  Generic wrong argument for a DLS method
+
+ DlsValueError             11  Generic wrong value as argument for a DLS method
+
+ DlsInvalidBlockName       12  The specified fileblock is incorrect.
+
+ DlsInvalidLocation        13  The specified location is incorrect.
+
+ DlsTypeError              15  Generic wrong type in argument for a DLS method
+
+ NotImplementedError       20  Exception for methods of the DlsApi that are not implemented 
+                               (and should be by a instantiable API class).
+
+ DlsConnectionError        25  Problems in the connection with the DLS server
+                               (e.g. host unknown, service unknown).
+
+ DlsUnexistingBlockError   30  The specified fileblock does not exist.
+
+ DlsUnexistingReplicaError 31  The specified replica (fileblock + location) does not exist.
+
+ DlsBlockExistsError       32  The specified fileblock exists already.
+
+ DlsReplicaExistsError     33  The specified replica (fileblock + location) exists already.
+
+ DlsNotAccessibleError     35  Generic errors when trying to access a FileBlock
+                               (or directory) or replica.
+
+ DlsNotAuthorized          40  User not authorized to perform action.
+
+ DlsAuthenticationError    45  Problems when trying to authenticate user.
+
+ DlsDataObjectError        100  Error in the creation or handling of DLS data objects
+                                (classes defined in the dlsDataObject module).
+
+ DlsDataObjectTypeError    101  Exception for invocations of methods of the DlsDataObject
+                                module with an incorrect argument type.
+
+ DlsDataObjectValueError   102  Exception for invocations of methods of the DlsDataObject
+                                module with an incorrect value as argument.
 
 """
 
@@ -75,7 +75,7 @@ class DlsApiError(Exception):
    - rc: DLS client API error code (see module's help for meaning)
    - server_rc: If the DLS server provided with an error code, this is included 
                 here, probably containing more concrete information on the error.
- 
+
   Other exception classes extending this one are defined to represent more
   concrete error conditions. All of them can be thus caught, by catching objects
   of this class.
@@ -251,7 +251,7 @@ class DlsDataObjectError(DlsApiError):
   def __init__ (self, message="", error_code=100, server_error_code=0):
     DlsApiError.__init__(self, message, error_code, server_error_code)
 
-  
+
 class DlsDataObjectTypeError(DlsDataObjectError):
   """
   Exception class for invocations of methods of the DlsDataObject module with an
@@ -261,7 +261,7 @@ class DlsDataObjectTypeError(DlsDataObjectError):
   def __init__ (self, message="", error_code=101, server_error_code=0):
     DlsApiError.__init__(self, message, error_code, server_error_code)
 
-  
+
 class DlsDataObjectValueError(DlsDataObjectError):
   """
   Exception class for invocations of methods of the DlsDataObject module with an

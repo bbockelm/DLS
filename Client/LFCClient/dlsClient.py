@@ -1,5 +1,5 @@
 #
-# $Id: dlsClient.py,v 1.7 2006/04/28 08:32:16 delgadop Exp $
+# $Id: dlsClient.py,v 1.8 2007/03/16 12:39:51 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -76,7 +76,7 @@ def getDlsApi(dls_type=None, dls_endpoint=None, verbosity=DLS_VERB_WARN, **kwd):
   @param dls_type: the type of API that should be retrieved, see supported values
   @param dls_endpoint: the DLS server, as a string "hname[:port][/path/to/DLS]"
   @param verbosity: value for the verbosity level, from the supported values
-  @param **kwd: Flags: any other parameters for the DLS server
+  @param kwd: Flags: any other parameters for the DLS server
                 e.g. a dbs_client_config file or version for DLS with DBS back-end
       
   @return: a DLS API implementation object

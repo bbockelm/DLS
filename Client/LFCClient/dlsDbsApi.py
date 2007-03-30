@@ -1,5 +1,5 @@
 #
-# $Id: dlsDbsApi.py,v 1.2 2007/03/23 10:28:03 delgadop Exp $
+# $Id: dlsDbsApi.py,v 1.3 2007/03/27 09:58:37 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -122,7 +122,7 @@ class DlsDbsApi(dlsApi.DlsApi):
 
     @param dls_endpoint: the DLS server to be used, as a string "hname[:port]/path/to/DLS"
     @param verbosity: value for the verbosity level
-    @param **kwd: Flags:
+    @param kwd: Flags:
                   - URL: DLS server (DBS) endpoint
                   - version: DBS client version
                   - dbs_client_config: config file for DBS interface to use
