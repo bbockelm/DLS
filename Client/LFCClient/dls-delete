@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #
-# $Id: dls-delete,v 1.10 2007/03/16 12:39:51 delgadop Exp $
+# $Id: dls-delete,v 1.11 2007/03/27 09:58:37 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -179,7 +179,7 @@ def deleteEntries(iface, lineList, keepFileBlock, removeLinks, force, errorToler
     <lfn> [<se1> <se2> ..]
     All elements separated by whitespaces.
 
-    Throws DlsLfcApiError if there is a problem in the DLS operation.
+    Throws DlsApiError if there is a problem in the DLS operation.
    """
 
    entryList = []
@@ -207,7 +207,7 @@ def deleteEntries(iface, lineList, keepFileBlock, removeLinks, force, errorToler
                % (str(entry), str(all), str(force), str(keepFileBlock), str(removeLinks))
                
       iface.delete(entry, force = force, all = all, keepFileBlock = keepFileBlock,\
-                   removeLinks=removeLinks, session = True, errorTolerant = errorTolerant)
+                   removeLinks=removeLinks, session = False, errorTolerant = errorTolerant)
 
 
 ###################### MAIN FUNCTION ########################
@@ -388,13 +388,15 @@ def main(pArgs):
       
  # Do the deletion (under session)
    try:
+     iface.startSession()
+     session = True
      deleteEntries(iface, lineList, keepFileBlock, removeLinks, force, errorTolerant, verbose)
    except dlsApi.DlsApiError, inst:         
       if(inst.rc):  err = inst.rc 
-      else:           err = GENERIC_ERROR
+      else:           err = GENERIC_ERROR      
       msg = "Error in the entry(ies) deletion: %s." % str(inst)
       sys.stderr.write(msg+'\n')
-
+      if(session): iface.endSession()
 
  # Finally, return error code
    return err
