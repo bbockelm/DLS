@@ -1,7 +1,7 @@
 #!/usr/bin/env python
  
 #
-# $Id: DlsLfcCliTest.py,v 1.17 2007/02/05 15:17:47 delgadop Exp $
+# $Id: DlsLfcCliTest.py,v 1.18 2007/03/23 10:29:01 delgadop Exp $
 #
 # DLS Client Functional Test Suite. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -109,7 +109,7 @@ class TestDlsCli_FromArgs_General(TestDlsCli):
      # First, wrong interface selection
      cmd = self.path + "/dls-add --skip-location-check -i SOMETHING c1"
      st, out = run(cmd)
-     expected = "Unsupported interface type: SOMETHING\nSuppported values: ['DLS_TYPE_LFC', 'DLS_TYPE_MYSQL', 'DLS_TYPE_DBS']"
+     expected = "Unsupported interface type: SOMETHING\nSupported values: ['DLS_TYPE_LFC', 'DLS_TYPE_MYSQL', 'DLS_TYPE_DBS']"
      msg = "Results (%s) are not those expected (%s)" % (out, expected)
      self.assertEqual(out, expected, msg)
 
