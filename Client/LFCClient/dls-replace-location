@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #
-# $Id: dls-replace-location,v 1.8 2007/03/23 10:26:52 delgadop Exp $
+# $Id: dls-replace-location,v 1.9 2007/03/27 09:58:37 delgadop Exp $
 #
 # DLS Client. $Name:  $
 # Alessandra Fanfani Univ./INFN Bologna. CMS.
@@ -77,8 +77,13 @@ the given <newlocation> in the DLS server.
 
 Specific notes for DBS back-end (DLS_TYPE_DBS):
 
-  This operation is atomic, either the replacement is made for all fileblocks or
-  for none of them.
+  This operation is NOT atomic.
+  
+  The fileblocks for <oldlocation> are found. Then, first they are added to
+  <newlocation> and then the ones associated to <oldlocation> are removed.
+  If the operation is interrupted before finishing, blocks may end up
+  in both <oldlocation> and <newlocation>. This situation can be most
+  probably fixed by running the same command again.
 
   The server endpoint is got from a string in the URL form, usually:
     "http[s]://hname[:port]/path/to/DLS".
@@ -269,21 +274,21 @@ def main(pArgs):
   
 
    # DBS: Atomic operation in API
-   if(iface_type == dlsClient.DLS_TYPE_DBS):
-      if(verbose>=2):
-         print "--DlsApi.changeFileBlocksLocation(%s, %s, checkLocations=%s)" % (oldlocation, newlocation, checkHost)
-      try:
-         iface.changeFileBlocksLocation(oldlocation, newlocation, checkLocations=checkHost)
-         return 0
-      except dlsApi.DlsApiError, inst:
-         msg = "Error replacing location for fileblocks: %s." % str(inst)
-         sys.stderr.write(msg+"\n")
-         if(inst.rc):  err = inst.rc 
-         else:         err = GENERIC_ERROR
-         return err  
+#   if(iface_type == dlsClient.DLS_TYPE_DBS):
+#      if(verbose>=2):
+#         print "--DlsApi.changeFileBlocksLocation(%s, %s, checkLocations=%s)" % (oldlocation, newlocation, checkHost)
+#      try:
+#         iface.changeFileBlocksLocation(oldlocation, newlocation, checkLocations=checkHost)
+#         return 0
+#      except dlsApi.DlsApiError, inst:
+#         msg = "Error replacing location for fileblocks: %s." % str(inst)
+#         sys.stderr.write(msg+"\n")
+#         if(inst.rc):  err = inst.rc 
+#         else:         err = GENERIC_ERROR
+#         return err  
   
 
-   # Other interface types (LFC): non-atomic operation but with transactions
+   # Non-atomic operation (with transactions where possible)
    if(verbose >= 2):
       print "*** Get FileBlocks given the location=%s"%oldlocation
    entryList=[]
