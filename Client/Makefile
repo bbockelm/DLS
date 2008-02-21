@@ -1,62 +1,49 @@
 #!/usr/bin/make
 
 PREFIX=$(shell pwd)
-PYXML_VER=0.8.4
 # Sources
 PYTHON_SRC=$(shell pwd)
 
 # Targets
 LIB_DIR=$(PREFIX)/lib
+BIN_DIR=$(PREFIX)/bin
+SETUP_DIR=$(PREFIX)/etc
 
-all: setup lfc-mysql
-
-install : setup lfc-mysql
+install: default 
+default: dbs
+all: lfc
 
 setup:
 	/bin/mkdir -p $(LIB_DIR)
+	/bin/mkdir -p $(BIN_DIR)
+	/bin/mkdir -p $(SETUP_DIR)
 
-lfc-mysql:
-	/bin/cp $(PYTHON_SRC)/LFCClient/dls* $(LIB_DIR)/.
-	/bin/cp $(PYTHON_SRC)/DliClient/dli* $(LIB_DIR)/.
-	/bin/cp -r $(PYTHON_SRC)/DliClient/ZSI.tar.gz $(LIB_DIR)/.
-	/bin/cp -r $(PYTHON_SRC)/DliClient/PyXML-$(PYXML_VER).tar.gz $(LIB_DIR)/.
-	/bin/cp $(PYTHON_SRC)/DliClient/pyexpat* $(LIB_DIR)/.
-	/bin/cp -r $(PYTHON_SRC)/DliClient/InstallPyXML.sh $(LIB_DIR)/.
-	/bin/chmod a+x $(LIB_DIR)/InstallPyXML.sh
-	cd $(LIB_DIR) && tar xvzf ZSI.tar.gz > /dev/null && /bin/rm $(LIB_DIR)/ZSI.tar.gz
+lfc: WHAT=lfc
+lfc: dli api_subdir
 
-lfc:
-	/bin/cp $(PYTHON_SRC)/LFCClient/dls* $(LIB_DIR)/.
-	/bin/cp $(PYTHON_SRC)/DliClient/dli* $(LIB_DIR)/.
-	/bin/rm $(LIB_DIR)/dlsMySQLApi.py
-	/bin/cp -r $(PYTHON_SRC)/DliClient/ZSI.tar.gz $(LIB_DIR)/.
-	/bin/cp -r $(PYTHON_SRC)/DliClient/PyXML-$(PYXML_VER).tar.gz $(LIB_DIR)/.
-	/bin/cp $(PYTHON_SRC)/DliClient/pyexpat* $(LIB_DIR)/.
-	/bin/cp -r $(PYTHON_SRC)/DliClient/InstallPyXML.sh $(LIB_DIR)/.
-	/bin/chmod a+x $(LIB_DIR)/InstallPyXML.sh
-	cd $(LIB_DIR) && tar xvzf ZSI.tar.gz > /dev/null && /bin/rm $(LIB_DIR)/ZSI.tar.gz
+dli: setup 
+	cd DliClient && ${MAKE} PREFIX=${PREFIX} dli
+	cd LFCClient  && ${MAKE} PREFIX=${PREFIX} dli
 
-dli:
-	/bin/cp $(PYTHON_SRC)/LFCClient/dls* $(LIB_DIR)/.
-	/bin/cp $(PYTHON_SRC)/DliClient/dli* $(LIB_DIR)/.
-	/bin/rm $(LIB_DIR)/dls-add
-	/bin/rm $(LIB_DIR)/dls-delete
-	/bin/rm $(LIB_DIR)/dls-update
-	/bin/rm $(LIB_DIR)/dlsMySQLApi.py
-	/bin/rm $(LIB_DIR)/dlsLfcApi.py
-	/bin/cp -r $(PYTHON_SRC)/DliClient/ZSI.tar.gz $(LIB_DIR)/.
-	/bin/cp -r $(PYTHON_SRC)/DliClient/PyXML-$(PYXML_VER).tar.gz $(LIB_DIR)/.
-	/bin/cp $(PYTHON_SRC)/DliClient/pyexpat* $(LIB_DIR)/.	
-	/bin/cp -r $(PYTHON_SRC)/DliClient/InstallPyXML.sh $(LIB_DIR)/.
-	/bin/chmod a+x $(LIB_DIR)/InstallPyXML.sh
-	cd $(LIB_DIR) && tar xvzf ZSI.tar.gz > /dev/null && /bin/rm $(LIB_DIR)/ZSI.tar.gz
+mysql: WHAT=mysql
+mysql: setup api_subdir end
 
-mysql:
-	/bin/cp $(PYTHON_SRC)/LFCClient/dls* $(LIB_DIR)/.
-	/bin/rm $(LIB_DIR)/dlsLfcApi.py
-	/bin/rm $(LIB_DIR)/dlsDliClient.py
+dbs: WHAT=dbs
+dbs: setup api_subdir end
 
+phedex: WHAT=phedex
+phedex: setup api_subdir end
+
+api_subdir:
+	cd LFCClient  && ${MAKE} PREFIX=${PREFIX} ${WHAT}
+
+end:
+	@echo 
+	@echo "NOTE: To set proper environment you need to source $(SETUP_DIR)/setup.(c)sh"
+	@echo "You may want to add that to one of your start-up scripts"
 
 clean:
 	/bin/rm -rf $(LIB_DIR)/*
+	/bin/rm -rf $(BIN_DIR)/*
+	/bin/rm -rf $(SETUP_DIR)/*
 

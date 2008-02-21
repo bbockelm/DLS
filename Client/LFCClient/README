@@ -1,5 +1,5 @@
 #
-# $Id: README,v 1.1 2006/04/07 11:32:07 delgadop Exp $
+# $Id: README,v 1.2 2007/03/30 13:13:46 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -32,10 +32,11 @@ Contents
  interface to retrieve one of the DlsApi implementations (see next group
  of files), depending on the DLS type defined by the user or the environment.
  
- dlsDbsApi.py, dlsLfcApi.py, dlsMySQLApi.py, dlsDliClient.py: contain the
- DlsDbsApi, DlsLfcApi, DlsMySQLApi and DlsDliClient classes, which implement
- the DlsApi methods, for different back-end DLS implementations to be accessed:
- DLS integrated with DBS, LFC-based, MySQL-based and DLI-based.
+ dlsPhedexApi.py, dlsDbsApi.py, dlsLfcApi.py, dlsMySQLApi.py, dlsDliClient.py:
+ contain the DlsPhedexApi, DlsDbsApi, DlsLfcApi, DlsMySQLApi and DlsDliClient
+ classes, which implement the DlsApi methods, for different back-end DLS
+ implementations to be accessed:
+ DLS integrated with PhEDEx or DBS, LFC-based, MySQL-based and DLI-based.
 
  dls-*: implement the CLI that uses one the API implementations
  (retrieved using DlsClient). In principle, the CLI should work with either
@@ -81,5 +82,5 @@ self-documented. This documentation can be accessed in the following ways:
 
   - Read the docstrings directly from the source files.
 
-  - The CLI tools use the API, so please check the scripts source code for some
-    examples on API usage.
+In addition, since the CLI tools use the API, the scripts source code are good
+examples of API usage.

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #
-# $Id: dls-get-se,v 1.12 2007/03/16 12:39:51 delgadop Exp $
+# $Id: dls-get-se,v 1.13 2007/03/27 09:58:37 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -11,15 +11,14 @@
 # Imports 
 #########################################
 import dlsApi
-DLS_VERB_HIGH = dlsApi.DLS_VERB_HIGH
-DLS_VERB_WARN = dlsApi.DLS_VERB_WARN
 from dlsDataObjects import DlsLocation, DlsFileBlock, DlsEntry
-from os import environ
 import dlsClient
 from dlsCommandsCommon import *
 import time
 import sys
 import getopt
+
+ADMITTED_IFACE_TYPES = ["DLS_TYPE_LFC", "DLS_TYPE_MYSQL", "DLS_TYPE_DBS", "DLS_TYPE_PHEDEX", "DLS_TYPE_DLI"]
 
 
 ################## GLOBAL CONSTANTS ########################
@@ -67,21 +66,25 @@ def help():
    print """Prints the locations holding a copy of the specified FileBlock. 
 
 
-Specific notes for DBS back-end (DLS_TYPE_DBS):
+Specific notes for DBS and PhEDEx back-end (DLS_TYPE_DBS, DLS_TYPE_PHEDEX):
 
   The argument of this command will be taken as a FileBlock name pattern.
-  All the locations associated with the matching FileBlocks will be returned.
-
-  Currently, the DBS back-end does not support replica attributes, so the
-  "-l" option is ignored.
+  (with '*' as wildcard). All the locations associated with the matching
+  FileBlocks will be returned.
 
   The server endpoint is got from a string in the URL form, usually:
     "http[s]://hname[:port]/path/to/DLS".
   This endpoint is retrieved from several sources (in order of precedence):   
      - specified value for --endpoint option 
      - DLS_ENDPOINT environmental variable
-     - specified URL in the configuration file (see --dbs-conf)
+     - (DBS only) specified URL in the configuration file (see --dbs-conf)
+     - (PhEDEx only) DLS_PHEDEX_ENDPOINT environmental variable
 
+Additional DBS notes:
+
+  Currently, the DBS back-end does not support replica attributes, so the
+  "-l" option is ignored.
+  
   Apart from DBS endpoint, other configuration options may be specified for
   the underlying DBS interface (e.g. "level" for DBS logging level) in a
   configuration file. The name of this file can be indicated with,
@@ -126,35 +129,14 @@ the command must keep trying with the rest of fileblocks (by default, it will
 break on error at the first problem). In the case of errors, a warning is
 printed and the corresponding fileblock is skipped in the resulting locations
 list. The "-p" option makes no sense if "-f" is not used.
-
-The "-e" option can be used to set the DLS endpoint to use.
-
-The "-i" option specifies the type of interface that should be used (which
-depends on the DLS backend to access). If not specified, the interface type
-is retrieved from:
-    - DLS_TYPE environmental variable
-If the interface type cannot be retrieved in any of these ways, the command fails.
-Currently accepted values are:
-    - DLS_TYPE_DBS =>   DLS_TYPE_DBS class (complete API with DBS back-end)
-    - DLS_TYPE_LFC  =>  DlsLfcApi class (complete API with LFC back-end)
-    - DLS_TYPE_DLI  =>  DlsDliClient class (getLocations only API with LFC back-end)
-    - DLS_TYPE_MYSQL =>  DlsMySQLApi  class (complete API with MySQL proto back-end) 
-
-The "-v" option sets the verbosity level for the command. Accepted values are:
-  -v 0 ==> print nothing else than error messages
-  -v 1 ==> print also warning messages (default)
-  -v 2 ==> print extra debug information
-
-If "-u" is specified, usage information is displayed.
-
-If "-h" is specified, help information is displayed.
-   """
+ """
+   commonHelpText(ADMITTED_IFACE_TYPES)
    options()
    usage()
 
 
 
-def showLocations(iface, lineList, longList, errorTolerant, verbose):
+def showLocations(iface, lineList, longList, iface_type, errorTolerant, verbose):
    """
     Prints the locations which hold a copy of the specified
     FileBlock. lineList is a list of strings, each holding 
@@ -193,8 +175,11 @@ def showLocations(iface, lineList, longList, errorTolerant, verbose):
       if (len(entryList) > 1):
          print "  FileBlock: " + entry.fileBlock.name
       for loc in entry.locations:
+         # In any case, print the host
          print loc.host,
-         if(longList):
+         
+         if(iface_type=="DLS_TYPE_LFC" and longList):
+#         if(longList):
             values = []
             for i in ["atime", "ptime", "f_type", "sfn"]:
                try:
@@ -215,7 +200,12 @@ def showLocations(iface, lineList, longList, errorTolerant, verbose):
             print values[1], "\t",
             print values[2], "\t",
             print values[3],
+
+         if(iface_type != "DLS_TYPE_LFC" and longList):
+            print loc.attribs,
+
          print
+         
  
 
             
@@ -230,7 +220,7 @@ def main(pArgs):
 
  # Options and args... 
  
-   longoptions=["help", "usage", "long", "endpoint", "interface-type", "verbose", "from-file", "partial-list", "dbs-conf="]
+   longoptions=["help", "usage", "long", "endpoint=", "interface-type=", "verbose=", "from-file=", "partial-list", "dbs-conf="]
    try:
       optlist, args = getopt.getopt(pArgs, 'hule:i:v:f:p', longoptions)
    except getopt.GetoptError, inst:
@@ -241,22 +231,20 @@ def main(pArgs):
    err=0
    longList = False
    dbsConf = None
-   admitted_verb_values = [0, 1, 2]
    verbose = 1
    endpoint = None
    iface_type = None
-   admitted_iface_types = ["DLS_TYPE_LFC", "DLS_TYPE_DLI", "DLS_TYPE_MYSQL", "DLS_TYPE_DBS"]
    fromFile = False
    fname=""
    errorTolerant = False
    for opt, val in optlist:
        if opt in ("-h", "--help"):
            help()
-           return OPT_ERROR
+           return 0
 
        elif opt in ("-u", "--usage"):
            usage()
-           return OPT_ERROR
+           return 0
            
        elif opt in ("-l", "--long"):
            longList = True
@@ -274,15 +262,8 @@ def main(pArgs):
            iface_type = val
 
        elif opt in ("-v", "--verbose"):
-           try: 
-             val = int(val)
-           except ValueError, inst:
-             sys.stderr.write("Unsupported verbosity value: " + val + "\n")
-             return OPT_ERROR
-           if (not (val in admitted_verb_values)):
-              sys.stderr.write("Unsupported verbosity value: " + val + "\n")
-              return OPT_ERROR             
-           verbose = val
+           verbose = check_verbosity_value(val)
+           if(verbose == OPT_ERROR): return OPT_ERROR
 
        elif opt in ("-f","--from-file"):
            fromFile = True
@@ -290,21 +271,8 @@ def main(pArgs):
 
 
    # Check the interface type (from options or environ)
-   if (not iface_type):
-      iface_type = environ.get("DLS_TYPE")
-   val = iface_type
-   if (not (val in admitted_iface_types)):
-      msg = "Unsupported interface type: "+str(val)+"\nSupported values: "+str(admitted_iface_types)
-      sys.stderr.write(msg+'\n')
-      return TYPE_ERROR
-   if(val == "DLS_TYPE_DLI"):
-      iface_type = dlsClient.DLS_TYPE_DLI
-   if(val == "DLS_TYPE_DBS"):
-      iface_type = dlsClient.DLS_TYPE_DBS
-   if(val == "DLS_TYPE_LFC"):
-      iface_type = dlsClient.DLS_TYPE_LFC
-   if(val == "DLS_TYPE_MYSQL"):
-      iface_type = dlsClient.DLS_TYPE_MYSQL
+   iface_type = check_iface_type(iface_type, ADMITTED_IFACE_TYPES)
+   if (iface_type == TYPE_ERROR): return TYPE_ERROR
 
 
  # Check option combinations...
@@ -336,16 +304,8 @@ def main(pArgs):
       lineList = [line]
 
  # Create the interface binding
-   try:
-      iface = dlsClient.getDlsApi(iface_type, endpoint, dbs_client_config = dbsConf)
-      if(verbose == 2):
-         iface.setVerbosity(dlsApi.DLS_VERB_HIGH)
-      else:
-         if(verbose == 0):
-            iface.setVerbosity(dlsApi.DLS_VERB_NONE)
-         else:
-            if(verbose == 1):
-               iface.setVerbosity(dlsApi.DLS_VERB_WARN)
+   try: 
+      iface = create_iface_binding(iface_type, endpoint, dbsConf, verbose)
    except dlsApi.DlsApiError, inst:
       if(inst.rc):  err = inst.rc 
       else:           err = GENERIC_ERROR
@@ -356,7 +316,7 @@ def main(pArgs):
    
  # Do the query (under session)
    try:
-     showLocations(iface, lineList, longList, errorTolerant, verbose)
+     showLocations(iface, lineList, longList, iface_type, errorTolerant, verbose)
    except dlsApi.DlsApiError, inst:         
       if(inst.rc):  err = inst.rc 
       else:           err = GENERIC_ERROR

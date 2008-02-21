@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #
-# $Id: dls-dump,v 1.4 2007/03/16 12:39:51 delgadop Exp $
+# $Id: dls-dump,v 1.5 2007/03/27 09:58:37 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -11,16 +11,15 @@
 # Imports 
 #########################################
 import dlsApi
-DLS_VERB_HIGH = dlsApi.DLS_VERB_HIGH
-DLS_VERB_WARN = dlsApi.DLS_VERB_WARN
 from dlsDataObjects import DlsLocation, DlsFileBlock, DlsEntry
 import dlsClient
 from dlsCommandsCommon import *
 import time
-from os import environ
 import sys
 import commands
 import getopt
+
+ADMITTED_IFACE_TYPES = ["DLS_TYPE_LFC", "DLS_TYPE_MYSQL", "DLS_TYPE_DBS", "DLS_TYPE_PHEDEX"]
 
 
 ################## GLOBAL CONSTANTS ########################
@@ -68,20 +67,24 @@ of the argument <what_to_print> depends on the back-end DLS server, as
 explained below.
 
 
-Specific notes for DBS back-end (DLS_TYPE_DBS):
+Specific notes for DBS and PhEDEx back-end (DLS_TYPE_DBS, DLS_TYPE_PHEDEX):
 
-  DBS' FileBlock namespace is flat, and so there are no directories. The
-  argument of this command will be taken as a FileBlock pattern, and information
-  regarding the matching FileBlocks will be returned. If only "/" is specified,
-  this will be interpreted as "dump the whole catalog". The "-r" option is
-  ignored.
+  DBS and PhEDEx FileBlock namespace is flat, and so there are no directories.
+  The argument of this command will be taken as a FileBlock pattern (with
+  '*' as wildcard), and information regarding the matching FileBlocks will be
+  returned. If only "/"  is specified, this will be interpreted as "list the
+  whole catalog". The "-r" option is ignored.
 
   The server endpoint is got from a string in the URL form, usually:
     "http[s]://hname[:port]/path/to/DLS".
   This endpoint is retrieved from several sources (in order of precedence):   
      - specified value for --endpoint option 
      - DLS_ENDPOINT environmental variable
-     - specified URL in the configuration file (see --dbs-conf)
+     - (DBS only) specified URL in the configuration file (see --dbs-conf)
+     - (PhEDEx only) DLS_PHEDEX_ENDPOINT environmental variable
+
+
+Additional notes for DBS back-end (DLS_TYPE_DBS):
 
   Apart from DBS endpoint, other configuration options may be specified for
   the underlying DBS interface (e.g. "level" for DBS logging level) in a
@@ -117,28 +120,8 @@ The "-r" option makes the dumping recursive.
 
 The "--dbs-conf" option can be used to specify a configuration file for the
 DBS interface.
-
-The "-e" option can be used to set the DLS endpoint to use.
-
-The "-i" option specifies the type of interface that should be used (which
-depends on the DLS backend to access). If not specified, the interface type
-is retrieved from:
-    - DLS_TYPE environmental variable
-If the interface type cannot be retrieved in any of these ways, the command fails.
-Currently accepted values are:
-    - DLS_TYPE_DBS =>   DLS_TYPE_DBS class (complete API with DBS back-end)
-    - DLS_TYPE_LFC  =>  DlsLfcApi class (complete API with LFC back-end)
-    - DLS_TYPE_MYSQL =>  DlsMySQLApi  class (complete API with MySQL proto back-end) 
-
-The "-v" option sets the verbosity level for the command. Accepted values are:
-  -v 0 ==> print nothing else than error messages
-  -v 1 ==> print also warning messages (default)
-  -v 2 ==> print extra debug information
-
-If "-u" is specified, usage information is displayed.
-
-If "-h" is specified, help information is displayed.
    """
+   commonHelpText(ADMITTED_IFACE_TYPES)
    options()
    usage()
 
@@ -176,7 +159,7 @@ def main(pArgs):
 
  # Options and args... 
  
-   longoptions=["help", "usage", "endpoint", "interface-type","verbose","recursive", "dbs-conf="]
+   longoptions=["help", "usage", "endpoint=", "interface-type=","verbose=","recursive", "dbs-conf="]
    try:
       optlist, args = getopt.getopt(pArgs, 'hue:i:v:r', longoptions)
    except getopt.GetoptError, inst:
@@ -186,20 +169,18 @@ def main(pArgs):
 
    err=0
    dbsConf = None
-   admitted_verb_values = [0, 1, 2]
    verbose = 1
    endpoint = None
    iface_type = None
-   admitted_iface_types = ["DLS_TYPE_LFC", "DLS_TYPE_DBS", "DLS_TYPE_MYSQL"]
    recursive = False
    for opt, val in optlist:
        if opt in ("-h", "--help"):
            help()
-           return OPT_ERROR
+           return 0 
 
        elif opt in ("-u", "--usage"):
            usage()
-           return OPT_ERROR
+           return 0
            
        elif opt in ("", "--dbs-conf"):
            dbsConf = val
@@ -211,34 +192,16 @@ def main(pArgs):
            iface_type = val
 
        elif opt in ("-v", "--verbose"):
-           try: 
-             val = int(val)
-           except ValueError, inst:
-             sys.stderr.write("Unsupported verbosity value: " + val + "\n")
-             return OPT_ERROR
-           if (not (val in admitted_verb_values)):
-              sys.stderr.write("Unsupported verbosity value: " + val + "\n")
-              return OPT_ERROR             
-           verbose = val
+           verbose = check_verbosity_value(val)
+           if(verbose == OPT_ERROR): return OPT_ERROR
 
        elif opt in ("-r","--recursive"):
            recursive = True
 
 
    # Check the interface type (from options or environ)
-   if (not iface_type):
-      iface_type = environ.get("DLS_TYPE")
-   val = iface_type
-   if (not (val in admitted_iface_types)):
-      msg = "Unsupported interface type: "+str(val)+"\nSupported values: "+str(admitted_iface_types)
-      sys.stderr.write(msg+'\n')
-      return TYPE_ERROR
-   if(val == "DLS_TYPE_DBS"):
-      iface_type = dlsClient.DLS_TYPE_DBS
-   if(val == "DLS_TYPE_LFC"):
-      iface_type = dlsClient.DLS_TYPE_LFC
-   if(val == "DLS_TYPE_MYSQL"):
-      iface_type = dlsClient.DLS_TYPE_MYSQL
+   iface_type = check_iface_type(iface_type, ADMITTED_IFACE_TYPES)
+   if (iface_type == TYPE_ERROR): return TYPE_ERROR
 
 
  # Get the arguments
@@ -250,24 +213,16 @@ def main(pArgs):
    dir = args[0]
 
  # Create the interface binding
-   try:
-      iface = dlsClient.getDlsApi(iface_type, endpoint, dbs_client_config = dbsConf)
-      if(verbose == 2):
-         iface.setVerbosity(dlsApi.DLS_VERB_HIGH)
-      else:
-         if(verbose == 0):
-            iface.setVerbosity(dlsApi.DLS_VERB_NONE)
-         else:
-            if(verbose == 1):
-               iface.setVerbosity(dlsApi.DLS_VERB_WARN)
+   try: 
+      iface = create_iface_binding(iface_type, endpoint, dbsConf, verbose)
    except dlsApi.DlsApiError, inst:
       if(inst.rc):  err = inst.rc 
       else:           err = GENERIC_ERROR
       msg = "Error when binding the DLS interface: " + str(inst)
       sys.stderr.write(msg+"\n")
       return err
-
    
+    
  # Do the query (under session)
    try:
      showEntries(iface, dir, recursive, verbose)

@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
 #
-# $Id: dli-list,v 1.2 2006/03/31 09:33:03 delgadop Exp $
+# $Id: dli-list,v 1.3 2006/04/07 09:30:21 delgadop Exp $
 #
-# DliClient. $Name$.
+# DliClient. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
 #
 
@@ -118,7 +118,7 @@ def main(pArgs):
                                                                                                     
  # Options and args...
                                                                                                     
-   longoptions=["help", "usage", "verbose", "endpoint", "from-file"]
+   longoptions=["help", "usage", "verbose", "endpoint=", "from-file="]
    try:
       optlist, args = getopt.getopt(pArgs, 'hutve:f:', longoptions)
    except getopt.GetoptError, inst:

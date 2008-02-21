@@ -14,7 +14,7 @@ def usage():
         print "-e,--endpoint <hostname> \t DLS endpoint \n"
 
 long_options=["help","verbose","iface_type=","endpoint="]
-short_options="hv:i:e:"
+short_options="hvi:e:"
 
 try:
      opts, args = getopt.getopt(sys.argv[1:],short_options,long_options)

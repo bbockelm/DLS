@@ -1,5 +1,5 @@
 #
-# $Id: dlsDbsApi.py,v 1.3 2007/03/27 09:58:37 delgadop Exp $
+# $Id: dlsDbsApi.py,v 1.4 2007/03/30 13:13:47 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -111,14 +111,14 @@ class DlsDbsApi(dlsApi.DlsApi):
        - DBS_CLIENT_CONFIG environmental variable
     
     If the necessary arguments cannot be obtained in any of these ways, the
-    instantiation is denied and a SetupError is raised.
+    instantiation is denied and a DlsConfigError is raised.
  
     The verbosity level affects invocations of all methods in this object.
     See the dlsApi.DlsApi.setVerbosity method for information on accepted values.
     The underlying DBS interface verbosity can be controlled via the corresponding
     DBS configuration parameter (in **kwd or config file).
       
-    @exception SetupError: if the DBS interface object cannot be set up correctly 
+    @exception DlsConfigError: if the DBS interface object cannot be set up correctly 
 
     @param dls_endpoint: the DLS server to be used, as a string "hname[:port]/path/to/DLS"
     @param verbosity: value for the verbosity level
@@ -158,6 +158,7 @@ class DlsDbsApi(dlsApi.DlsApi):
     # Set the server in our own variable (will this be needed?)
     self.server = self.dbsapi.url()
 
+    # TODO: add the checkEndpoint flag to avoid innecessary checking
     # Check that the provided URL is OK (by listing an inexisting fileblock)
     try:
        self.dbsapi.listBlocks(block_name="-") 

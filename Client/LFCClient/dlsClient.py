@@ -1,5 +1,5 @@
 #
-# $Id: dlsClient.py,v 1.8 2007/03/16 12:39:51 delgadop Exp $
+# $Id: dlsClient.py,v 1.9 2007/03/30 13:13:47 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -31,7 +31,10 @@ from dlsApi import DLS_VERB_WARN, DlsValueError
 #########################################
 # Module globals
 #########################################
-# DlsDbs (complete API with DBS back-end)
+# DlsPhedexApi (read-only API with PhEDEx back-end)
+DLS_TYPE_PHEDEX = "DLS_TYPE_PHEDEX"
+
+# DlsDbs (almost complete API with DBS back-end)
 DLS_TYPE_DBS = "DLS_TYPE_DBS"
 
 # DlsLfcApi (complete API with LFC back-end)
@@ -62,10 +65,11 @@ def getDlsApi(dls_type=None, dls_endpoint=None, verbosity=DLS_VERB_WARN, **kwd):
   should be one of the supported values (defined in this module).
   
   Currently admitted values are:    
-   - DLS_TYPE_LFC  =>  DlsLfcApi class (complete API with LFC back-end)
-   - DLS_TYPE_DBS =>   DLS_TYPE_DBS class (complete API with DBS back-end)
-   - DLS_TYPE_DLI  =>  DlsDliClient class (getLocations only API with LFC back-end)
-   - DLS_TYPE_MYSQL => DlsMySQLApi  class (complete API with MySQL proto back-end)
+   - DLS_TYPE_PHEDEX => DLS_TYPE_PHEDEX class (read-only API with PhEDEx back-end)
+   - DLS_TYPE_DBS =>    DLS_TYPE_DBS class (complete API with DBS back-end)
+   - DLS_TYPE_LFC  =>   DlsLfcApi class (complete API with LFC back-end)
+   - DLS_TYPE_DLI  =>   DlsDliClient class (getLocations only API with LFC back-end)
+   - DLS_TYPE_MYSQL =>  DlsMySQLApi  class (complete API with MySQL proto back-end)
 
   The other arguments (dls_endpoint, verbosity and **kwd) are passed to the constructor 
   of the DLS API as they are. See the dlsApi.DlsApi documentation for details.
@@ -82,7 +86,7 @@ def getDlsApi(dls_type=None, dls_endpoint=None, verbosity=DLS_VERB_WARN, **kwd):
   @return: a DLS API implementation object
   """
 
-  admitted_vals = [DLS_TYPE_LFC, DLS_TYPE_DLI, DLS_TYPE_MYSQL, DLS_TYPE_DBS]
+  admitted_vals = [DLS_TYPE_LFC, DLS_TYPE_DLI, DLS_TYPE_MYSQL, DLS_TYPE_DBS, DLS_TYPE_PHEDEX]
   candidate = None
  
   # First set the candidate from the arguments or environment
@@ -99,6 +103,8 @@ def getDlsApi(dls_type=None, dls_endpoint=None, verbosity=DLS_VERB_WARN, **kwd):
   # If everything ok, return corresponding API
   if(candidate == DLS_TYPE_LFC):
      from dlsLfcApi import DlsLfcApi as api
+  if(candidate == DLS_TYPE_PHEDEX):
+     from dlsPhedexApi import DlsPhedexApi as api
   if(candidate == DLS_TYPE_DBS):
      from dlsDbsApi import DlsDbsApi as api
   if(candidate == DLS_TYPE_DLI):
@@ -106,5 +112,4 @@ def getDlsApi(dls_type=None, dls_endpoint=None, verbosity=DLS_VERB_WARN, **kwd):
   if(candidate == DLS_TYPE_MYSQL):
      from dlsMySQLApi import DlsMySQLApi as api
                                                                                                  
-
   return api(dls_endpoint, verbosity, **kwd)

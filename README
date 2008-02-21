@@ -1,4 +1,35 @@
-#     $Id: README,v 1.1.1.1 2005/11/15 16:53:01 elmer Exp $
+#     $Id: README,v 1.2 2006/01/05 11:20:15 afanfani Exp $
+
+The code in the DLS cvs module is related to the
+Data Location Service (DLS). Please check the
+DLS page at:
+https://twiki.cern.ch/twiki/bin/view/CMS/DLS
+
+The code in this module includes a protype DLS
+server and API/CLI clients for this and other
+types of DLS servers (with different external
+back-ends). There is also testing code and
+documentation.
+
+Please, always refer to the aforementioned
+Twiki, which should give you more
+up-to-date information (including which type
+of client you need to use).
+
+The most used client today (Feb 2008) is the  
+DBS-based. PhEDEx-based should become relevant
+in the near future. Client code for both is
+totally contained within the DLS/Client/LFCClient/
+subdirectory, so you will be probably interested
+in checking the README file therein.
+
+The instructions that follow indicate how to
+use the old MySQL-based DLS prototype.
+For client installations use the Makefile
+under DLS/Client or DLS/Client/LFCClient/, 
+but note that this not include any setup
+of possible dependencies.
+
 
 #================================================
 #   DLS Server Prototype 0 (Giovanni Ciraolo)   #
@@ -51,13 +82,4 @@ EXAMPLES from a client:
 - Remove a replica:
 
  dls-remove-replica --host localhost --datablock datablock1 --se grid001.fi.infn.it --port 18080
-
-
-
-#================================================
-# DLS  Prototype based on LFC (Antonio Delgado) #
-#================================================
-# Server code is the LFC server
-# Client code:
- DLS/Client/LFCClient/
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
  
 #
-# $Id: DlsApiTest.py,v 1.8 2007/02/05 15:17:47 delgadop Exp $
+# $Id: DlsDbsApiTest.py,v 1.1 2007/03/23 10:29:01 delgadop Exp $
 #
 # DLS Client Functional Test Suite. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -138,7 +138,7 @@ class TestDlsApi_General_Basic(TestDlsApi_General):
        msg = "Unexpected success binding interface of wrong type SOMETHING"
        self.assertEqual(0, 1, msg)
      except DlsApiError, inst:
-       expected = "['DLS_TYPE_LFC', 'DLS_TYPE_DLI', 'DLS_TYPE_MYSQL', 'DLS_TYPE_DBS']"
+       expected = "['DLS_TYPE_LFC', 'DLS_TYPE_DLI', 'DLS_TYPE_MYSQL', 'DLS_TYPE_DBS', 'DLS_TYPE_PHEDEX']"
        msg = "Results (%s) don't contain expected (%s)" % (inst, expected)
        contains = (str(inst)).find(expected) != -1
        self.assert_(contains, msg)
