@@ -28,12 +28,12 @@ dli:
 	/bin/cp -r ${DliClient}/InstallPyXML.sh $(LIB_DIR)/.
 	/bin/chmod a+x $(LIB_DIR)/InstallPyXML.sh
 	cd $(LIB_DIR) && tar xvzf ZSI.tar.gz > /dev/null && /bin/rm $(LIB_DIR)/ZSI.tar.gz
-	@echo "export PYTHONPATH=${LIB_DIR}:$$PYTHONPATH"            > $(SETUP_DIR)/setup.sh
-	@echo "export PATH=${BIN_DIR}:$$PATH"                       >> $(SETUP_DIR)/setup.sh
-	@echo "export LD_LIBRARY_PATH=${LIB_DIR}:$$LD_LIBRARY_PATH" >> $(SETUP_DIR)/setup.sh
-	@echo "setenv PYTHONPATH  ${LIB_DIR}:$$PYTHONPATH"           > $(SETUP_DIR)/setup.csh
-	@echo "setenv PATH  ${BIN_DIR}:$$PATH"                      >> $(SETUP_DIR)/setup.csh
-	@echo "setenv LD_LIBRARY_PATH ${LIB_DIR}:$$LD_LIBRARY_PATH" >> $(SETUP_DIR)/setup.csh
+	@echo "export PYTHONPATH=${LIB_DIR}:\$$PYTHONPATH"            > $(SETUP_DIR)/setup.sh
+	@echo "export PATH=${BIN_DIR}:\$$PATH"                       >> $(SETUP_DIR)/setup.sh
+	@echo "export LD_LIBRARY_PATH=${LIB_DIR}:\$$LD_LIBRARY_PATH" >> $(SETUP_DIR)/setup.sh
+	@echo "setenv PYTHONPATH  ${LIB_DIR}:\$$PYTHONPATH"           > $(SETUP_DIR)/setup.csh
+	@echo "setenv PATH  ${BIN_DIR}:\$$PATH"                      >> $(SETUP_DIR)/setup.csh
+	@echo "setenv LD_LIBRARY_PATH ${LIB_DIR}:\$$LD_LIBRARY_PATH" >> $(SETUP_DIR)/setup.csh
 
 clean:
 	/bin/rm -rf $(LIB_DIR)/*

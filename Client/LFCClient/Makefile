@@ -29,10 +29,10 @@ common:
 	/bin/cp $(LFCClient)/dls-* $(BIN_DIR)/.
 	/bin/rm $(BIN_DIR)/dls-dli-get-se
 	@if ! [ -e  $(SETUP_DIR)/setup.sh ]; then \
-      echo "export PYTHONPATH=${LIB_DIR}:$$PYTHONPATH"   > $(SETUP_DIR)/setup.sh; \
-      echo "export PATH=${BIN_DIR}:$$PATH"              >> $(SETUP_DIR)/setup.sh; \
-      echo "setenv PYTHONPATH  ${LIB_DIR}:$$PYTHONPATH"  > $(SETUP_DIR)/setup.csh; \
-      echo "setenv PATH  ${BIN_DIR}:$$PATH"             >> $(SETUP_DIR)/setup.csh; \
+      echo "export PYTHONPATH=${LIB_DIR}:\$$PYTHONPATH"   > $(SETUP_DIR)/setup.sh; \
+      echo "export PATH=${BIN_DIR}:\$$PATH"              >> $(SETUP_DIR)/setup.sh; \
+      echo "setenv PYTHONPATH  ${LIB_DIR}:\$$PYTHONPATH"  > $(SETUP_DIR)/setup.csh; \
+      echo "setenv PATH  ${BIN_DIR}:\$$PATH"             >> $(SETUP_DIR)/setup.csh; \
    fi
 
 clean:
