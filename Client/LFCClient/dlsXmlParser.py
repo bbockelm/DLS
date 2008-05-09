@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from xml.sax import ContentHandler, make_parser
-from dlsDataObjects import DlsLocation, DlsFileBlock, DlsEntry, DlsDataObjectError
+from dlsDataObjects import DlsLocation, DlsFileBlock, DlsEntry, DlsDataObjectError, DlsFile
 
 
 class EntryPageHandler(ContentHandler):
@@ -14,7 +14,6 @@ class EntryPageHandler(ContentHandler):
  
  
   def startElement(self, name, attributes):
-  
     if name == "block":
       self.ses = []
       self.fbAttrs = {}
@@ -26,7 +25,7 @@ class EntryPageHandler(ContentHandler):
     elif name == "replica":
       self.seAttrs = {}
       for attr in attributes.keys():
-        if (attr == "storage_element"): self.seName = attributes["storage_element"]
+        if (attr == "se"): self.seName = attributes["se"]
         else:
            self.seAttrs[attr] = attributes[attr]
       self.ses.append(DlsLocation(self.seName, self.seAttrs))
@@ -63,7 +62,7 @@ class NodePageHandler(ContentHandler):
  
   def startElement(self, name, attributes):
     if name == "node":
-      self.host = attributes["se_name"]
+      self.host = attributes["se"]
  
   def endElement(self, name):
     if name == "node":
@@ -71,16 +70,65 @@ class NodePageHandler(ContentHandler):
          if not (self.host in self.list):
             self.list.append(self.host)
 
+# This would be the FilePageHandler with attributes support
+# But for now we're just getting name and host (below), as should be faster
+
+#class FilePageHandler(ContentHandler):
+
+#  def __init__(self):
+#    self.inFile = False
+#    self.mapping = {}
+#    self.fileAttrs = {}
+#    self.seAttrs = {}
+ 
+ 
+#  def startElement(self, name, attributes):
+#    if name == "file":
+#      self.ses = []
+#      self.fileAttrs = {}
+#      for attr in attributes.keys():
+#        if (attr == "name"): self.fileName = attributes["name"]
+#        else:
+#           self.fileAttrs[attr] = attributes[attr]
+#         
+#    elif name == "replica":
+#      self.seAttrs = {}
+#      for attr in attributes.keys():
+#        if (attr == "se"): self.seName = attributes["se"]
+#        else:
+#           self.seAttrs[attr] = attributes[attr]
+#      self.ses.append(DlsLocation(self.seName, self.seAttrs))
+ 
+#  def endElement(self, name):
+#    if name == "file":
+#       self.mapping[ DlsFile(self.fileName, self.fileAttrs) ] = self.ses
+
+class FilePageHandler(ContentHandler):
+
+  def __init__(self):
+    self.inFile = False
+    self.mapping = {}
+ 
+  def startElement(self, name, attributes):
+    if name == "file":
+      self.ses = []
+      self.fileName = attributes["name"]
+         
+    elif name == "replica":
+      self.seName = attributes["se"]
+      self.ses.append(DlsLocation(self.seName))
+#      self.ses.append(self.seName)
+ 
+  def endElement(self, name):
+    if name == "file":
+       self.mapping[ DlsFile(self.fileName) ] = self.ses
+#       self.mapping[ self.fileName ] = self.ses
 
 
 
 class DlsXmlParser:
   def __init__(self):
     self.result = []
-    self.handler = EntryPageHandler()
-    self.handler_blocks = BlockPageHandler()
-    self.handler_locs = NodePageHandler()
-    self.parser = make_parser()
 
   def xmlToEntries(self, xmlSource):
     """
@@ -92,9 +140,11 @@ class DlsXmlParser:
 
     @return: a list of DlsEntry objects with FileBlock and locations information
     """
-    self.parser.setContentHandler(self.handler)
-    self.parser.parse(xmlSource)
-    return self.handler.mapping
+    parser = make_parser()
+    handler = EntryPageHandler()
+    parser.setContentHandler(handler)
+    parser.parse(xmlSource)
+    return handler.mapping
     
 
   def xmlToBlocks(self, xmlSource):
@@ -104,11 +154,13 @@ class DlsXmlParser:
 
     @param xmlSource: XML source file in URL format (e.g. http://...)
 
-    @return: a list of DlsFileBlock objects with FileBlock location information
+    @return: a list of DlsFileBlock objects with FileBlock information
     """
-    self.parser.setContentHandler(self.handler_blocks)
-    self.parser.parse(xmlSource)
-    return self.handler_blocks.mapping
+    parser = make_parser()
+    handler = BlockPageHandler()
+    parser.setContentHandler(handler)
+    parser.parse(xmlSource)
+    return handler.mapping
 
 
   def xmlToLocations(self, xmlSource):
@@ -120,10 +172,27 @@ class DlsXmlParser:
 
     @return: a list of DlsLocation objects with location information
     """
-    self.parser.setContentHandler(self.handler_locs)
-    self.parser.parse(xmlSource)
-    hostList = self.handler_locs.list
+    parser = make_parser()
+    handler = NodePageHandler()
+    parser.setContentHandler(handler)
+    parser.parse(xmlSource)
+    hostList = handler.list
     hostList.sort()
     return map(DlsLocation, hostList)
 
 
+  def xmlToFileLocs(self, xmlSource):
+    """
+    Returns a list of dict objects holding a DlsFile as key and a list of 
+    DlsLocation objects as values for each DlsFile.
+    contained in the specified XML source (in PhEDEx's "fileReplicas" format)
+
+    @param xmlSource: XML source file in URL format (e.g. http://...)
+
+    @return: a list of dicts associating DlsFile objects and locations 
+    """
+    parser = make_parser()
+    handler = FilePageHandler()
+    parser.setContentHandler(handler)
+    parser.parse(xmlSource)
+    return handler.mapping

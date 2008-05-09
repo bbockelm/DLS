@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #
-# $Id: dls-add,v 1.16 2007/03/27 09:58:37 delgadop Exp $
+# $Id: dls-add,v 1.17 2008/02/21 10:02:26 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -175,7 +175,7 @@ def insertEntries(iface, lineList, createParent, trans, verbose, checkHost, allo
     All elements separated by whitespaces, and attributes identified by the presence
     of the '=' character.
 
-    Throws DlsLfcApiError if there is a problem in the DLS operation, unless
+    Throws DlsApiError if there is a problem in the DLS operation, unless
     trans is set to True.
    """
 

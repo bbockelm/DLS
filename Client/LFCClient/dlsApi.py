@@ -1,5 +1,5 @@
 #
-# $Id: dlsApi.py,v 1.22 2007/03/23 10:26:52 delgadop Exp $
+# $Id: dlsApi.py,v 1.23 2007/03/30 13:13:46 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -338,7 +338,7 @@ class DlsApi(object):
     FileBlocks are stored.
     
     A single FileBlock or a list of those may be used as argument. Each FileBlock may
-    be specified as simple strings (hostnames) or as DlsFileBlock objects. The
+    be specified as simple strings (names) or as DlsFileBlock objects. The
     returned list contains a DlsEntry object per specified FileBlock, in the same
     order as in the argument.
 
@@ -373,6 +373,12 @@ class DlsApi(object):
 
     NOTE: Normally, it makes no sense to use this method within a transaction.
 
+    For operational reasons, some implementations (indicated in their documentation)
+    may eliminate some FileBlocks locations from the result. If showProd(**kwd)
+    is set to True, this filter is turned off and all FileBlock are returned for
+    all locations. Otherwise, the flag is ignored. Please do not use it unless
+    you know what you are doing.
+
     @exception XXXX: On error with the DLS catalog
 
     @param fileBlockList: the FileBlock as string/DlsFileBlock (or list of those)
@@ -380,6 +386,7 @@ class DlsApi(object):
      - longList: boolean (default false) for the listing of location attributes
      - session: boolean (default False) for using a session for the operations
      - errorTolerant: boolean (default False) for raising an exception after failure
+     - showProd: boolean (default False) for turning off the filtering of prod-only replicas
 
     @return: a list of DlsEntry objects containing the locations
     """
@@ -423,11 +430,18 @@ class DlsApi(object):
     NOTE: Normally, it makes no sense to use this method within a transaction, so
     please avoid it. 
 
+    For operational reasons, some implementations (indicated in their documentation)
+    may eliminate FileBlocks from the result for some locations. If showProd(**kwd)
+    is set to True, this filter is turned off and all FileBlock are returned for
+    all locations. Otherwise, the flag is ignored. Please do not use it unless
+    you know what you are doing.
+
     @exception XXXX: On error with the DLS catalog
 
     @param locationList: the location as string/DlsLocation (or list of those)
     @param kwd: Flags:
      - session: boolean (default False) for using a session for the operations
+     - showProd: boolean (default False) for turning off the filtering of prod-only replicas
 
     @return: a list of DlsEntry objects containing the FileBlocks
     """
@@ -622,12 +636,19 @@ class DlsApi(object):
     NOTE: Normally, it makes no sense to use this method within a transaction, so
     please avoid it. 
 
+    For operational reasons, some implementations (indicated in their documentation)
+    may eliminate some FileBlocks locations from the result. If showProd(**kwd)
+    is set to True, this filter is turned off and all FileBlock are returned for
+    all locations. Otherwise, the flag is ignored. Please do not use it unless
+    you know what you are doing.
+
     @exception XXXX: On error with the DLS catalog
 
     @param dir: the FileBlock dir, as string or DlsFileBlock object
     @param kwd: Flags:
      - session: boolean (default False) for using a session for the operations
      - recursive: boolean (default False) for recursive listing of a directory 
+     - showProd: boolean (default False) for turning off the filtering of prod-only replicas
 
     @return: a list of DlsEntry objects representing the DLS data
     """
@@ -635,6 +656,40 @@ class DlsApi(object):
     msg += " This method should be implemented in an instantiable DLS API class"
     raise NotImplementedError(msg)
 
+
+  def getFileLocs(self, fileBlock, **kwd):
+    """
+    Returns the files composing the specified FileBlock and the locations
+    where each of these files are replicated.
+    
+    NOTE: A FileBlock is composed of files. DLS original function dealt with
+    FileBlocks cataloging and not at all with files. Only some DLS API 
+    implementations will support this method. 
+
+    Only a single DlsFileBlock object or a simple string (name) may be specified.
+    
+    The returned object is a dict with DlsFile objects as keys and a list of
+    DlsLocation objects as values for each DlsFile.
+
+    For operational reasons, some implementations (indicated in their documentation)
+    may eliminate some file locations from the result. If showProd(**kwd)
+    is set to True, this filter is turned off and all FileBlock are returned for
+    all locations. Otherwise, the flag is ignored. Please do not use it unless
+    you know what you are doing.
+
+    @exception XXXX: On error with the DLS catalog
+
+    @param fileBlock: the FileBlock as string/DlsFileBlock
+    @param kwd: Flags:
+     - showProd: boolean (default False) for turning off the filtering of prod-only replicas
+
+    @return: a dict with DlsFile objects as keys and DlsLocation objects as values 
+    """
+
+    msg = "This is just a base class!"
+    msg += " This method should be implemented in an instantiable DLS API class"
+    raise NotImplementedError(msg)
+   
 
   def startSession(self):
     """

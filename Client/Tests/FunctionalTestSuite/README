@@ -1,5 +1,5 @@
 #
-# $Id: README,v 1.4 2006/05/19 10:15:15 delgadop Exp $
+# $Id$
 #
 # DLS Client Functional Test Suite. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -13,6 +13,10 @@ implementation the CLI and API could work slightly different (some offer
 more functionalities than others), so there can be different modules
 which contain classes implementing tests (in the unittest framework).
 
+IMPORTANT NOTE: This test is intended for developers only. Other tests
+may be used by users to test that their installation is working.
+So DO NOT RUN THIS unless you know that you are doing!
+
 For each test there is a runnable script that executes the different
 tests. Usually, an optional additional argument may be used to execute a
 desired subset of the tests (default is to execute all of them). Please
@@ -22,11 +26,39 @@ NOTE: In the case of the LFC tests, they rely on a clean directory in
 the DLS, which they use and clean at the end (without removing the
 directory itself).
 
+The LFC and MySQL tests might be a bit out of date (as they are not used
+anymore), but in principle they should still work.
+
+The DBS one should be OK.
+
+For PhEDEx back-end there is no test as it is a read-only back-end and
+we need to know what there is in the database to make it work. Rather
+try with the users' test.
+
 In what follows we describe existing tests.
 
+ 
+DlsDbsApiTest 
+-------------
+Test of the API for the DBS-based DLS implementation. 
 
-DlsApiTest
-----------
+Main files are:
+ DlsDbsApiTest.py: contains the tests and is runnable
+ DlsDbsApiTest.conf: example conf file for previous script
+
+
+DlsDbsCliTest 
+-------------
+Test of the CLI for the DBS-based DLS implementation.
+Since the CLI uses the API internally, both must be working.
+
+Main files are:
+ DlsDbsApiTest.py: contains the tests and is runnable
+ DlsDbsApiTest.conf: example conf file for previous script
+
+ 
+DlsApiTest (LFC, MySQL)
+------------------------
 General test of the API for the DLS implementations (it should work with
 LFC or MySQL implementations). It does not include LFC-only capabilities
 like attributes or transactions.

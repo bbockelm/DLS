@@ -1,5 +1,5 @@
 #
-# $Id$
+# $Id: dlsPhedexApi.py,v 1.1 2008/02/21 10:00:57 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -46,7 +46,8 @@ from urllib2 import HTTPError, URLError
 #########################################
 # Module globals
 #########################################
-DLS_PHEDEX_LIST = "DLS_PHEDEX_LIST"
+DLS_PHEDEX_BLOCKS = "DLS_PHEDEX_BLOCKS"
+DLS_PHEDEX_FILES = "DLS_PHEDEX_FILES"
 DLS_PHEDEX_ALL_LOCS = "DLS_PHEDEX_ALL_LOCS"
 
 
@@ -94,21 +95,21 @@ class DlsPhedexApi(dlsApi.DlsApi):
     The verbosity level affects invocations of all methods in this object.
     See the dlsApi.DlsApi.setVerbosity method for information on accepted values.
 
-    If the checkEndpoint (**kwd) is set to False, the provided endpoint is
-    not checked. This makes sense where a simple query is to be made next.
-    Any error in the endpoint will be noticed in the query itself, so the
-    check would be redundant and not efficient.
+    If the checkEndpoint (**kwd) is set to True, the provided endpoint is
+    checked. This makes sense where more than one query are to be made next.
+    For simple queries, any error in the endpoint will be noticed in the query
+    itself, so the check would be redundant and not efficient.
       
     @exception DlsConfigError: if no DLS server can be found.
 
     @param dls_endpoint: the DLS server to be used, as a string "hname[:port]/path/to/DLS"
     @param verbosity: value for the verbosity level
     @param kwd: Flags 
-       checkEndpoint: Boolean (default True) for testing of the DLS endpoint
+       - checkEndpoint: Boolean (default False) for testing of the DLS endpoint
     """
 
     # Keywords
-    checkEndpoint = True
+    checkEndpoint = False
     if(kwd.has_key("checkEndpoint")):
        checkEndpoint = kwd.get("checkEndpoint")
 
@@ -131,7 +132,7 @@ class DlsPhedexApi(dlsApi.DlsApi):
     # Check that the provided URL is OK (by listing an inexisting fileblock)
     if(checkEndpoint):
       try:
-         url = self._buildXmlUrl(self.server, DLS_PHEDEX_LIST, "-")
+         url = self._buildXmlUrl(self.server, DLS_PHEDEX_BLOCKS, "-")
          self.parser.xmlToEntries(url)
       except Exception, inst:
          msg = "Could not set the interface to the DLS server. "
@@ -144,250 +145,6 @@ class DlsPhedexApi(dlsApi.DlsApi):
   # Methods defining the main public interface
   ############################################
 
-#  def add(self, dlsEntryList, **kwd):
-#    """
-#    Implementation of the dlsApi.DlsApi.add method.
-#    Refer to that method's documentation.
-#
-#    Implementation specific remarks:
-#
-#    Fileblocks in PhEDEx can be created only through PhEDEx interface, not through 
-#    DLS API. Thus, this method can be used to add locations to an existing fileblock
-#    only. Trying to add locations to a non-existing fileblock will result
-#    in a dlsApiError exception.
-#
-#    Likewise, fileblock attributes are handled by DBS, and they can't be set 
-#    or updated through DLS. Therefore, this method will ignore any specified
-#    FileBlock attribute.
-#    
-#    The list of supported attributes for the locations is:
-#     - custodial  (values: "True" or "False"; if not specified, False is assumed)
-#
-#    Specified GUID for the FileBlocks and SURL for the replicas are ignored.
-#    
-#    The following keyword flags are ignored: allowEmptyBlocks, createParent,
-#    trans, session.
-#    """
-#
-#    # Keywords
-#    checkLocations = True
-#    if(kwd.has_key("checkLocations")):
-#       checkLocations = kwd.get("checkLocations")       
-#       
-#    errorTolerant = True 
-#    if(kwd.has_key("errorTolerant")):
-#       errorTolerant = kwd.get("errorTolerant")
-#    
-#    # Make sure the argument is a list
-#    if (isinstance(dlsEntryList, list)):
-#       theList = dlsEntryList 
-#    else:
-#       theList = [dlsEntryList]
-#
-#
-#    # Loop on the entries
-#    for entry in theList:
-#    
-#      # First check locations if asked for (not to leave empty blocks)
-#      if(checkLocations):
-#         locList = []
-#         exitLoop = False
-#         for loc in entry.locations:
-#            try:
-#               loc.checkHost = True
-#               loc.host = loc.host
-#               locList.append(loc)
-#            except DlsDataObjectError, inst:
-#               msg = "Error in location %s for "%(loc.host)
-#               msg += "FileBlock %s: %s" % (entry.fileBlock.name, inst.msg)
-#               self._warn(msg)
-#               if(not errorTolerant):
-#                  raise DlsInvalidLocation(msg)
-#      else:
-#         locList = entry.locations
-#
-#      # Skip empty fileBlocks
-#      if(not locList):  
-#         self._warn("No locations for fileblock %s. Skipping." % entry.fileBlock.name)
-#         continue
-#
-#
-#      # Add locations
-#      for loc in locList:
-#         dbsSE = self._mapLocToDbs(loc)
-#         self._debug("dbs.addReplicaToBlock(%s,%s)" % (entry.fileBlock.name, loc))
-#         try:
-#            self.dbsapi.addReplicaToBlock(entry.fileBlock.name, dbsSE)
-#         except DbsApiException, inst:
-#            msg = "Error inserting locations for fileblock %s" % (entry.fileBlock.name)
-#            w_msg = msg + ". Skipping"
-#            self._mapException(inst, msg, w_msg, errorTolerant)
-
-
-# There are no attributes to update implemented yet in DBS
-# but the code should be more or less what follows
-
-#  def update(self, dlsEntryList, **kwd):
-#    """
-#    Implementation of the dlsApi.DlsApi.update method.
-#    Refer to that method's documentation.
-#
-#    Implementation specific remarks:
-#
-#    For a given FileBlock, specified locations that are not registered in the
-#    catalog will be ignored.
-#
-#    There are no FileBlock attributes that can be updated (that should be made
-#    through the DBS interface).
-#    
-#    The list of supported attributes for the locations is:
-#     - custodial  (values: "True" or "False"; if not specified, False is assumed)
-#
-#    The following keyword flags are ignored: trans, session.
-#    """
-#
-#    # Keywords
-#    errorTolerant = True 
-#    if(kwd.has_key("errorTolerant")):
-#       errorTolerant = kwd.get("errorTolerant")
-#       
-#    # Make sure the argument is a list
-#    if (isinstance(dlsEntryList, list)):
-#       theList = dlsEntryList 
-#    else:
-#       theList = [dlsEntryList]
-#
-#
-#    # Loop on the entries
-#    for entry in theList:
-# 
-#      # Loop on the locations
-#      for loc in entry.locList:
-#      
-#         # Prepare the DBS SE object
-#         dbsSE = self._mapLocToDbs(loc)
-#
-#         # Skip replicas with no attribute to update
-#         if(not dbsSE["custodial"]):
-#           continue 
-# 
-#         #  Update
-#         self._debug("dbs.updateStorageElement(%s,%s)" % (entry.fileBlock.name, loc.host))
-#         try:
-#            self.dbsapi.updateStorageElement(entry.fileBlock.name, dbsLoc)
-#         except DbsApiException, inst:
-#            if(not errorTolerant):
-#              # TODO, analyze DBS exception
-#              raise DlsApiError(inst.getErrorMessage())
-#            else:
-#              # For FileBlocks not accessible, go to next fileblock
-#              # TODO: check what DBS exception we should be catching here
-#              if(isinstance(inst, NotAccessibleError)):
-#                 self._warn("Not updating inaccessible FileBlock: %s" % (inst.msg))
-#                 break 
-#              # For error on attributes, just warn and go on
-#              else:
-#                 self._warn("Error when updating location: %s" % (inst.msg))
-#
-#
-    
-#  def delete(self, dlsEntryList, **kwd):
-#    """
-#    Implementation of the dlsApi.DlsApi.delete method.
-#    Refer to that method's documentation.
-#
-#    Implementation specific remarks:
-#
-#    This method will only delete locations for a five FileBlock, but not
-#    the FileBlock itself (even if all the replicas are removed). With DBS
-#    back-end, the FileBlock itself might be deleted (or invalidated) through
-#    DBS interface only, but not through DLS interface.
-#    
-#    The following keyword flags are ignored: keepFileBlock, session, 
-#    """
-#
-#    # Keywords
-#    force = False 
-#    if(kwd.has_key("force")):    force = kwd.get("force")
-#       
-#    all = False 
-#    if(kwd.has_key("all")):      all = kwd.get("all")
-#
-#    errorTolerant = True 
-#    if(kwd.has_key("errorTolerant")):  errorTolerant = kwd.get("errorTolerant")
-#
-#       
-#    # Make sure the argument is a list
-#    if (isinstance(dlsEntryList, list)):
-#       theList = dlsEntryList 
-#    else:
-#       theList = [dlsEntryList]
-#
-#    # Loop on the entries
-#    for entry in theList:
-#      
-#      # Get the FileBlock name
-#      lfn = entry.fileBlock.name
-#
-#      # Get the specified locations
-#      seList = []
-#    # TODO: what if attributes are not all string
-#      if(not all):
-#         for loc in entry.locations:
-#            seList.append(loc.host)
-#
-#
-#      # Retrieve the existing associated locations (from the catalog)      
-#      locList = []
-#      entryList = self.getLocations(lfn, errorTolerant = errorTolerant)
-#      for i in entryList:
-#          for j in i.locations:
-#              locList.append(j)
-#     
-#      # Make a copy of location list (to keep control of how many are left)
-#      remainingLocs = []
-#      for i in xrange(len(locList)):
-#         remainingLocs.append(locList[i].host)
-#         
-#      # Loop on associated locations
-#      for filerep in locList:
-#
-#         host = filerep.host
-#      
-#         # If this host (or all) was specified, remove it
-#         if(all or (host in seList)):
-#         
-#            # Don't look for this SE further
-#            if(not all): seList.remove(host)
-#            
-##            # But before removal, check if it is custodial
-##            if ((filerep["custodial"]!="True") and (not force)):
-##               code = 503
-##               msg = "Can't delete custodial replica in",host,"of",lfn
-##               if(not errorTolerant): 
-##                  raise DlsApiError(msg, code)
-##               else: 
-##                  self._warn(msg)
-##                  continue
-#               
-#            # Perform the deletion
-#            try:
-#               self._debug("dbs.deleteReplicaFromBlock(%s, %s)" % (lfn, host))
-#               self.dbsapi.deleteReplicaFromBlock(lfn, host) 
-#               remainingLocs.remove(host)
-#            except DbsApiException, inst:
-#               msg = "Error removing location %s from FileBlock %s"%(host,lfn)
-#               self._mapException(inst, msg, msg, errorTolerant)
-#        
-#            # And if no more SEs, exit
-#            if((not all) and (not seList)):
-#               break
-#   
-#      # For the SEs specified, warn if they were not all removed
-#      if(seList and (not all)):
-#         self._warn("Not all specified locations could be found and removed")
-#  
-  
   
   def getLocations(self, fileBlockList, **kwd):
     """
@@ -398,14 +155,23 @@ class DlsPhedexApi(dlsApi.DlsApi):
 
     If longList (**kwd) is set to True, some location attributes are also
     included in the returned DlsLocation objects. Those attributes are:
-     - custodial 
+     - bytes
+     - files
+     - node
+     - node_id
+     - time_create
+     - time_update
+     - complete
 
-    If instead of a FileBlock name, a pattern is provided (with '%' as wildcard),
-    the method includes in the returned list the DlsEntry objects for all the
-    matching FileBlocks.
+    If instead of a FileBlock name, a pattern is provided (with '%' or '*' as
+    wildcards), the method includes in the returned list the DlsEntry objects
+    for all the matching FileBlocks.
 
     In the current implementation the cost of doing a long listing
     is the same as doing a normal one.
+
+    The showProd flag is taken into account and if not set to True some 
+    FileBlock replicas are filtered out.
 
     The following keyword flags are ignored: session.
     """
@@ -416,12 +182,16 @@ class DlsPhedexApi(dlsApi.DlsApi):
     errorTolerant = False
     if(kwd.has_key("errorTolerant")):   errorTolerant = kwd.get("errorTolerant")
 
+    showProd = False
+    if(kwd.has_key("showProd")):   showProd = kwd.get("showProd")
+
     # Make sure the argument is a list
     if (isinstance(fileBlockList, list)):
        theList = fileBlockList 
     else:
        theList = [fileBlockList]
 
+    eList = []
 
     # Loop on the entries
     for fB in theList:
@@ -435,24 +205,27 @@ class DlsPhedexApi(dlsApi.DlsApi):
        if(lfn=='/'): lfn = None
 
        # Build the xml query to use
-       url = self._buildXmlUrl(self.server, DLS_PHEDEX_LIST, lfn)
+       url = self._buildXmlUrl(self.server, DLS_PHEDEX_BLOCKS, lfn, showProd = showProd)
        self._debug("Using PhEDex xml url: "+url)
 
        # Get the locations
        try:  
-          eList = self.parser.xmlToEntries(url)
+          partList = self.parser.xmlToEntries(url)
        except Exception, inst:
           msg = "Error retrieving locations for %s" % (lfn)
           msg_w = msg + ". Skipping"
           self._mapException(inst, msg, msg_w, errorTolerant)
        
        # Check if the list was empty
-       if(not eList):
+       if(not partList):
           if(not lfn): lfn = '/'
           msg = "No existing fileblock matching %s" % (str(lfn))
           msg_w = msg + ". Skipping"
           if(not errorTolerant):  raise DlsInvalidBlockName(msg)
           else:                   self._warn(msg_w)
+       else:
+          for entry in partList:
+             eList.append(entry)
          
     # Return what we got
     return eList
@@ -466,10 +239,15 @@ class DlsPhedexApi(dlsApi.DlsApi):
 
     Implementation specific remarks:
 
+    The showProd flag is taken into account and if not set to True some 
+    FileBlock replicas are filtered out.
+
     The following keyword flags are ignored: session.
     """
 
     # Keywords
+    showProd = False
+    if(kwd.has_key("showProd")):   showProd = kwd.get("showProd")
 
     # Make sure the argument is a list
     if (isinstance(locationList, list)):
@@ -477,6 +255,8 @@ class DlsPhedexApi(dlsApi.DlsApi):
     else:
        theList = [locationList]
 
+    eList = []
+    
     # Loop on the entries
     for loc in theList:
        
@@ -487,15 +267,18 @@ class DlsPhedexApi(dlsApi.DlsApi):
          host = loc
 
        # Build the xml query to use
-       url = self._buildXmlUrl(self.server, DLS_PHEDEX_LIST, None, host)
+       url = self._buildXmlUrl(self.server, DLS_PHEDEX_BLOCKS, None, host, showProd = showProd)
        self._debug("Using PhEDex xml url: "+url)
 
        # Get the locations
        try:  
-          eList = self.parser.xmlToEntries(url)
+          partList = self.parser.xmlToEntries(url)
        except Exception, inst:
           msg = "Error retrieving FileBlocks for %s" % (host)
           self._mapException(inst, msg, msg, False)
+
+       for entry in partList:
+          eList.append(entry)
          
     # Return what we got
     return eList
@@ -518,9 +301,10 @@ class DlsPhedexApi(dlsApi.DlsApi):
 
     If longList (**kwd) is set to True, the attributes returned with
     the FileBlock are the following:
-      - "bytes"
-      - "files" 
-      - "is_open"
+      - bytes
+      - files 
+      - is_open
+      - id
 
     The following keyword flags are ignored: session, recursive.
     """
@@ -548,28 +332,70 @@ class DlsPhedexApi(dlsApi.DlsApi):
        if(lfn=='/'): lfn = None
 
        # Build the xml query to use
-       url = self._buildXmlUrl(self.server, DLS_PHEDEX_LIST, lfn)
+       url = self._buildXmlUrl(self.server, DLS_PHEDEX_BLOCKS, lfn)
        self._debug("Using PhEDex xml url: "+url)
 
        # Get the locations
        try:  
-          bList = self.parser.xmlToBlocks(url)
+          partList = self.parser.xmlToBlocks(url)
        except Exception, inst:
           msg = "Error retrieving fileblock information for %s" % (lfn)
           msg_w = msg + ". Skipping"
           self._mapException(inst, msg, msg_w, errorTolerant = True)
        
        # Check if the list was empty
-       if(not bList):
+       if(not partList):
           if(not lfn): lfn = '/'
           msg = "No existing fileblock matching %s" % (str(lfn))
           msg_w = msg + ". Skipping"
 #          if(not errorTolerant):  raise DlsInvalidBlockName(msg)
 #          else:                   self._warn(msg_w)
           self._warn(msg_w)
+       else:
+          for entry in partList:
+             bList.append(entry)
          
     # Return what we got
     return bList
+
+
+
+  def getFileLocs(self, fileblock, **kwd):
+    """
+    Implementation of the dlsApi.DlsApi.getFileLocs method.
+    Refer to that method's documentation.
+
+    Implementation specific remarks:
+    
+    The showProd flag is taken into account and if not set to True some 
+    file replicas are filtered out.
+
+    The following keyword flags are ignored: session.
+    """
+    
+    # Keywords
+    showProd = False
+    if(kwd.has_key("showProd")):   showProd = kwd.get("showProd")
+
+    # Check that the passed FileBlock is not a pattern
+    if (fileblock.find('*') != -1) or (fileblock.find('%') != -1):
+      msg = "FileBlock patterns (with '*' or '%%' wildcards) are not acceptable: %s" % (fileblock)
+      raise DlsInvalidBlockName(msg)
+
+    # Build the xml query to use
+    url = self._buildXmlUrl(self.server, DLS_PHEDEX_FILES, fileblock, showProd = showProd)
+    self._debug("Using PhEDex xml url: "+url)
+
+    # Get the file-locs dict
+    try:  
+       flDict = self.parser.xmlToFileLocs(url)
+    except Exception, inst:
+       msg = "Error getting files for FileBlock in DLS"
+       self._mapException(inst, msg, msg, errorTolerant = False)
+
+    # Return what we got
+    return flDict
+
 
 
 
@@ -611,11 +437,19 @@ class DlsPhedexApi(dlsApi.DlsApi):
     '%' as wildcard), and the matching FileBlocks and associated locations
     are dumped.
 
+    The showProd flag is taken into account and if not set to True some 
+    FileBlock replicas are filtered out.
+
     The following keyword flags are ignored: session, recursive.
     """
 
+    # Keywords
+    showProd = False
+    if(kwd.has_key("showProd")):   showProd = kwd.get("showProd")
+
+
     # This can be achieved by listing the fBs and associated locations
-    result = self.getLocations(dir, longList = False, errorTolerant = True)
+    result = self.getLocations(dir, longList = False, errorTolerant = True, showProd = showProd)
 
     # Return what we got
     return result
@@ -684,49 +518,6 @@ class DlsPhedexApi(dlsApi.DlsApi):
 
   
   ##################################
-  # Other public methods (utilities)
-  ##################################
-
-#  def changeFileBlocksLocation(self, org_location, dest_location, **kwd):
-#    """
-#    Implementation of the dlsApi.DlsApi.changeFileBlocksLocation method.
-#    Refer to that method's documentation.
-#    """
-#
-#    # Keywords
-#    checkLocations = True
-#    if(kwd.has_key("checkLocations")):
-#       checkLocations = kwd.get("checkLocations")       
-#
-#    # First check the new location if asked for it
-#    if(checkLocations):
-#       try:
-#          loc = DlsLocation(dest_location, checkHost = True)
-#       except DlsDataObjectError, inst:
-#          msg = "Error replacing location %s with %s: %s"%(org_location,dest_location,inst.msg)
-#          raise DlsInvalidLocation(msg)
-#
-#    # Perform the replacement
-#    self._debug("dbs.renameSE(%s, %s)"%(org_location, dest_location))
-#    try:
-#       self.dbsapi.renameSE(org_location, dest_location)
-#    except DbsApiException, inst:
-#       msg = "Error replacing location in DLS"
-#       try:       
-#         rc = int(inst.getErrorCode())
-#       except Exception:
-#         rc = 0
-#       if(rc in [2000]):
-#         msg += ". New location (%s) exists in DLS server already" % (dest_location)
-#         caught_msg = inst.getClassName() + ' ' + inst.getErrorMessage()
-#         msg = msg + '. Caught: [%d] %s' % (rc, caught_msg)
-#         raise DlsInvalidLocation(msg, server_error_code=rc)
-#         
-#       self._mapException(inst, msg, msg, errorTolerant = False)
-#
-
-
-  ##################################
   # Private methods
   ##################################
 
@@ -736,16 +527,18 @@ class DlsPhedexApi(dlsApi.DlsApi):
     information with the specified parameters.
 
     @param xml_base: base URL for the PhEDEx location query service
-    @param type: the type of query to make: DLS_PHEDEX_LIST
+    @param type: the type of query to make: DLS_PHEDEX_BLOCKS, DLS_PHEDEX_FILES, DLS_PHEDEX_ALL_LOCS
     @param block: name of the FileBlock to query (or add); wildcard '%' or '*' allowed
     @param se:  name of the location to query (or add); use None for 'any'
     @param **kwd: Flags:
-      - complete: boolean (default True) for demanding that returned blocks are complete
-      -  updated_since: unix timestamp, for replicas updated since specified time
-      -  created_since: unix timestamp, for replicas cretated since specified time
+      - incomplete: boolean (default False) for getting incomplete blocks also returned 
+      - updated_since: unix timestamp, for replicas updated since specified time
+      - created_since: unix timestamp, for replicas cretated since specified time
+      - showProd: boolean (default False) for turning off the filtering of prod-only replicas
+      - showEmpty: boolean (default False) for showing empty locations (DLS_PHEDEX_ALL_LOCS)
     """
 
-    admitted_vals = [DLS_PHEDEX_LIST, DLS_PHEDEX_ALL_LOCS]
+    admitted_vals = [DLS_PHEDEX_BLOCKS, DLS_PHEDEX_FILES, DLS_PHEDEX_ALL_LOCS]
     if(type not in admitted_vals):
       msg = "Error building the PhEDEx xml url."
       msg += "The specified type of query is not one of the admitted values"
@@ -754,14 +547,13 @@ class DlsPhedexApi(dlsApi.DlsApi):
     url = xml_base
     
     # Most common case (querying blocks or locations)
-    if(type == DLS_PHEDEX_LIST):
+    if(type == DLS_PHEDEX_BLOCKS):
     
        url += "/blockReplicas?"
        
        if(not (block or se)): 
          msg = "Error building the PhEDEx xml url. A FileBlock or a location must be specified"
          raise DlsArgumentError(msg)
-
 
        if(block):
          url += "block=" + block.replace('*','%')
@@ -771,19 +563,54 @@ class DlsPhedexApi(dlsApi.DlsApi):
           if(block): url += "&"
           url += "se="+se
    
-       if(kwd.has_key("complete")):
-          if(kwd.get("complete")): url += "&complete=y"
+       if not (kwd.has_key("incomplete") and kwd.get("incomplete")):
+          url += "&complete=y"
    
        if(kwd.has_key("updated_since")):
           url += "&updated_since="+kwd.get("updated_since")
        
        if(kwd.has_key("created_since")):
           url += "&created_since="+kwd.get("created_since")
-  
+ 
+       if not (kwd.has_key("showProd") and kwd.get("showProd")):
+          url += "&op=node:and&node=!T0*&node=!T1*"
+
+    # Query for individual files in a given block 
+    if(type == DLS_PHEDEX_FILES):
+       url += "/fileReplicas?"
+
+       if(not (block)): 
+         msg = "Error building the PhEDEx xml url. A FileBlock must be specified"
+         raise DlsArgumentError(msg)
+       else:
+         url += "block=" + block.replace('*','%')
+         url = url.replace('#','%23')
+       
+       if(se):
+          if(block): url += "&"
+          url += "se="+se
+   
+       if not (kwd.has_key("incomplete") and kwd.get("incomplete")):
+          url += "&dist_complete=y"
+#          url += "&complete=y"
+   
+       if(kwd.has_key("updated_since")):
+          url += "&updated_since="+kwd.get("updated_since")
+       
+       if(kwd.has_key("created_since")):
+          url += "&created_since="+kwd.get("created_since")
+ 
+       if not (kwd.has_key("showProd") and kwd.get("showProd")):
+          url += "&op=node:and&node=!T0*&node=!T1*"
+
 
     # Query for all locations
     if(type == DLS_PHEDEX_ALL_LOCS):
+
        url += "/nodes"
+
+       if not (kwd.has_key("showEmpty") and kwd.get("showEmpty")):
+          url += "?noempty=y"
 
 
     return url

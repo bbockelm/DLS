@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #
-# $Id: dls-get-se,v 1.13 2007/03/27 09:58:37 delgadop Exp $
+# $Id: dls-get-se,v 1.14 2008/02/21 10:02:26 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -31,8 +31,8 @@ def usage():
    """
     Provides usage information
    """
-   print "Usage: dls-get-se [-v, -e, -i, -l, --dbs-conf] <fileblock>"
-   print "       dls-get-se [-v, -e, -i, -l, -p, --dbs-conf] -f <listing_file>"
+   print "Usage: dls-get-se [-v, -e, -i, -l, --dbs-conf, --show-prod] <fileblock>"
+   print "       dls-get-se [-v, -e, -i, -l, -p, --dbs-conf, --show-prod] -f <listing_file>"
    print "       dls-get-se -u"
    print "       dls-get-se -h"
 
@@ -51,6 +51,7 @@ def options():
    -p, --partial-list
    -f, --from-file <filename>
        --dbs-conf <conf_file>
+       --show-prod
    """
 def example():
   """
@@ -80,7 +81,14 @@ Specific notes for DBS and PhEDEx back-end (DLS_TYPE_DBS, DLS_TYPE_PHEDEX):
      - (DBS only) specified URL in the configuration file (see --dbs-conf)
      - (PhEDEx only) DLS_PHEDEX_ENDPOINT environmental variable
 
-Additional DBS notes:
+
+Additional DLS_TYPE_PHEDEX notes:
+
+  The --show-prod option can be used to turn off the filtering of
+  prod-only FileBlock replicas. Use it only if you know what you are doing.
+
+
+Additional DLS_TYPE_DBS notes:
 
   Currently, the DBS back-end does not support replica attributes, so the
   "-l" option is ignored.
@@ -129,6 +137,9 @@ the command must keep trying with the rest of fileblocks (by default, it will
 break on error at the first problem). In the case of errors, a warning is
 printed and the corresponding fileblock is skipped in the resulting locations
 list. The "-p" option makes no sense if "-f" is not used.
+
+The --show-prod option is only understood by the PhEDEx back-end (see notes) and
+ignored by the rest.
  """
    commonHelpText(ADMITTED_IFACE_TYPES)
    options()
@@ -136,7 +147,7 @@ list. The "-p" option makes no sense if "-f" is not used.
 
 
 
-def showLocations(iface, lineList, longList, iface_type, errorTolerant, verbose):
+def showLocations(iface, lineList, longList, iface_type, errorTolerant, showProd, verbose):
    """
     Prints the locations which hold a copy of the specified
     FileBlock. lineList is a list of strings, each holding 
@@ -168,16 +179,20 @@ def showLocations(iface, lineList, longList, iface_type, errorTolerant, verbose)
       print ")"
 
    # Get the locations (and let the caller deal with the exception...)
-   entryList = iface.getLocations(fbList, longList = longList, session = True, errorTolerant = errorTolerant)
+   entryList = iface.getLocations(fbList, longList = longList, session = True, errorTolerant = errorTolerant, showProd = showProd)
 
    # Print the entries
    for entry in entryList:
       if (len(entryList) > 1):
          print "  FileBlock: " + entry.fileBlock.name
       for loc in entry.locations:
-         # In any case, print the host
-         print loc.host,
-         
+#         # In any case, print the host
+#         print loc.host,
+         if (not longList) or (iface_type=="DLS_TYPE_LFC"):
+            print loc.host,
+         else:
+            print loc,
+
          if(iface_type=="DLS_TYPE_LFC" and longList):
 #         if(longList):
             values = []
@@ -201,8 +216,8 @@ def showLocations(iface, lineList, longList, iface_type, errorTolerant, verbose)
             print values[2], "\t",
             print values[3],
 
-         if(iface_type != "DLS_TYPE_LFC" and longList):
-            print loc.attribs,
+#         if(iface_type != "DLS_TYPE_LFC" and longList):
+#            print loc.attribs,
 
          print
          
@@ -220,7 +235,7 @@ def main(pArgs):
 
  # Options and args... 
  
-   longoptions=["help", "usage", "long", "endpoint=", "interface-type=", "verbose=", "from-file=", "partial-list", "dbs-conf="]
+   longoptions=["help", "usage", "long", "endpoint=", "interface-type=", "verbose=", "from-file=", "partial-list", "dbs-conf=", "show-prod"]
    try:
       optlist, args = getopt.getopt(pArgs, 'hule:i:v:f:p', longoptions)
    except getopt.GetoptError, inst:
@@ -237,6 +252,7 @@ def main(pArgs):
    fromFile = False
    fname=""
    errorTolerant = False
+   showProd = False
    for opt, val in optlist:
        if opt in ("-h", "--help"):
            help()
@@ -251,6 +267,9 @@ def main(pArgs):
            
        elif opt in ("", "--dbs-conf"):
            dbsConf = val
+
+       elif opt in ("", "--show-prod"):
+           showProd = True
 
        elif opt in ("-e","--endpoint"):
            endpoint = val
@@ -316,7 +335,7 @@ def main(pArgs):
    
  # Do the query (under session)
    try:
-     showLocations(iface, lineList, longList, iface_type, errorTolerant, verbose)
+     showLocations(iface, lineList, longList, iface_type, errorTolerant, showProd, verbose)
    except dlsApi.DlsApiError, inst:         
       if(inst.rc):  err = inst.rc 
       else:           err = GENERIC_ERROR

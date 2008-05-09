@@ -1,0 +1,28 @@
+#
+# $Id$
+#
+# DLS Client Tests. $Name:  $.
+# Antonio Delgado Peris. CIEMAT. CMS.
+#
+
+User tests
+----------
+The TestDlsPhedexApi.py and TestDlsDbsApi.py scripts are runnable tests
+to check basic functionality of the DLS Client CLI and API. They can
+be used to test that a new installation works. The first script
+can be used with a PhEDEx-based DLS back-end and the second with
+a DBS-based DLS back-end. 
+
+Both scripts may need some modification to run correctly; please check
+their help option for more information:
+  TestDlsPhedexApi.py -h
+  TestDlsDbsApi.py -h
+
+
+Functionality tests
+-------------------
+The FunctionalityTests directory contains a more complete functionality
+test suite for different DLS back-ends. This is however only intended
+for developers use. Please read the README file within this directory
+for more information.
+

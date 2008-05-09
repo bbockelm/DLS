@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #
-# $Id: dls-get-all-locations,v 1.6 2008/02/21 10:02:26 delgadop Exp $
+# $Id$
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -11,14 +11,15 @@
 # Imports 
 #########################################
 import dlsApi
-from dlsDataObjects import DlsLocation, DlsFileBlock, DlsEntry
+from dlsDataObjects import DlsLocation, DlsFile
 import dlsClient
 from dlsCommandsCommon import *
 import time
 import sys
+import commands
 import getopt
 
-ADMITTED_IFACE_TYPES = ["DLS_TYPE_LFC", "DLS_TYPE_MYSQL", "DLS_TYPE_DBS", "DLS_TYPE_PHEDEX"]
+ADMITTED_IFACE_TYPES = ["DLS_TYPE_PHEDEX"]
 
 
 ################## GLOBAL CONSTANTS ########################
@@ -31,9 +32,9 @@ def usage():
    """
     Provides usage information
    """
-   print "Usage: dls-get-all-locations [-v, -e, -i, --dbs-conf]"
-   print "       dls-get-all-locations -u"
-   print "       dls-get-all-locations -h"
+   print "Usage: dls-get-files-se [-v, -e, -i, --show-prod] <fileBlock>"
+   print "       dls-get-files-se -u"
+   print "       dls-get-files-se -h"
 
 
 def options():
@@ -46,7 +47,7 @@ def options():
    -v, --verbose <verb_level>
    -e, --endpoint <endpoint>
    -i, --interface-type <iface_type>
-       --dbs-conf <conf_file>
+       --show-prod
    """
 def example():
   """
@@ -59,11 +60,17 @@ def help():
    """
     Provides some help information
    """
-   print """Prints the locations holding any FileBlock replica, according
-to the DLS catalog. 
+   print """This script will print the files composing the specified
+FileBlock and the locations associated to each of those files (i.e., there is
+a copy of that file in that location (SE)).
 
+Specific notes for PhEDEx back-end (DLS_TYPE_PHEDEX):
 
-Specific notes for DBS and PhEDEx back-end (DLS_TYPE_DBS, DLS_TYPE_PHEDEX):
+  The argument of this command is a FileBlock name. No wildcards ('*' or
+  '#' are allowed).
+
+  The --show-prod option can be used to turn off the filtering of
+  prod-only file replicas. Use it only if you know what you are doing.
 
   The server endpoint is got from a string in the URL form, usually:
     "http[s]://hname[:port]/path/to/DLS".
@@ -73,57 +80,38 @@ Specific notes for DBS and PhEDEx back-end (DLS_TYPE_DBS, DLS_TYPE_PHEDEX):
      - (DBS only) specified URL in the configuration file (see --dbs-conf)
      - (PhEDEx only) DLS_PHEDEX_ENDPOINT environmental variable
 
-Additional notes for DBS back-end (DLS_TYPE_DBS):
-
-  Apart from DBS endpoint, other configuration options may be specified
-  for the underlying DBS interface (e.g. "level" for DBS logging level)
-  in a configuration file. The name of this file can be indicated with,
-  in this order:
-     - specified value for --dbs-conf option
-     - DBS_CLIENT_CONFIG environmental variable
-
-
-Specific notes for LFC back-end (DLS_TYPE_LFC):
-
-   NOTE: With LFC back-end, this method is a very expensive operation and may
-   affect DLS response, so use it only with care!!
-
-  The server endpoint should be of the form: "hname[:port][/path/to/DLS]",
-  where a default port is used if not specified, and the path to DLS is
-  required. The server endpoint is retrieved from (in orden of precedence):
-     - specified value for --endpoint option 
-     - DLS_ENDPOINT environmental variable
-
 
 Options:
- """
+
+The --show-prod option is only understood by the PhEDEx back-end (see notes) and
+ignored by the rest.
+   """
    commonHelpText(ADMITTED_IFACE_TYPES)
    options()
    usage()
 
 
 
-def showLocations(iface, verbose):
+def showFileLocs(iface, fb, showProd, verbose):
    """
-    Prints all the locations which hold a copy of any FileBlock.
+    Prints the files composing the specified FileBlock and their associated locations.
     
     Throws DlsApiError if there is a problem in the DLS operation.
    """
 
-   # Get the list of FileBlocks
-
    if(verbose >= 2):
-      print "--DlsApi.getAllLocations()"
+      print "--DlsApi.getFileLocs(%s)" % fb
 
-   # Get the locations (and let the caller deal with the exception...)
-   locList = iface.getAllLocations(session = True)
+   # Get the file-locs association (and let the caller deal with the exception...)
+   flList = iface.getFileLocs(fb, showProd = showProd)
 
-   # Print the entries
-   for loc in locList:
-      print loc.host
- 
+   # Print the list   
+   for fl in flList:
+      print fl.name
+      for loc in flList[fl]:
+        print loc.host
+      print
 
-            
 
 ###################### MAIN FUNCTION ########################
 
@@ -135,19 +123,19 @@ def main(pArgs):
 
  # Options and args... 
  
-   longoptions=["help", "usage", "endpoint=", "interface-type=", "verbose=", "dbs-conf="]
+   longoptions=["help", "usage", "endpoint=", "interface-type=", "verbose=", "show-prod"]
    try:
       optlist, args = getopt.getopt(pArgs, 'hue:i:v:', longoptions)
    except getopt.GetoptError, inst:
-      sys.stderr.write("Bad usage: "+str(inst)+'\n')
+      err("Bad usage: "+str(inst))
       usage()
       sys.exit(OPT_ERROR)
 
-   err=0
-   dbsConf = None
+   error=0
    verbose = 1
    endpoint = None
    iface_type = None
+   showProd = False
    for opt, val in optlist:
        if opt in ("-h", "--help"):
            help()
@@ -157,9 +145,6 @@ def main(pArgs):
            usage()
            return 0
            
-       elif opt in ("", "--dbs-conf"):
-           dbsConf = val
-
        elif opt in ("-e","--endpoint"):
            endpoint = val
 
@@ -170,36 +155,48 @@ def main(pArgs):
            verbose = check_verbosity_value(val)
            if(verbose == OPT_ERROR): return OPT_ERROR
 
+       elif opt in ("", "--show-prod"):
+           showProd = True
+
 
    # Check the interface type (from options or environ)
    iface_type = check_iface_type(iface_type, ADMITTED_IFACE_TYPES)
    if (iface_type == TYPE_ERROR): return TYPE_ERROR
 
 
-  
+
+ # Build the arguments
+   if(len(args)<1):
+      err("Not enough input arguments")
+      usage()
+      return(OPT_ERROR)
+
+   if(len(args)>1):
+      err("Only one FileBlock may be specified")
+      usage()
+      return(OPT_ERROR)
+
+   fileblock = args[0]
+
  # Create the interface binding
    try: 
-      iface = create_iface_binding(iface_type, endpoint, dbsConf, verbose)
+      iface = create_iface_binding(iface_type, endpoint, None, verbose)
    except dlsApi.DlsApiError, inst:
-      if(inst.rc):  err = inst.rc 
-      else:           err = GENERIC_ERROR
-      msg = "Error when binding the DLS interface: " + str(inst)
-      sys.stderr.write(msg+"\n")
-      return err
-
+      if(inst.rc):  error = inst.rc 
+      else:           error = GENERIC_ERROR
+      err("Error when binding the DLS interface: " + str(inst))
+      return error
    
- # Do the query
+ # Do the query (under session)
    try:
-     showLocations(iface, verbose)
+     showFileLocs(iface, fileblock, showProd, verbose)
    except dlsApi.DlsApiError, inst:         
-      if(inst.rc):  err = inst.rc 
-      else:           err = GENERIC_ERROR
-      msg = "Error in the DLS query: %s." % str(inst)
-      sys.stderr.write(msg+'\n')
-
+      if(inst.rc):  error = inst.rc 
+      else:           error = GENERIC_ERROR
+      err("Error in the DLS query: %s." % str(inst))
 
  # Finally, return error code
-   return err
+   return error
 
 
 

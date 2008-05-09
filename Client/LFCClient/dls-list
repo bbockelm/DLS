@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #
-# $Id: dls-list,v 1.15 2007/03/27 09:58:37 delgadop Exp $
+# $Id: dls-list,v 1.16 2008/02/21 10:02:26 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -153,7 +153,7 @@ def showFileBlocks(iface, lineList, longList, recursive, guid, iface_type, verbo
    filemode, number of files in a directory, owner, group owner, last
    modification date.
    
-   Throws DlsLfcApiError if there is a problem in the DLS operation.
+   Throws DlsApiError if there is a problem in the DLS operation.
    """
    more = longList or guid
    fbList = []
@@ -258,11 +258,16 @@ def showFileBlocks(iface, lineList, longList, recursive, guid, iface_type, verbo
          else:
             print '\t', values[5], '\t',
       
-      # In any case, print the name 
-      print fB.name,
+#      # In any case, print the name 
+#      print fB.name,
 
-      if(iface_type != "DLS_TYPE_LFC" and longList):
-         print fB.attribs,
+      if (not longList) or (iface_type=="DLS_TYPE_LFC"):
+         print fB.name,
+      else:
+         print fB,
+
+#      if(iface_type != "DLS_TYPE_LFC" and longList):
+#         print fB.attribs,
 
       if(guid):
          print '\t',fB.getGuid(),

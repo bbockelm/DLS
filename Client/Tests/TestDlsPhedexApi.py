@@ -77,12 +77,12 @@ if endpoint==None:
 # #############################
 ## Some predefined fileblocks and locations
 # #############################
-fbPattern='/CSA07AllEvents/CMSSW_1_6_7-CSA07-Stew-B1-PDAllEvents-Skims2-muonL1AODSIM/USER#a*'
+fbPattern='/CSA07AllEvents/CMSSW_1_6_7-CSA07-Stew-B1-PDAllEvents-Skims2-muonL1AODSIM/USER#ad*'
 fbA="/CSA07AllEvents/CMSSW_1_6_7-CSA07-Stew-B1-PDAllEvents-Skims2-muonL1AODSIM/USER#ad0560bb-9bc1-4e84-aa81-6f32c16f9c65"
 fbB="/CSA07AllEvents/CMSSW_1_6_7-CSA07-Stew-B1-PDAllEvents-Skims2-muonL1AODSIM/USER#a83d4262-afbe-463e-aeac-d9c21724b4b6"
 fbC="/CSA07AllEvents/CMSSW_1_6_7-CSA07-Stew-B1-PDAllEvents-Skims2-muonL1AODSIM/USER#a06748f3-441b-4b32-ab85-c2fa4ec67e44"
 seA = "srm.ciemat.es"
-seB = "dpm01.ifca.es"
+seB = "storm.ifca.es"
 
 # #############################
 ## API
@@ -118,9 +118,9 @@ except dlsApi.DlsApiError, inst:
 
 #second entry
 fileblockPattern = DlsFileBlock(fbPattern)
-print "*** list several DLS entries for pattern=%s"%(fileblockPattern.name)
+print "*** list several DLS entries for pattern=%s and block=%s"%(fileblockPattern.name,fbB)
 try:
-  fList = api.listFileBlocks([fileblockPattern])
+  fList = api.listFileBlocks([fileblockPattern, fileblockB])
   for f in fList:
      print f
   print "===> No Exception thrown\n"
@@ -145,6 +145,22 @@ try:
 except dlsApi.DlsApiError, inst:
      msg = "Error in the DLS query: %s." % str(inst)
      print msg+'\n'
+
+# #############################
+## get Location of the DLS entry including T0 and T1
+# #############################
+print "*** get Locations for same fileblock but with showProd=True"
+entryList=[]
+try:
+ entryList = api.getLocations(fileblockA, errorTolerant=False, showProd=True)
+ print
+ for entry in entryList:
+   print entry.simpleStr()
+ print "===> No Exception thrown\n"
+except dlsApi.DlsApiError, inst:
+     msg = "Error in the DLS query: %s." % str(inst)
+     print msg+'\n'
+
 
 # #############################
 ## Dump several DLS entries with pattern
@@ -222,3 +238,20 @@ try:
 except dlsApi.DlsApiError, inst:
      msg = "Error in the DLS query: %s." % str(inst)
      print msg+'\n'
+
+
+# #############################
+## get files and locs for given fileblock 
+# #############################
+print "*** get files and locs for given fileblock"
+try:
+  flDict = api.getFileLocs(fbA)
+  for fl in flDict:
+       print fl
+       for se in flDict[fl]: print se.host
+       print
+  print "===> No Exception thrown\n"
+except dlsApi.DlsApiError, inst:
+     msg = "Error in the DLS query: %s." % str(inst)
+     print msg+'\n'
+

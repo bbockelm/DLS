@@ -1,5 +1,5 @@
 #
-# $Id: dlsDataObjects.py,v 1.9 2007/03/16 12:39:51 delgadop Exp $
+# $Id: dlsDataObjects.py,v 1.10 2007/03/23 10:25:09 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -34,21 +34,6 @@ from dlsApiExceptions import DlsDataObjectError
 from dlsApiExceptions import DlsDataObjectTypeError as TypeError
 from dlsApiExceptions import DlsDataObjectValueError as ValueError
 
-#class DlsDataObjectError(dlsApi.DlsApiError):
-#  """
-#  Exception class for the creation and handling of DLS data objects (classes
-#  defined in the dlsDataObject module).
-#  """
-#  
-#class TypeError(DlsDataObjectError):
-#  """
-#  Exception class for invocations of object methods with an incorrect argument type.
-#  """
-#  
-#class ValueError(DlsDataObjectError):
-#  """
-#  Exception class for invocations of object methods with an incorrect value as argument.
-#  """
 
 #########################################
 # DlsFileBlock class
@@ -151,7 +136,13 @@ class DlsFileBlock(object):
     """
     Returns a (simplified) string representation of the object
     """
-    return self.name + str(self.attribs)
+#    return self.name + str(self.attribs)
+    result = self.name + ' {'
+    for key in self.attribs: 
+       result = result + "%s: %s, " % (key, self.attribs[key])
+    if(self.attribs): result = result[:-2] + '}'
+    else:             result = result + '}'
+    return result
     
   ###################################################################
   # Private: setters and getters (properties) for the shared {} issue
@@ -287,7 +278,13 @@ class DlsLocation(object):
     """
     Returns a (simplified) string representation of the object
     """
-    return self.host + str(self.attribs)
+#    return self.host + str(self.attribs)
+    result = self.host + ' {'
+    for key in self.attribs: 
+       result = result + "%s: %s, " % (key, self.attribs[key])
+    if(self.attribs): result = result[:-2] + '}'
+    else:             result = result + '}'
+    return result
     
   ###################################################################
   # Private: setters and getters (properties) for the shared {} issue
@@ -485,6 +482,86 @@ class DlsEntry(object):
   locations = property(_getLoc, _setLoc, _delLoc, docstr)
 
 
+
+
+
+
+#########################################
+# DlsFile class
+#########################################
+
+class DlsFile(object):
+  """
+  Container of the information relative to a DLS file. It includes the file
+  name in the catalog and possibly a list of attributes.
+
+  NOTE: A FileBlock is composed of files. DLS original function dealt with
+  FileBlocks cataloging and not at all with files. Only some DLS API 
+  implementations have been extended with methods that deal with information
+  at the file level (i.e. regarding locations where the files of each
+  FileBlock are stored). Such methods will use the DlsFile object.
+  
+  The file name is accessible on the data member "name". It is a string
+  that can be read and set. 
+
+  The attribute list is accessible on the data member "attribs". It is a
+  dictionary that can be read and set. Any attribute key and value can be set
+  but only some of them are supported by methods manipulating DlsFile
+  objects and making use of the attribute list (most methods just use the
+  name). See documentation of dlsApi.DlsApi methods for details.
+
+  """
+
+  ############################################
+  # Methods defining the public interface
+  ############################################
+  
+  def __init__(self, name, attributes = None):
+    """
+    Constructor of the class.
+
+    @param name: the file name, as a string. Required.
+    @param attributes: the file attribute list, as a dictionary. May be set.
+    """
+
+    self.name = name
+    self._setAttr(attributes)
+
+
+  def __str__(self):
+    """
+    Returns a (simplified) string representation of the object
+    """
+#    return self.name + str(self.attribs)
+    result = self.name + ' {'
+    for key in self.attribs: 
+       result = result + "%s: %s, " % (key, self.attribs[key])
+    if(self.attribs): result = result[:-2] + '}'
+    else:             result = result + '}'
+    return result
+    
+  ###################################################################
+  # Private: setters and getters (properties) for the shared {} issue
+  ###################################################################
+  def _getAttr(self): return self._attr
+    
+  def _setAttr(self, value):
+    if(value == None): self._attr = {}
+    else:
+       if(isinstance(value, dict)):  self._attr = value 
+       else:   raise TypeError("attribs data member should be a dictionary")
+    
+  def _delAttr(self): del self._attr
+
+  docstr = "Attributes of the file (python dictionary)"
+  attribs = property(_getAttr, _setAttr, _delAttr, docstr)
+
+
+
+
+
+
+
 #########################################
 # Some local utilities
 #########################################
@@ -499,29 +576,3 @@ def _checkHname(hname):
      socket.gethostbyname(hname)
   except socket.error,inst:
      raise ValueError(str(inst))
-
-
-#def _checkHname(hname):
-#
-#  if(not hname):
-#     msg = "Empty hostname"
-#     raise ValueError(msg)
-#
-#  parts=hname.split(".")
-#  
-#  for part in parts:
-#     if(not part):
-#        msg = "Empty name between dots"
-#        raise ValueError(msg)
-#     if(not (part[0]).isalnum()):
-#        msg = "First character (after dot) is not alphanumeric: %s " % part[0]
-#        raise ValueError(msg)
-#     for char in part[1:len(part)-1]:
-#        if(not (char=='-' or char.isalnum())):
-#           msg = "Wrong character -not alphanumeric nor hyphen- found: %s" % char
-#           raise ValueError(msg)
-#     if(not (part[len(part)-1]).isalnum()): 
-#        msg = "Last character (before dot) is not alphanumeric: %s" % part[len(part)-1]
-#        raise ValueError(msg)
-#
-#  return True

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #
-# $Id: dls-update,v 1.10 2008/02/21 10:02:27 delgadop Exp $
+# $Id: dls-update,v 1.11 2008/02/28 16:27:13 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -127,7 +127,7 @@ def updateEntries(iface, lineList, trans, errorTolerant, verbose):
     All elements separated by whitespaces, and attributes identified by the presence
     of the '=' character.
 
-    Throws DlsLfcApiError if there is a problem in the DLS operation, unless
+    Throws DlsApiError if there is a problem in the DLS operation, unless
     trans is set to True.
    """
 

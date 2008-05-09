@@ -1,5 +1,5 @@
 #
-# $Id: dlsDbsApi.py,v 1.4 2007/03/30 13:13:47 delgadop Exp $
+# $Id: dlsDbsApi.py,v 1.5 2008/02/21 10:02:27 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -118,16 +118,27 @@ class DlsDbsApi(dlsApi.DlsApi):
     The underlying DBS interface verbosity can be controlled via the corresponding
     DBS configuration parameter (in **kwd or config file).
       
+    If the checkEndpoint (**kwd) is set to True, the provided endpoint is
+    checked. This makes sense where more than one query are to be made next.
+    For simple queries, any error in the endpoint will be noticed in the query
+    itself, so the check would be redundant and not efficient.
+      
     @exception DlsConfigError: if the DBS interface object cannot be set up correctly 
 
     @param dls_endpoint: the DLS server to be used, as a string "hname[:port]/path/to/DLS"
     @param verbosity: value for the verbosity level
     @param kwd: Flags:
-                  - URL: DLS server (DBS) endpoint
-                  - version: DBS client version
-                  - dbs_client_config: config file for DBS interface to use
-                  - any other DBS-specific
+      - checkEndpoint: Boolean (default False) for testing of the DLS endpoint
+      - URL: DLS server (DBS) endpoint
+      - version: DBS client version
+      - dbs_client_config: config file for DBS interface to use
+      - any other DBS-specific
     """
+
+    # Keywords
+    checkEndpoint = False
+    if(kwd.has_key("checkEndpoint")):
+       checkEndpoint = kwd.get("checkEndpoint")
 
     # Let the parent set the server endpoint (if possible) and verbosity
     dlsApi.DlsApi.__init__(self, dls_endpoint, verbosity)
@@ -158,14 +169,14 @@ class DlsDbsApi(dlsApi.DlsApi):
     # Set the server in our own variable (will this be needed?)
     self.server = self.dbsapi.url()
 
-    # TODO: add the checkEndpoint flag to avoid innecessary checking
     # Check that the provided URL is OK (by listing an inexisting fileblock)
-    try:
-       self.dbsapi.listBlocks(block_name="-") 
-    except DbsApiException, inst:
-       msg = "Could not set the interface to the DLS server. "
-       msg += "Error when accessing provided DBS URL: %s" %   (self.server)
-       self._mapException(inst, msg, msg, errorTolerant = False)
+    if(checkEndpoint):
+      try:
+         self.dbsapi.listBlocks(block_name="-") 
+      except DbsApiException, inst:
+         msg = "Could not set the interface to the DLS server. "
+         msg += "Error when accessing provided DBS URL: %s" %   (self.server)
+         self._mapException(inst, msg, msg, errorTolerant = False)
 
     
 
@@ -573,9 +584,6 @@ class DlsDbsApi(dlsApi.DlsApi):
       - "CreatedBy"
       - "LastModificationDate"
       - "CreatedBy"
-
-    TODO: Is next sentence true?
-    Additionally, the GUID is set in the corresponding dlsFileBlock object.
 
     The following keyword flags are ignored: session, recursive.
     """
