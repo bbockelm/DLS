@@ -10,19 +10,25 @@ BIN_DIR=$(PREFIX)/bin
 SETUP_DIR=$(PREFIX)/etc
 
 install: default
-default: setup dbs
-all: setup lfc
+default: dbs 
+all: lfc 
 
 setup:
 	/bin/mkdir -p $(LIB_DIR)
 	/bin/mkdir -p $(BIN_DIR)
 	/bin/mkdir -p $(SETUP_DIR)
 
-lfc: common
-dli: common
-mysql: common
-dbs: common
-phedex: common
+lfc: setup bare_lfc message
+dli: setup bare_dli message
+mysql: setup bare_mysql message
+dbs: setup bare_dbs message
+phedex: setup bare_phedex message
+
+bare_lfc: common
+bare_dli: common
+bare_mysql: common
+bare_dbs: common
+bare_phedex: common
 
 common:
 	/bin/cp $(LFCClient)/dls*py $(LIB_DIR)/.
@@ -34,6 +40,15 @@ common:
       echo "setenv PYTHONPATH  ${LIB_DIR}:\$$PYTHONPATH"  > $(SETUP_DIR)/setup.csh; \
       echo "setenv PATH  ${BIN_DIR}:\$$PATH"             >> $(SETUP_DIR)/setup.csh; \
    fi
+
+message:
+	@echo 
+	@echo "***********************************************************"
+	@echo " NOTE: To set proper environment you need to do:"
+	@echo "   source $(SETUP_DIR)/setup.(c)sh"
+	@echo " You may want to add that to one of your start-up scripts."
+	@echo "***********************************************************"
+	@echo 
 
 clean:
 	/bin/rm -rf $(LIB_DIR)/*
