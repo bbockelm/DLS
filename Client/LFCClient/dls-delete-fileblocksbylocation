@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #
-# $Id: dls-delete-fileblocksbylocation,v 1.4 2007/03/16 12:39:51 delgadop Exp $
+# $Id: dls-delete-fileblocksbylocation,v 1.5 2008/02/21 10:02:26 delgadop Exp $
 #
 # DLS Client. $Name:  $
 # Alessandra Fanfani Univ./INFN Bologna. CMS.
@@ -151,51 +151,52 @@ def main(pArgs):
    location = ""
    for location in args:
 
- # Create the interface binding
-   try: 
-      iface = create_iface_binding(iface_type, endpoint, dbsConf, verbose)
-   except dlsApi.DlsApiError, inst:
-      if(inst.rc):  err = inst.rc 
-      else:           err = GENERIC_ERROR
-      msg = "Error when binding the DLS interface: " + str(inst)
-      sys.stderr.write(msg+"\n")
-      return err
- 
-    # Start session
-    iface.startSession()
+     # Create the interface binding
+     try: 
+        iface = create_iface_binding(iface_type, endpoint, dbsConf, verbose)
+     except dlsApi.DlsApiError, inst:
+        if(inst.rc):  err = inst.rc 
+        else:           err = GENERIC_ERROR
+        msg = "Error when binding the DLS interface: " + str(inst)
+        sys.stderr.write(msg+"\n")
+        return err
+   
+     # Start session
+     iface.startSession()
+     
+     if(verbose >= 2):
+       print "*** Get FileBlocks given the location=%s"%location
+     entryList=[]
+     try:
+       entryList=iface.getFileBlocks(location)
+     except dlsApi.DlsApiError, inst:
+       if(inst.rc):  err = inst.rc 
+       else:           err = GENERIC_ERROR 
+       msg = "Error in the DLS query: %s." % str(inst)
+       sys.stderr.write(msg+"\n")
+       iface.endSession()
+       sys.exit(err) 
+       
+     if(verbose >= 2):
+        print "*** Delete all DLS entry with location=%s"%location
+     #Could just be: iface.delete(entryList)
+     #print entryList
+     for entry in entryList:
+        #print entry
+        try:
+          #print " delete %s"%entry
+          iface.delete([entry])
+        except dlsApi.DlsApiError, inst:
+          msg = "Error in deleting DLS entry: %s." % str(inst)
+          sys.stderr.write(msg+"\n")
+          pass
+  
+     # end session
+     iface.endSession()
+
+
     
-    if(verbose >= 2):
-      print "*** Get FileBlocks given the location=%s"%location
-    entryList=[]
-    try:
-      entryList=iface.getFileBlocks(location)
-    except dlsApi.DlsApiError, inst:
-      if(inst.rc):  err = inst.rc 
-      else:           err = GENERIC_ERROR 
-      msg = "Error in the DLS query: %s." % str(inst)
-      sys.stderr.write(msg+"\n")
-      sys.exit(err) 
-      
-    if(verbose >= 2):
-       print "*** Delete all DLS entry with location=%s"%location
-    #Could just be: iface.delete(entryList)
-    #print entryList
-    for entry in entryList:
-       #print entry
-       try:
-         #print " delete %s"%entry
-         iface.delete([entry])
-       except dlsApi.DlsApiError, inst:
-         msg = "Error in deleting DLS entry: %s." % str(inst)
-         sys.stderr.write(msg+"\n")
-         pass
-
-    # end session
-    iface.endSession()
-
-
-    
-######################### SCRIPT ###########################
+######################## SCRIPT ###########################
 
 if __name__ == "__main__":
   sys.exit(main(sys.argv[1:]))
