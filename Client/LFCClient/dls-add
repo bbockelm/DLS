@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #
-# $Id: dls-add,v 1.17 2008/02/21 10:02:26 delgadop Exp $
+# $Id: dls-add,v 1.18 2008/05/09 15:29:16 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -284,11 +284,11 @@ def main(pArgs):
    try:
       optlist, args = getopt.getopt(pArgs, 'hute:i:v:f:', longoptions)
    except getopt.GetoptError, inst:
-      sys.stderr.write("Bad usage: "+str(inst)+'\n')
+      err("Bad usage: "+str(inst))
       usage()
       sys.exit(OPT_ERROR)
 
-   err=0
+   rc = 0
    createParent = True
    trans = False
    errorTolerant = True
@@ -352,15 +352,16 @@ def main(pArgs):
       try:
          file=open(fname, 'r')
       except IOError, inst:
-         msg="The file "+fname+" could not be opened: "+str(inst)+"\n"
-         sys.stderr.write(msg)
+         msg="The file "+fname+" could not be opened: "+str(inst)
+         err(msg)
          return FILE_ERROR
       lineList=file.readlines()
+      file.close()
       
    # From command line options
    else:
       if(len(args)<1):
-         sys.stderr.write("Not enough input arguments\n")
+         err("Not enough input arguments")
          usage()
          return(OPT_ERROR)
 
@@ -374,30 +375,30 @@ def main(pArgs):
    try: 
       iface = create_iface_binding(iface_type, endpoint, dbsConf, verbose)
    except dlsApi.DlsApiError, inst:
-      if(inst.rc):  err = inst.rc 
-      else:           err = GENERIC_ERROR
+      if(inst.rc):  rc = inst.rc 
+      else:           rc = GENERIC_ERROR
       msg = "Error when binding the DLS interface: " + str(inst)
-      sys.stderr.write(msg+"\n")
-      return err
+      err(msg)
+      return rc
 
   # Go
    try:
      insertEntries(iface, lineList, createParent, trans, verbose, checkHost, allowEmpty, errorTolerant)
    except DlsDataObjectError, inst:
      msg = "Error preparing the DLS request: %s." % str(inst)
-     sys.stderr.write(msg+"\n")
-     if(inst.rc):  err = inst.rc 
-     else:         err = GENERIC_ERROR
-     sys.exit(err)
+     err(msg)
+     if(inst.rc):  rc = inst.rc 
+     else:         rc = GENERIC_ERROR
+     return rc
    except dlsApi.DlsApiError, inst:         
-      if(inst.rc):  err = inst.rc 
-      else:         err = GENERIC_ERROR
+      if(inst.rc):  rc = inst.rc 
+      else:         rc = GENERIC_ERROR
       msg = "Error in the entry(ies) insertion: %s." % str(inst)
-      sys.stderr.write(msg+'\n')
+      err(msg)
 
 
  # Finally, return error code
-   return err
+   return rc
 
 
 

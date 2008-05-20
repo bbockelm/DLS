@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #
-# $Id: dls-dli-get-se,v 1.3 2007/03/16 12:39:51 delgadop Exp $
+# $Id: dls-dli-get-se,v 1.4 2008/02/21 10:02:26 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -177,6 +177,7 @@ def main(pArgs):
                                                                                                     
       # Read lines
       lfnList = file.readlines()
+      file.close()
                                                                                                     
       # Show loop 
       err = showSEs(api, lfnList, verbose)

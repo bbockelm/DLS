@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #
-# $Id: dls-delete,v 1.13 2007/11/06 13:40:31 delgadop Exp $
+# $Id: dls-delete,v 1.14 2008/02/21 10:02:26 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -207,11 +207,11 @@ def main(pArgs):
    try:
       optlist, args = getopt.getopt(pArgs, 'huv:e:i:alkxf:', longoptions)
    except getopt.GetoptError, inst:
-      sys.stderr.write("Bad usage: "+str(inst)+'\n')
+      err("Bad usage: "+str(inst))
       usage()
       sys.exit(OPT_ERROR)
 
-   err=0
+   rc = 0
    all = False
    removeLinks = False
    keepFileBlock = False
@@ -247,21 +247,21 @@ def main(pArgs):
 
      elif opt in ("-a", "--all"):
          if(fromFile):
-            sys.stderr.write("Bad usage: The -a and -f options are incompatible"+'\n')
+            err("Bad usage: The -a and -f options are incompatible")
             usage()
             return OPT_ERROR
          all = True
          
      elif opt in ("-l", "--remove-links"):       
          if(keepFileBlock):
-            sys.stderr.write("Bad usage: The -k and -l options are incompatible"+'\n')
+            err("Bad usage: The -k and -l options are incompatible")
             usage()
             return OPT_ERROR
          removeLinks = True
          
      elif opt in ("-k", "--keepFileBlock"):
          if(removeLinks):
-            sys.stderr.write("Bad usage: The -k and -l options are incompatible"+'\n')
+            err("Bad usage: The -k and -l options are incompatible")
             usage()
             return OPT_ERROR
          keepFileBlock = True
@@ -275,7 +275,7 @@ def main(pArgs):
          
      elif opt in ("-f","--from-file"):
          if(all):
-            sys.stderr.write("Bad usage: The -a and -f options are incompatible"+'\n')
+            err("Bad usage: The -a and -f options are incompatible")
             usage()
             return OPT_ERROR 
          fromFile = True
@@ -284,7 +284,7 @@ def main(pArgs):
 #   if(removeLinks):
 #       if (not (all or fromFile)):
 #          msg = "Bad usage: The -l option can only be specified together with -a or -f"
-#          sys.stderr.write(msg + '\n')
+#          err(msg)
 #          usage()
 #          return OPT_ERROR
  
@@ -302,10 +302,11 @@ def main(pArgs):
       try:
          file=open(fname, 'r')
       except IOError, inst:
-         msg="The file "+fname+" could not be opened: "+str(inst)+"\n"
-         sys.stderr.write(msg)
+         msg="The file "+fname+" could not be opened: "+str(inst)
+         err(msg)
          return FILE_ERROR
       lineList=file.readlines()
+      file.close()
       
    # From command line options
    else:
@@ -320,7 +321,7 @@ def main(pArgs):
             return OPT_ERROR 
       else:
          if(all):
-            sys.stderr.write("Bad usage: The -a option is incompatible with a SE argument"+'\n')
+            err("Bad usage: The -a option is incompatible with a SE argument")
             usage()
             return OPT_ERROR 
             
@@ -334,11 +335,11 @@ def main(pArgs):
    try: 
       iface = create_iface_binding(iface_type, endpoint, dbsConf, verbose)
    except dlsApi.DlsApiError, inst:
-      if(inst.rc):  err = inst.rc 
-      else:           err = GENERIC_ERROR
+      if(inst.rc):  rc = inst.rc 
+      else:           rc = GENERIC_ERROR
       msg = "Error when binding the DLS interface: " + str(inst)
-      sys.stderr.write(msg+"\n")
-      return err
+      err(msg)
+      return rc
 
       
  # Do the deletion (under session)
@@ -347,14 +348,14 @@ def main(pArgs):
      session = True
      deleteEntries(iface, lineList, keepFileBlock, removeLinks, force, errorTolerant, verbose)
    except dlsApi.DlsApiError, inst:         
-      if(inst.rc):  err = inst.rc 
-      else:           err = GENERIC_ERROR      
+      if(inst.rc):  rc = inst.rc 
+      else:           rc = GENERIC_ERROR      
       msg = "Error in the entry(ies) deletion: %s." % str(inst)
-      sys.stderr.write(msg+'\n')
+      err(msg)
       if(session): iface.endSession()
 
  # Finally, return error code
-   return err
+   return rc
 
 
 

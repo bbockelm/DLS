@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #
-# $Id: dls-replace-location,v 1.11 2007/11/06 13:40:12 delgadop Exp $
+# $Id: dls-replace-location,v 1.12 2008/02/21 10:02:27 delgadop Exp $
 #
 # DLS Client. $Name:  $
 # Alessandra Fanfani Univ./INFN Bologna. CMS.
@@ -140,11 +140,11 @@ def main(pArgs):
    try:
       optlist, args = getopt.getopt(pArgs, 'huv:e:i:o:n:', longoptions)
    except getopt.GetoptError, inst:
-      sys.stderr.write("Bad usage: "+str(inst)+'\n')
+      err("Bad usage: "+str(inst))
       usage()
       sys.exit(OPT_ERROR)
 
-   err=0
+   rc = 0
    dbsConf = None
    verbose = 1
    checkHost = True
@@ -191,17 +191,17 @@ def main(pArgs):
    # Check other options
    if oldlocation==None:
       msg = "Error: --oldlocation <oldlocation> is required"
-      sys.stderr.write(msg+"\n")
+      err(msg)
       usage()
       sys.exit(OPT_ERROR)
    if newlocation==None:
       msg = "Error: --newlocation <newlocation> is required"
-      sys.stderr.write(msg+"\n")
+      err(msg)
       usage()
       sys.exit(OPT_ERROR)
    if oldlocation == newlocation:
       msg = "Error: <newlocation> (%s) and <oldlocation> (%s) are equal"%(oldlocation, newlocation)
-      sys.stderr.write(msg+"\n")
+      err(msg)
       sys.exit(OPT_ERROR)
 
 
@@ -210,18 +210,18 @@ def main(pArgs):
       newDlsLocation = DlsLocation(newlocation, checkHost = checkHost)
    except DlsDataObjectError, inst:
      msg = "Error preparing the DLS request: %s." % str(inst)
-     sys.stderr.write(msg+"\n")
+     err(msg)
      sys.exit(-2)  
 
  # Create the interface binding
    try: 
       iface = create_iface_binding(iface_type, endpoint, dbsConf, verbose)
    except dlsApi.DlsApiError, inst:
-      if(inst.rc):  err = inst.rc 
-      else:           err = GENERIC_ERROR
+      if(inst.rc):  rc = inst.rc 
+      else:           rc = GENERIC_ERROR
       msg = "Error when binding the DLS interface: " + str(inst)
-      sys.stderr.write(msg+"\n")
-      return err
+      err(msg)
+      return rc
   
 
    # DBS: Atomic operation in API
@@ -233,10 +233,10 @@ def main(pArgs):
          return 0
       except dlsApi.DlsApiError, inst:
          msg = "Error replacing location for fileblocks: %s." % str(inst)
-         sys.stderr.write(msg+"\n")
-         if(inst.rc):  err = inst.rc 
-         else:         err = GENERIC_ERROR
-         return err  
+         err(msg)
+         if(inst.rc):  rc = inst.rc 
+         else:         rc = GENERIC_ERROR
+         return rc  
   
 
    # Other interface types (LFC): non-atomic operation but with transactions
@@ -247,10 +247,10 @@ def main(pArgs):
       entryList=iface.getFileBlocks(oldlocation, session=True)
    except dlsApi.DlsApiError, inst:
       msg = "Error in the DLS query: %s." % str(inst)
-      sys.stderr.write(msg+"\n")
-      if(inst.rc):  err = inst.rc 
-      else:         err = GENERIC_ERROR
-      return err  
+      err(msg)
+      if(inst.rc):  rc = inst.rc 
+      else:         rc = GENERIC_ERROR
+      return rc  
 
    if(verbose >= 2):
       print "*** Add all DLS entries with location=%s"%newlocation
@@ -277,9 +277,9 @@ def main(pArgs):
      msg = "Error in deleting DLS entry: %s." % str(inst)
      msg += "\nPlease check for FileBlocks still in old location (maybe in new as well)."
      msg += " If the error was temporary, running the command again may fix it."
-     if(inst.rc):  err = inst.rc 
-     else:         err = GENERIC_ERROR
-     sys.stderr.write(msg+"\n")
+     if(inst.rc):  rc = inst.rc 
+     else:         rc = GENERIC_ERROR
+     err(msg)
      iface.abortTrans()
      sys.exit(err)  
 

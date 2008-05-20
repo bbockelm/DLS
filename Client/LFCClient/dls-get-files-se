@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #
-# $Id$
+# $Id: dls-get-files-se,v 1.1 2008/05/09 15:29:16 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -131,7 +131,7 @@ def main(pArgs):
       usage()
       sys.exit(OPT_ERROR)
 
-   error=0
+   rc = 0
    verbose = 1
    endpoint = None
    iface_type = None
@@ -182,21 +182,21 @@ def main(pArgs):
    try: 
       iface = create_iface_binding(iface_type, endpoint, None, verbose)
    except dlsApi.DlsApiError, inst:
-      if(inst.rc):  error = inst.rc 
-      else:           error = GENERIC_ERROR
+      if(inst.rc):  rc = inst.rc 
+      else:           rc = GENERIC_ERROR
       err("Error when binding the DLS interface: " + str(inst))
-      return error
+      return rc
    
  # Do the query (under session)
    try:
      showFileLocs(iface, fileblock, showProd, verbose)
    except dlsApi.DlsApiError, inst:         
-      if(inst.rc):  error = inst.rc 
-      else:           error = GENERIC_ERROR
+      if(inst.rc):  rc = inst.rc 
+      else:           rc = GENERIC_ERROR
       err("Error in the DLS query: %s." % str(inst))
 
  # Finally, return error code
-   return error
+   return rc
 
 
 

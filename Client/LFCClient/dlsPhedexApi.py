@@ -1,5 +1,5 @@
 #
-# $Id: dlsPhedexApi.py,v 1.1 2008/02/21 10:00:57 delgadop Exp $
+# $Id: dlsPhedexApi.py,v 1.2 2008/05/09 15:29:17 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -328,14 +328,16 @@ class DlsPhedexApi(dlsApi.DlsApi):
        else:
          lfn = fB
 
-       # If '/' is given, we want all blocks back
-       if(lfn=='/'): lfn = None
+       # If '/' or '*' or '%' is given, we want all blocks back
+       if (lfn=='/') or (lfn == '*') or (lfn == '%'):
+          lfn = '/%'
 
        # Build the xml query to use
        url = self._buildXmlUrl(self.server, DLS_PHEDEX_BLOCKS, lfn)
        self._debug("Using PhEDex xml url: "+url)
 
        # Get the locations
+       partList = []
        try:  
           partList = self.parser.xmlToBlocks(url)
        except Exception, inst:
