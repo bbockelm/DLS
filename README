@@ -1,8 +1,8 @@
-#     $Id: README,v 1.2 2006/01/05 11:20:15 afanfani Exp $
+#     $Id: README,v 1.3 2008/02/21 10:02:25 delgadop Exp $
 
 The code in the DLS cvs module is related to the
 Data Location Service (DLS). Please check the
-DLS page at:
+DLS Twiki at:
 https://twiki.cern.ch/twiki/bin/view/CMS/DLS
 
 The code in this module includes a protype DLS

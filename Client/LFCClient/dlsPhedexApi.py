@@ -1,5 +1,5 @@
 #
-# $Id: dlsPhedexApi.py,v 1.2 2008/05/09 15:29:17 delgadop Exp $
+# $Id: dlsPhedexApi.py,v 1.3 2008/05/20 14:27:54 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -41,7 +41,8 @@ from os import environ
 from stat import S_IFDIR
 from dlsXmlParser import DlsXmlParser
 from xml.sax import SAXException
-from urllib2 import HTTPError, URLError
+from urllib2 import HTTPError, URLError, urlopen
+from urllib import urlencode
 
 #########################################
 # Module globals
@@ -49,6 +50,10 @@ from urllib2 import HTTPError, URLError
 DLS_PHEDEX_BLOCKS = "DLS_PHEDEX_BLOCKS"
 DLS_PHEDEX_FILES = "DLS_PHEDEX_FILES"
 DLS_PHEDEX_ALL_LOCS = "DLS_PHEDEX_ALL_LOCS"
+DLS_PHEDEX_MAX_BLOCKS_PER_QUERY = 100
+DLS_PHEDEX_MAX_SES_PER_QUERY = 100
+DLS_PHEDEX_MAX_BLOCKS_PER_FILE_QUERY = 100
+# TODO: Change this!
 
 
 #########################################
@@ -132,7 +137,8 @@ class DlsPhedexApi(dlsApi.DlsApi):
     # Check that the provided URL is OK (by listing an inexisting fileblock)
     if(checkEndpoint):
       try:
-         url = self._buildXmlUrl(self.server, DLS_PHEDEX_BLOCKS, "-")
+         urlv = self._buildXmlUrl(self.server, DLS_PHEDEX_BLOCKS, ["-"])
+         url = urlopen(urlv[0] + '?' + urlencode(urlv[1]))
          self.parser.xmlToEntries(url)
       except Exception, inst:
          msg = "Could not set the interface to the DLS server. "
@@ -191,9 +197,8 @@ class DlsPhedexApi(dlsApi.DlsApi):
     else:
        theList = [fileBlockList]
 
-    eList = []
-
-    # Loop on the entries
+    # Loop on the entries to build a list of blocks to ask for
+    lfnList = []
     for fB in theList:
        # Check what was passed (DlsFileBlock or string)
        if(isinstance(fB, DlsFileBlock)):
@@ -201,32 +206,47 @@ class DlsPhedexApi(dlsApi.DlsApi):
        else:
          lfn = fB
 
-       # If '/' is given, we want all blocks back
-       if(lfn=='/'): lfn = None
+       # If '/' or '*' or '%' is given, we want all blocks back
+       if (lfn=='/') or (lfn == '*') or (lfn == '%'):
+          lfn = '/%'
 
-       # Build the xml query to use
-       url = self._buildXmlUrl(self.server, DLS_PHEDEX_BLOCKS, lfn, showProd = showProd)
-       self._debug("Using PhEDex xml url: "+url)
-
-       # Get the locations
-       try:  
-          partList = self.parser.xmlToEntries(url)
-       except Exception, inst:
-          msg = "Error retrieving locations for %s" % (lfn)
-          msg_w = msg + ". Skipping"
-          self._mapException(inst, msg, msg_w, errorTolerant)
+       lfnList.append(('block', lfn)) 
        
-       # Check if the list was empty
-       if(not partList):
-          if(not lfn): lfn = '/'
-          msg = "No existing fileblock matching %s" % (str(lfn))
-          msg_w = msg + ". Skipping"
-          if(not errorTolerant):  raise DlsInvalidBlockName(msg)
-          else:                   self._warn(msg_w)
-       else:
-          for entry in partList:
-             eList.append(entry)
-         
+    multiList = self._toMultiList(lfnList, DLS_PHEDEX_MAX_BLOCKS_PER_QUERY)
+    urlbase = self.server + '/blockReplicas'
+
+    
+#    msg = "Multilist:"
+#    for i in multiList: msg += str(len(i)) + ' '
+#    self._debug(msg)
+
+    arglist2 = []
+    # flags that could be added: incomplete, updated_since, created_since
+    arglist2.append(('complete', 'y'))
+    if not showProd:
+       arglist2 += [('op','node:and'), ('node','!T0*'), ('node','!T1*')]
+    self._debug("Using PhEDex xml url: " + urlbase + ' ' + str(arglist2))
+  
+    eList = []
+    for arglist in multiList:
+      if not arglist: continue
+      # Get the locations
+      try:  
+         # Build the xml query to use
+         url = urlopen(urlbase, urlencode(arglist + arglist2))
+         partList = self.parser.xmlToEntries(url)
+      except Exception, inst:
+         msg = "Error retrieving locations"
+         msg_w = msg + ". Skipping"
+         self._mapException(inst, msg, msg_w, errorTolerant)
+      # Add to the total 
+      eList += partList
+
+    # Check if the list was empty
+    if(not eList):
+       msg = "No existing fileblock matching %s" % (str(lfnList))
+       self._warn(msg)
+
     # Return what we got
     return eList
 
@@ -255,9 +275,9 @@ class DlsPhedexApi(dlsApi.DlsApi):
     else:
        theList = [locationList]
 
-    eList = []
     
-    # Loop on the entries
+    # Loop on the entries to build a list of locations to ask for
+    locList = []
     for loc in theList:
        
        # Check what was passed (DlsLocation or string)
@@ -266,20 +286,33 @@ class DlsPhedexApi(dlsApi.DlsApi):
        else:
          host = loc
 
-       # Build the xml query to use
-       url = self._buildXmlUrl(self.server, DLS_PHEDEX_BLOCKS, None, host, showProd = showProd)
-       self._debug("Using PhEDex xml url: "+url)
+       locList.append(('se',host)) 
 
-       # Get the locations
-       try:  
-          partList = self.parser.xmlToEntries(url)
-       except Exception, inst:
-          msg = "Error retrieving FileBlocks for %s" % (host)
-          self._mapException(inst, msg, msg, False)
 
-       for entry in partList:
-          eList.append(entry)
-         
+    multiList = self._toMultiList(locList, DLS_PHEDEX_MAX_SES_PER_QUERY)
+    urlbase = self.server + '/blockReplicas'
+
+    arglist2 = []
+    # flags that could be added: incomplete, updated_since, created_since
+    arglist2.append(('complete', 'y'))
+    if not showProd:
+       arglist2 += [('op','node:and'), ('node','!T0*'), ('node','!T1*')]
+    self._debug("Using PhEDex xml url: " + urlbase + ' ' + str(arglist2))
+
+    eList = []
+    for arglist in multiList:
+      if not arglist: continue
+      # Get the blocks
+      try:  
+         # Build the xml query to use
+         url = urlopen(urlbase, urlencode(arglist + arglist2))
+         partList = self.parser.xmlToEntries(url)
+      except Exception, inst:
+         msg = "Error retrieving FileBlocks for %s" % (locList)
+         self._mapException(inst, msg, msg, False)
+      # Add to the total 
+      eList += partList
+       
     # Return what we got
     return eList
 
@@ -318,9 +351,9 @@ class DlsPhedexApi(dlsApi.DlsApi):
     else:
        theList = [fileBlockList]
 
-    bList = []
 
-    # Loop on the entries
+    # Loop on the entries to build a list of blocks to ask for
+    lfnList = []
     for fB in theList:
        # Check what was passed (DlsFileBlock or string)
        if(isinstance(fB, DlsFileBlock)):
@@ -332,42 +365,103 @@ class DlsPhedexApi(dlsApi.DlsApi):
        if (lfn=='/') or (lfn == '*') or (lfn == '%'):
           lfn = '/%'
 
-       # Build the xml query to use
-       url = self._buildXmlUrl(self.server, DLS_PHEDEX_BLOCKS, lfn)
-       self._debug("Using PhEDex xml url: "+url)
+       lfnList.append(('block',lfn))
 
-       # Get the locations
-       partList = []
-       try:  
-          partList = self.parser.xmlToBlocks(url)
-       except Exception, inst:
-          msg = "Error retrieving fileblock information for %s" % (lfn)
-          msg_w = msg + ". Skipping"
-          self._mapException(inst, msg, msg_w, errorTolerant = True)
-       
-       # Check if the list was empty
-       if(not partList):
-          if(not lfn): lfn = '/'
-          msg = "No existing fileblock matching %s" % (str(lfn))
-          msg_w = msg + ". Skipping"
-#          if(not errorTolerant):  raise DlsInvalidBlockName(msg)
-#          else:                   self._warn(msg_w)
-          self._warn(msg_w)
-       else:
-          for entry in partList:
-             bList.append(entry)
-         
+    multiList = self._toMultiList(lfnList, DLS_PHEDEX_MAX_BLOCKS_PER_QUERY)
+    urlbase = self.server + '/blockReplicas'
+
+    arglist2 = []
+    # flags that could be added: incomplete, updated_since, created_since
+    
+    # We list incomplete blocks as well, don't we?
+    #arglist2.append(('complete', 'y'))
+    self._debug("Using PhEDex xml url: " + urlbase + ' ' + str(arglist2))
+
+    bList = []
+    for arglist in multiList:
+      if not arglist: continue
+      # Get the blocks
+      try:  
+         url = urlopen(urlbase, urlencode(arglist + arglist2))
+         partList = self.parser.xmlToBlocks(url)
+      except Exception, inst:
+         msg = "Error retrieving fileblock information"
+         msg_w = msg + ". Skipping"
+         self._mapException(inst, msg, msg_w, errorTolerant = True)
+      # Add to the total 
+      bList += partList
+    
+    # Check if the list was empty
+    if(not bList):
+       msg = "No existing fileblock matching %s" % (str(lfnList))
+       msg_w = msg + ". Skipping"
+#       if(not errorTolerant):  raise DlsInvalidBlockName(msg)
+#       else:                   self._warn(msg_w)
+       self._warn(msg_w)
+
     # Return what we got
     return bList
 
 
+# OLD: version for just one fileblock
+#  def getFileLocs(self, fileblock, **kwd):
+#    """
+#    Implementation of the dlsApi.DlsApi.getFileLocs method.
+#    Refer to that method's documentation.
 
-  def getFileLocs(self, fileblock, **kwd):
+#    Implementation specific remarks:
+#    
+#    The showProd flag is taken into account and if not set to True some 
+#    file replicas are filtered out.
+
+#    The following keyword flags are ignored: session.
+#    """
+#    
+#    # Keywords
+#    showProd = False
+#    if(kwd.has_key("showProd")):   showProd = kwd.get("showProd")
+
+#    # Check that the passed FileBlock is not a pattern
+#    if (fileblock.find('*') != -1) or (fileblock.find('%') != -1):
+#      msg = "FileBlock patterns (with '*' or '%%' wildcards) are not acceptable: %s" % (fileblock)
+#      raise DlsInvalidBlockName(msg)
+
+#    arglist = []
+#    if fileblock: arglist.append(('block', fileblock)) 
+#    else:
+#       msg = "Error querying for file replicas. A FileBlock must be specified"
+#       raise DlsArgumentError(msg)
+
+#    urlbase = self.server + '/fileReplicas'
+
+#    arglist2 = []
+#    # flags that could be added: incomplete, updated_since, created_since
+#    arglist2.append(('dist_complete', 'y'))
+#    if not showProd:
+#       arglist2 += [('op','node:and'), ('node','!T0*'), ('node','!T1*')]
+#    self._debug("Using PhEDex xml url: " + urlbase + ' ' + str(arglist2))
+
+#    # Get the file-locs dict
+#    try:
+#       # Build the xml query to use
+#       url = urlopen(urlbase, urlencode(arglist+arglist2))
+#       flDict = self.parser.xmlToFileLocs(url)
+#    except Exception, inst:
+#       msg = "Error getting files for FileBlock in DLS"
+#       self._mapException(inst, msg, msg, errorTolerant = False)
+
+#    # Return what we got
+#    return flDict
+
+
+  def getFileLocs(self, fileBlockList, **kwd):
     """
     Implementation of the dlsApi.DlsApi.getFileLocs method.
     Refer to that method's documentation.
 
     Implementation specific remarks:
+
+    No wildcards ('*' or '%') are accepted in the FileBlock names.
     
     The showProd flag is taken into account and if not set to True some 
     file replicas are filtered out.
@@ -376,29 +470,85 @@ class DlsPhedexApi(dlsApi.DlsApi):
     """
     
     # Keywords
+    errorTolerant = False
+    if(kwd.has_key("errorTolerant")):   errorTolerant = kwd.get("errorTolerant")
+    
     showProd = False
     if(kwd.has_key("showProd")):   showProd = kwd.get("showProd")
 
-    # Check that the passed FileBlock is not a pattern
-    if (fileblock.find('*') != -1) or (fileblock.find('%') != -1):
-      msg = "FileBlock patterns (with '*' or '%%' wildcards) are not acceptable: %s" % (fileblock)
-      raise DlsInvalidBlockName(msg)
+    # Make sure the argument is a list
+    if (isinstance(fileBlockList, list)):
+       theList = fileBlockList 
+    else:
+       theList = [fileBlockList]
 
-    # Build the xml query to use
-    url = self._buildXmlUrl(self.server, DLS_PHEDEX_FILES, fileblock, showProd = showProd)
-    self._debug("Using PhEDex xml url: "+url)
+    # Loop on the entries to build a list of blocks to ask for
+    lfnList = []
+    for fB in theList:
+       # Check what was passed (DlsFileBlock or string)
+       if(isinstance(fB, DlsFileBlock)):
+         lfn = fB.name
+       else:
+         lfn = fB
 
-    # Get the file-locs dict
-    try:  
-       flDict = self.parser.xmlToFileLocs(url)
-    except Exception, inst:
-       msg = "Error getting files for FileBlock in DLS"
-       self._mapException(inst, msg, msg, errorTolerant = False)
+       # Check that the passed FileBlock is not a pattern
+       if (lfn.find('*') != -1) or (lfn.find('%') != -1):
+         msg = "FileBlock patterns (containing '*' or '%%' wildcards) are not acceptable: "+lfn
+         raise DlsInvalidBlockName(msg)
+         
+       if lfn: lfnList.append(('block', lfn)) 
+       
+    if not lfnList: 
+       msg = "Error querying for file replicas. A FileBlock must be specified"
+       raise DlsArgumentError(msg)
 
+    multiList = self._toMultiList(lfnList, DLS_PHEDEX_MAX_BLOCKS_PER_FILE_QUERY)
+    urlbase = self.server + '/fileReplicas'
+
+    arglist2 = []
+    # flags that could be added: incomplete, updated_since, created_since
+    arglist2.append(('dist_complete', 'y'))
+    if not showProd:
+       arglist2 += [('op','node:and'), ('node','!T0*'), ('node','!T1*')]
+    self._debug("Using PhEDex xml url: " + urlbase + ' ' + str(arglist2))
+
+    flList = []
+    for arglist in multiList:
+      if not arglist: continue
+      # Get the file replicas
+      try:  
+         # Build the xml query to use
+         url = urlopen(urlbase, urlencode(arglist + arglist2))
+         partList = self.parser.xmlToFileLocs(url)
+      except Exception, inst:
+         msg = "Error getting files for FileBlock in DLS"
+         msg_w = msg + ". Skipping"
+         self._mapException(inst, msg, msg_w, errorTolerant)
+      # Add to the total
+      flList += partList
+    
     # Return what we got
-    return flDict
+    return flList
 
-
+# OLD: Version with all files in a single dict, no per-block classification
+#    flDict = {}
+#    for arglist in multiList:
+#      if not arglist: continue
+#      # Get the file replicas
+#      try:  
+#         # Build the xml query to use
+#         url = urlopen(urlbase, urlencode(arglist + arglist2))
+#         partDict = self.parser.xmlToFileLocs(url)
+#      except Exception, inst:
+#         msg = "Error getting files for FileBlock in DLS"
+#         msg_w = msg + ". Skipping"
+#         self._mapException(inst, msg, msg_w, errorTolerant)
+#      # Add to the total
+#      for k in partDict:
+#        flDict[k] = partDict[k]
+#    
+#    # Return what we got
+#    return flDict
 
 
   def getAllLocations(self, **kwd):
@@ -411,12 +561,16 @@ class DlsPhedexApi(dlsApi.DlsApi):
     The following keyword flags are ignored: session.
     """
  
-    # Build the xml query to use
-    url = self._buildXmlUrl(self.server, DLS_PHEDEX_ALL_LOCS)
-    self._debug("Using PhEDex xml url: "+url)
 
+    # showEmpty
+    urlbase = self.server + "/nodes"
+    urlargs = []
+    urlargs.append(('noempty','y'))
+ 
     # Get the locations
     try:  
+       self._debug("Using PhEDex xml url: " + urlbase + str(urlargs))
+       url = urlopen(urlbase + '?' + urlencode(urlargs))
        locList = self.parser.xmlToLocations(url)
     except Exception, inst:
        msg = "Error getting all locations in DLS"
@@ -448,7 +602,6 @@ class DlsPhedexApi(dlsApi.DlsApi):
     # Keywords
     showProd = False
     if(kwd.has_key("showProd")):   showProd = kwd.get("showProd")
-
 
     # This can be achieved by listing the fBs and associated locations
     result = self.getLocations(dir, longList = False, errorTolerant = True, showProd = showProd)
@@ -523,15 +676,32 @@ class DlsPhedexApi(dlsApi.DlsApi):
   # Private methods
   ##################################
 
-  def _buildXmlUrl(self, xml_base, type, block=None, se=None, **kwd):
+  def _toMultiList(self, list, num):
     """
-    Returns an appropriate URL which queries the PhEDEx FileBlock location
-    information with the specified parameters.
+    Gets a list of elements and returns a list of lists. These are the result
+    of dividing the original list elements into lists of not more than <num> 
+    elements.
+    """
+    multi = []
+    l = len(list)
+    lmulti = (l-1) / num + 1
+    for i in xrange(lmulti):
+       multi.append(list[i*num : (i+1)*num])
+    return multi
+
+
+  # The following function is really only used by the constructor
+  # For the other functions (that use lists) it is more efficient
+  # to inline it.
+  def _buildXmlUrl(self, xml_base, type, blocks=None, ses=None, **kwd):
+    """
+    Returns an appropriate URL base and arguments for a query to PhEDEx with the 
+    specified parameters: [urlbase, urlargs]. This can be used with urlopen.
 
     @param xml_base: base URL for the PhEDEx location query service
     @param type: the type of query to make: DLS_PHEDEX_BLOCKS, DLS_PHEDEX_FILES, DLS_PHEDEX_ALL_LOCS
-    @param block: name of the FileBlock to query (or add); wildcard '%' or '*' allowed
-    @param se:  name of the location to query (or add); use None for 'any'
+    @param blocks: list of FileBlock names (as str tuple) to query; wildcard '%' or '*' allowed
+    @param ses:  list of location names (as str tuple) to query; use None for 'any'
     @param **kwd: Flags:
       - incomplete: boolean (default False) for getting incomplete blocks also returned 
       - updated_since: unix timestamp, for replicas updated since specified time
@@ -546,76 +716,81 @@ class DlsPhedexApi(dlsApi.DlsApi):
       msg += "The specified type of query is not one of the admitted values"
       raise DlsValueError(msg)
 
-    url = xml_base
+    urlbase = xml_base
     
     # Most common case (querying blocks or locations)
     if(type == DLS_PHEDEX_BLOCKS):
     
-       url += "/blockReplicas?"
+       urlbase += "/blockReplicas"
+       urlargs = []
        
-       if(not (block or se)): 
+       if(not (blocks or ses)): 
          msg = "Error building the PhEDEx xml url. A FileBlock or a location must be specified"
          raise DlsArgumentError(msg)
-
-       if(block):
-         url += "block=" + block.replace('*','%')
-         url = url.replace('#','%23')
        
-       if(se):
-          if(block): url += "&"
-          url += "se="+se
+       if(blocks):
+         for block in blocks:
+           urlargs.append(('block', block.replace('*','%')))
+       
+       if(ses):
+          for se in ses:
+            urlargs.append(('se', se))
    
        if not (kwd.has_key("incomplete") and kwd.get("incomplete")):
-          url += "&complete=y"
+          urlargs.append(('complete', 'y'))
    
        if(kwd.has_key("updated_since")):
-          url += "&updated_since="+kwd.get("updated_since")
+          urlargs.append(('updated_since', kwd.get("updated_since")))
        
        if(kwd.has_key("created_since")):
-          url += "&created_since="+kwd.get("created_since")
+          urlargs.append(('created_since'+kwd.get("created_since")))
  
        if not (kwd.has_key("showProd") and kwd.get("showProd")):
-          url += "&op=node:and&node=!T0*&node=!T1*"
-
+          urlargs.append(('op','node:and'))
+          urlargs.append(('node','!T0*'))
+          urlargs.append(('node','!T1*'))
+  
     # Query for individual files in a given block 
     if(type == DLS_PHEDEX_FILES):
-       url += "/fileReplicas?"
+       urlbase += "/fileReplicas?"
+       urlargs = []
 
-       if(not (block)): 
+       if(not (blocks)): 
          msg = "Error building the PhEDEx xml url. A FileBlock must be specified"
          raise DlsArgumentError(msg)
        else:
-         url += "block=" + block.replace('*','%')
-         url = url.replace('#','%23')
+         for block in blocks:
+           urlargs.append(('block', block.replace('*','%')))
        
-       if(se):
-          if(block): url += "&"
-          url += "se="+se
+       if(ses):
+          for se in ses:
+            urlargs.append(('se', se))
    
        if not (kwd.has_key("incomplete") and kwd.get("incomplete")):
-          url += "&dist_complete=y"
-#          url += "&complete=y"
+          urlargs.append(('dist_complete', 'y'))
    
        if(kwd.has_key("updated_since")):
-          url += "&updated_since="+kwd.get("updated_since")
+          urlargs.append(('updated_since', kwd.get("updated_since")))
        
        if(kwd.has_key("created_since")):
-          url += "&created_since="+kwd.get("created_since")
+          urlargs.append(('created_since'+kwd.get("created_since")))
  
        if not (kwd.has_key("showProd") and kwd.get("showProd")):
-          url += "&op=node:and&node=!T0*&node=!T1*"
+          urlargs.append(('op','node:and'))
+          urlargs.append(('node','!T0*'))
+          urlargs.append(('node','!T1*'))
 
 
     # Query for all locations
     if(type == DLS_PHEDEX_ALL_LOCS):
 
-       url += "/nodes"
+       urlbase += "/nodes"
+       urlargs = []
 
        if not (kwd.has_key("showEmpty") and kwd.get("showEmpty")):
-          url += "?noempty=y"
-
-
-    return url
+          urlargs.append(('noempty','y'))
+ 
+    return [urlbase, urlargs]
        
    
   def _mapException(self, inst, excp_msg, warn_msg, errorTolerant=False):

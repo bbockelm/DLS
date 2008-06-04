@@ -45,4 +45,5 @@ clean:
 	/bin/rm -rf $(LIB_DIR)/*
 	/bin/rm -rf $(BIN_DIR)/*
 	/bin/rm -rf $(SETUP_DIR)/*
+	/bin/rm -rf $(PREFIX)/README
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #
-# $Id: dlsCommandsCommon.py,v 1.1 2007/03/16 12:35:43 delgadop Exp $
+# $Id: dlsCommandsCommon.py,v 1.2 2008/02/21 10:02:27 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -78,7 +78,7 @@ def check_verbosity_value(val):
 
 
 def create_iface_binding(iface_type, endpoint, dbsConf, verbose):
-   iface = dlsClient.getDlsApi(iface_type, endpoint, dbs_client_config=dbsConf, checkEndpoint=True)
+   iface = dlsClient.getDlsApi(iface_type, endpoint, dbs_client_config=dbsConf)
    if(verbose == 2):
       iface.setVerbosity(DLS_VERB_HIGH)
    else:

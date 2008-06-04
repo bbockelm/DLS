@@ -31,6 +31,7 @@ bare_dbs: common
 bare_phedex: common
 
 common:
+	/bin/cp $(LFCClient)/README $(PREFIX)/.
 	/bin/cp $(LFCClient)/dls*py $(LIB_DIR)/.
 	/bin/cp $(LFCClient)/dls-* $(BIN_DIR)/.
 	/bin/rm $(BIN_DIR)/dls-dli-get-se
@@ -54,4 +55,5 @@ clean:
 	/bin/rm -rf $(LIB_DIR)/*
 	/bin/rm -rf $(BIN_DIR)/*
 	/bin/rm -rf $(SETUP_DIR)/*
+	/bin/rm -rf $(PREFIX)/README
 

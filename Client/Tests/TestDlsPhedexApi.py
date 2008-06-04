@@ -245,11 +245,17 @@ except dlsApi.DlsApiError, inst:
 # #############################
 print "*** get files and locs for given fileblock"
 try:
-  flDict = api.getFileLocs(fbA)
-  for fl in flDict:
-       print fl
-       for se in flDict[fl]: print se.host
-       print
+  flList = api.getFileLocs(fbA)
+  for pair in flList:
+    print 'FILEBLOCK: '+pair[0].name
+    print
+    for fl in pair[1]:
+      print fl.name
+      for loc in pair[1][fl]:
+        print loc.host
+      print
+    print
+
   print "===> No Exception thrown\n"
 except dlsApi.DlsApiError, inst:
      msg = "Error in the DLS query: %s." % str(inst)

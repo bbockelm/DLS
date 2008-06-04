@@ -1,5 +1,5 @@
 #
-# $Id: dlsApi.py,v 1.23 2007/03/30 13:13:46 delgadop Exp $
+# $Id: dlsApi.py,v 1.24 2008/05/09 15:29:17 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -41,38 +41,6 @@ DLS_VERB_HIGH = 20   # print warnings (stdout) and error messages (stderr)
 # Just get all the exceptions from the appropriate module
 from dlsApiExceptions import *
 
-
-#class DlsApiError(Exception):
-#  """
-#  Exception class for the interaction with the DLS catalog using the DlsApi class.
-#  It normally contains a string message (empty by default), and optionally an
-#  error code (e.g.: if such is returned from the DLS).
-#
-#  The exception may be printed directly, or its data members accessed.
-#
-#  Actual (instantiable) implementations of the DLS API may extend this class to 
-#  define their own exceptions.
-#  """
-#
-#  def __init__(self, message="", error_code=0):
-#    self.msg = message
-#    self.rc = error_code
-#
-#  def __str__(self):
-#    return str(self.msg)
-#
-#class NotImplementedError(DlsApiError):
-#  """
-#  Exception class for methods of the DlsApi that are not implemented (and
-#  should be by a instantiable API class).
-#  """
-#
-#class ValueError(DlsApiError):
-#  """
-#  Exception class for invocations of DlsApi methods with an incorrect
-#  value as argument.
-#  """
-#
 
 
 #########################################
@@ -657,19 +625,21 @@ class DlsApi(object):
     raise NotImplementedError(msg)
 
 
-  def getFileLocs(self, fileBlock, **kwd):
+  def getFileLocs(self, fileBlockList, **kwd):
     """
-    Returns the files composing the specified FileBlock and the locations
+    Returns the files composing the specified FileBlocks and the locations
     where each of these files are replicated.
     
     NOTE: A FileBlock is composed of files. DLS original function dealt with
     FileBlocks cataloging and not at all with files. Only some DLS API 
     implementations will support this method. 
 
-    Only a single DlsFileBlock object or a simple string (name) may be specified.
+    A single FileBlock or a list of those may be used as argument. Each FileBlock
+    may be specified as simple strings (names) or as DlsFileBlock objects. 
     
-    The returned object is a dict with DlsFile objects as keys and a list of
-    DlsLocation objects as values for each DlsFile.
+    The returned list contains a pair of DlsFileBlock object and dict per specified
+    FileBlock. Each dict has DlsFile objects as keys and a list of DlsLocation
+    objects as values for each DlsFile.
 
     For operational reasons, some implementations (indicated in their documentation)
     may eliminate some file locations from the result. If showProd(**kwd)
@@ -683,7 +653,7 @@ class DlsApi(object):
     @param kwd: Flags:
      - showProd: boolean (default False) for turning off the filtering of prod-only replicas
 
-    @return: a dict with DlsFile objects as keys and DlsLocation objects as values 
+    @return: list of pairs DlsFileBlock-dict, each dict with DlsFile objs as keys and lists of DlsLocation as values 
     """
 
     msg = "This is just a base class!"

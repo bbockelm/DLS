@@ -1,5 +1,5 @@
 #
-# $Id: dlsDbsApi.py,v 1.5 2008/02/21 10:02:27 delgadop Exp $
+# $Id: dlsDbsApi.py,v 1.6 2008/05/09 15:29:17 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -449,6 +449,9 @@ class DlsDbsApi(dlsApi.DlsApi):
     In the current implementation the cost of doing a long listing
     is the same as doing a normal one.
 
+    The showProd flag is taken into account and if not set to True some 
+    FileBlock replicas are filtered out.
+
     The following keyword flags are ignored: session.
     """
     # Keywords
@@ -458,6 +461,9 @@ class DlsDbsApi(dlsApi.DlsApi):
     errorTolerant = False
     if(kwd.has_key("errorTolerant")):   errorTolerant = kwd.get("errorTolerant")
 
+    showProd = False
+    if(kwd.has_key("showProd")):   showProd = kwd.get("showProd")
+
     # Make sure the argument is a list
     if (isinstance(fileBlockList, list)):
        theList = fileBlockList 
@@ -466,6 +472,10 @@ class DlsDbsApi(dlsApi.DlsApi):
 
     entryList = []
 
+    if showProd:
+       self.dbsapi.configDict['clienttype'] = "SUPER"
+    else:
+       self.dbsapi.configDict['clienttype'] = "NORMAL"
 
     # Loop on the entries
     for fB in theList:
@@ -516,10 +526,15 @@ class DlsDbsApi(dlsApi.DlsApi):
     locations. If '*' is provided, FileBlocks with no associated location
     are also returned (with no DlsLocation object in their composing list).
 
+    The showProd flag is taken into account and if not set to True some 
+    FileBlock replicas are filtered out.
+
     The following keyword flags are ignored: session.
     """
 
     # Keywords
+    showProd = False
+    if(kwd.has_key("showProd")):   showProd = kwd.get("showProd")
 
     # Make sure the argument is a list
     if (isinstance(locationList, list)):
@@ -528,6 +543,11 @@ class DlsDbsApi(dlsApi.DlsApi):
        theList = [locationList]
 
     entryList = []
+
+    if showProd:
+       self.dbsapi.configDict['clienttype'] = "SUPER"
+    else:
+       self.dbsapi.configDict['clienttype'] = "NORMAL"
 
     # Loop on the entries
     for loc in theList:
@@ -591,8 +611,8 @@ class DlsDbsApi(dlsApi.DlsApi):
     longList = True 
     if(kwd.has_key("longList")):   longList = kwd.get("longList")
 
-    # With DBS, this is just the same as getLocations, removing the locations
-    entryList = self.getLocations(fileBlockList, longList = longList, errorTolerant = True)
+    # With DBS, this is just the same as getLocations, removing the locations (for all fBs)
+    entryList = self.getLocations(fileBlockList, longList=longList, errorTolerant=True, showProd=True)
 
     fbList = []
     for entry in entryList:
@@ -644,11 +664,18 @@ class DlsDbsApi(dlsApi.DlsApi):
     argument is interpreted as representing a FileBlock name pattern, and 
     the matching FileBlocks and associated locations are dumped.
 
+    The showProd flag is taken into account and if not set to True some 
+    FileBlock replicas are filtered out.
+
     The following keyword flags are ignored: session, recursive.
     """
 
+    # Keywords
+    showProd = False
+    if(kwd.has_key("showProd")):   showProd = kwd.get("showProd")
+
     # This can be achieved by listing the fBs and associated locations
-    result = self.getLocations(dir, longList = False, errorTolerant = True)
+    result = self.getLocations(dir, longList = False, errorTolerant = True, showProd = showProd)
 
     # Return what we got
     return result

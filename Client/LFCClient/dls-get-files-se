@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #
-# $Id: dls-get-files-se,v 1.1 2008/05/09 15:29:16 delgadop Exp $
+# $Id: dls-get-files-se,v 1.2 2008/05/20 14:27:54 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -32,7 +32,8 @@ def usage():
    """
     Provides usage information
    """
-   print "Usage: dls-get-files-se [-v, -e, -i, --show-prod] <fileBlock>"
+   print "Usage: dls-get-files-se [-v, -e, -i, --show-prod] <fileBlock> [<fileBlock> ..]"
+   print "       dls-get-files-se [-v, -e, -i, --show-prod] -f <listing_file>"
    print "       dls-get-files-se -u"
    print "       dls-get-files-se -h"
 
@@ -47,6 +48,7 @@ def options():
    -v, --verbose <verb_level>
    -e, --endpoint <endpoint>
    -i, --interface-type <iface_type>
+   -f, --from-file <filename>
        --show-prod
    """
 def example():
@@ -61,12 +63,12 @@ def help():
     Provides some help information
    """
    print """This script will print the files composing the specified
-FileBlock and the locations associated to each of those files (i.e., there is
+FileBlocks and the locations associated to each of those files (i.e., there is
 a copy of that file in that location (SE)).
 
 Specific notes for PhEDEx back-end (DLS_TYPE_PHEDEX):
 
-  The argument of this command is a FileBlock name. No wildcards ('*' or
+  The arguments of this command are FileBlock names, no wildcards ('*' or
   '#' are allowed).
 
   The --show-prod option can be used to turn off the filtering of
@@ -83,6 +85,10 @@ Specific notes for PhEDEx back-end (DLS_TYPE_PHEDEX):
 
 Options:
 
+The "-f" option can be used to retrieve FileBlock names from a file rather
+than from the given arguments. The file must contain one line per FileBlock
+to be listed.
+
 The --show-prod option is only understood by the PhEDEx back-end (see notes) and
 ignored by the rest.
    """
@@ -92,25 +98,53 @@ ignored by the rest.
 
 
 
-def showFileLocs(iface, fb, showProd, verbose):
+def showFileLocs(iface, lineList, showProd, verbose):
    """
     Prints the files composing the specified FileBlock and their associated locations.
     
     Throws DlsApiError if there is a problem in the DLS operation.
    """
 
+   fbList = []
+   for line in lineList:
+   
+      # Split
+      line = (line.strip()).split()
+      if(not line):
+         continue
+
+      # Get LFN
+      lfn = line.pop(0)
+
+      # Store all the FileBlocks 
+      fbList.append(lfn)
+
+    
    if(verbose >= 2):
-      print "--DlsApi.getFileLocs(%s)" % fb
+      print "--DlsApi.getFileLocs(",
+      for i in fbList: print i, ";",
+      print ")"
 
    # Get the file-locs association (and let the caller deal with the exception...)
-   flList = iface.getFileLocs(fb, showProd = showProd)
+   flList = iface.getFileLocs(fbList, showProd = showProd)
 
    # Print the list   
-   for fl in flList:
-      print fl.name
-      for loc in flList[fl]:
-        print loc.host
-      print
+   for pair in flList:
+     print 'FILEBLOCK: '+pair[0].name
+     print
+     for fl in pair[1]:
+       print fl.name
+       for loc in pair[1][fl]:
+         print loc.host
+       print
+     print
+
+   # OLD version (all files in same dict, no fB info)
+#   for fl in flList:
+#      print fl.name
+#      for loc in flList[fl]:
+#        print loc.host
+#      print
 
 
 ###################### MAIN FUNCTION ########################
@@ -123,9 +157,9 @@ def main(pArgs):
 
  # Options and args... 
  
-   longoptions=["help", "usage", "endpoint=", "interface-type=", "verbose=", "show-prod"]
+   longoptions=["help","usage","endpoint=","interface-type=","verbose=","show-prod","from-file="]
    try:
-      optlist, args = getopt.getopt(pArgs, 'hue:i:v:', longoptions)
+      optlist, args = getopt.getopt(pArgs, 'hue:i:v:f:', longoptions)
    except getopt.GetoptError, inst:
       err("Bad usage: "+str(inst))
       usage()
@@ -136,6 +170,8 @@ def main(pArgs):
    endpoint = None
    iface_type = None
    showProd = False
+   fromFile = False
+   fname=""
    for opt, val in optlist:
        if opt in ("-h", "--help"):
            help()
@@ -158,25 +194,38 @@ def main(pArgs):
        elif opt in ("", "--show-prod"):
            showProd = True
 
+       elif opt in ("-f","--from-file"):
+           fromFile = True
+           fname = val
+
 
    # Check the interface type (from options or environ)
    iface_type = check_iface_type(iface_type, ADMITTED_IFACE_TYPES)
    if (iface_type == TYPE_ERROR): return TYPE_ERROR
 
 
+   # From file
+   if(fromFile):
+      try:
+         file = open(fname, 'r')
+      except IOError, inst:
+         msg = "The file "+fname+" could not be opened: "+str(inst)
+         err(msg)
+         return FILE_ERROR
+      lineList = file.readlines()
+      file.close()
+      
+   # From command line options
+   else:
+     if(len(args)<1):
+        err("Not enough input arguments")
+        usage()
+        return(OPT_ERROR)
+    
+     lineList = []
+     for token in args:
+        lineList.append(token)
 
- # Build the arguments
-   if(len(args)<1):
-      err("Not enough input arguments")
-      usage()
-      return(OPT_ERROR)
-
-   if(len(args)>1):
-      err("Only one FileBlock may be specified")
-      usage()
-      return(OPT_ERROR)
-
-   fileblock = args[0]
 
  # Create the interface binding
    try: 
@@ -187,9 +236,9 @@ def main(pArgs):
       err("Error when binding the DLS interface: " + str(inst))
       return rc
    
- # Do the query (under session)
+ # Do the query 
    try:
-     showFileLocs(iface, fileblock, showProd, verbose)
+     showFileLocs(iface, lineList, showProd, verbose)
    except dlsApi.DlsApiError, inst:         
       if(inst.rc):  rc = inst.rc 
       else:           rc = GENERIC_ERROR
