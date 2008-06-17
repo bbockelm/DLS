@@ -1,5 +1,5 @@
 #
-# $Id: dlsPhedexApi.py,v 1.3 2008/05/20 14:27:54 delgadop Exp $
+# $Id: dlsPhedexApi.py,v 1.4 2008/06/04 10:03:51 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -43,6 +43,7 @@ from dlsXmlParser import DlsXmlParser
 from xml.sax import SAXException
 from urllib2 import HTTPError, URLError, urlopen
 from urllib import urlencode
+from dlsDefaults import DLS_PHEDEX_MAX_BLOCKS_PER_QUERY, DLS_PHEDEX_MAX_SES_PER_QUERY, DLS_PHEDEX_MAX_BLOCKS_PER_FILE_QUERY
 
 #########################################
 # Module globals
@@ -50,16 +51,7 @@ from urllib import urlencode
 DLS_PHEDEX_BLOCKS = "DLS_PHEDEX_BLOCKS"
 DLS_PHEDEX_FILES = "DLS_PHEDEX_FILES"
 DLS_PHEDEX_ALL_LOCS = "DLS_PHEDEX_ALL_LOCS"
-DLS_PHEDEX_MAX_BLOCKS_PER_QUERY = 100
-DLS_PHEDEX_MAX_SES_PER_QUERY = 100
-DLS_PHEDEX_MAX_BLOCKS_PER_FILE_QUERY = 100
-# TODO: Change this!
 
-
-#########################################
-# DlsPhedexApiError class
-#########################################
-# We no longer define our own exceptions, but use those of dlsApi.
 
 
 #########################################
@@ -133,6 +125,11 @@ class DlsPhedexApi(dlsApi.DlsApi):
   
     # Create the parser
     self.parser = DlsXmlParser()
+
+    # Set the default number of elements for bulk queries
+    self.setBlocksPerQuery ( DLS_PHEDEX_MAX_BLOCKS_PER_QUERY )
+    self.setBlocksPerFileQuery ( DLS_PHEDEX_MAX_BLOCKS_PER_FILE_QUERY )
+    self.setLocsPerQuery ( DLS_PHEDEX_MAX_SES_PER_QUERY )
 
     # Check that the provided URL is OK (by listing an inexisting fileblock)
     if(checkEndpoint):
@@ -216,9 +213,9 @@ class DlsPhedexApi(dlsApi.DlsApi):
     urlbase = self.server + '/blockReplicas'
 
     
-#    msg = "Multilist:"
-#    for i in multiList: msg += str(len(i)) + ' '
-#    self._debug(msg)
+    msg = "Number of arguments per bulk query: "
+    for i in multiList: msg += str(len(i)) + ' '
+    self._debug(msg)
 
     arglist2 = []
     # flags that could be added: incomplete, updated_since, created_since
@@ -228,6 +225,7 @@ class DlsPhedexApi(dlsApi.DlsApi):
     self._debug("Using PhEDex xml url: " + urlbase + ' ' + str(arglist2))
   
     eList = []
+    partList = []
     for arglist in multiList:
       if not arglist: continue
       # Get the locations
@@ -292,6 +290,10 @@ class DlsPhedexApi(dlsApi.DlsApi):
     multiList = self._toMultiList(locList, DLS_PHEDEX_MAX_SES_PER_QUERY)
     urlbase = self.server + '/blockReplicas'
 
+    msg = "Number of arguments per bulk query: "
+    for i in multiList: msg += str(len(i)) + ' '
+    self._debug(msg)
+
     arglist2 = []
     # flags that could be added: incomplete, updated_since, created_since
     arglist2.append(('complete', 'y'))
@@ -300,6 +302,7 @@ class DlsPhedexApi(dlsApi.DlsApi):
     self._debug("Using PhEDex xml url: " + urlbase + ' ' + str(arglist2))
 
     eList = []
+    partList = []
     for arglist in multiList:
       if not arglist: continue
       # Get the blocks
@@ -370,6 +373,10 @@ class DlsPhedexApi(dlsApi.DlsApi):
     multiList = self._toMultiList(lfnList, DLS_PHEDEX_MAX_BLOCKS_PER_QUERY)
     urlbase = self.server + '/blockReplicas'
 
+    msg = "Number of arguments per bulk query: "
+    for i in multiList: msg += str(len(i)) + ' '
+    self._debug(msg)
+
     arglist2 = []
     # flags that could be added: incomplete, updated_since, created_since
     
@@ -378,6 +385,7 @@ class DlsPhedexApi(dlsApi.DlsApi):
     self._debug("Using PhEDex xml url: " + urlbase + ' ' + str(arglist2))
 
     bList = []
+    partList = []
     for arglist in multiList:
       if not arglist: continue
       # Get the blocks
@@ -505,6 +513,10 @@ class DlsPhedexApi(dlsApi.DlsApi):
     multiList = self._toMultiList(lfnList, DLS_PHEDEX_MAX_BLOCKS_PER_FILE_QUERY)
     urlbase = self.server + '/fileReplicas'
 
+    msg = "Number of arguments per bulk query: "
+    for i in multiList: msg += str(len(i)) + ' '
+    self._debug(msg)
+
     arglist2 = []
     # flags that could be added: incomplete, updated_since, created_since
     arglist2.append(('dist_complete', 'y'))
@@ -513,6 +525,7 @@ class DlsPhedexApi(dlsApi.DlsApi):
     self._debug("Using PhEDex xml url: " + urlbase + ' ' + str(arglist2))
 
     flList = []
+    partList = []
     for arglist in multiList:
       if not arglist: continue
       # Get the file replicas
@@ -671,7 +684,43 @@ class DlsPhedexApi(dlsApi.DlsApi):
     self._debug("Aborting transaction with %s (no action)" % (self.server))
  
 
+  def setBlocksPerQuery(self, nblocks):
+    """
+    Sets the number of blocks to query for in each bulk getLocations query
+    
+    @param nblocks: number of blocks to query for in each bulk query 
+
+    @exception: raises ValueError, if nblocks is not a positive integer
+    """
+    if (not type(nblocks) == int) and (nblocks > 0):
+       raise DlsValueError("Argument of setBlocksPerQuery must be a positive integer")
+    self.blocksPerQuery = nblocks
+
+  def setBlocksPerFileQuery(self, nblocks):
+    """
+    Sets the number of blocks to query for in each bulk getFileLocs query
+    
+    @param nblocks: number of blocks to query for in each bulk query 
+
+    @exception: raises ValueError, if nblocks is not a positive integer
+    """
+    if (not type(nblocks) == int) and (nblocks > 0):
+       raise DlsValueError("Argument of setBlocksPerFileQuery must be a positive integer")
+    self.blocksPerFileQuery = nblocks
   
+  def setLocsPerQuery(self, nlocs):
+    """
+    Sets the number of locations to query for in each bulk getFileBlocks query
+    
+    @param nlocs: number of blocks to query for in each bulk query 
+
+    @exception: raises ValueError, if nlocs is not a positive integer
+    """
+    if (not type(nlocs) == int) and (nlocs > 0):
+       raise DlsValueError("Argument of setBlocksPerQuery must be a positive integer")
+    self.locsPerQuery = nlocs
+
+
   ##################################
   # Private methods
   ##################################
@@ -827,5 +876,4 @@ class DlsPhedexApi(dlsApi.DlsApi):
     else:
        warn_msg = warn_msg + '. Caught: %s' % (caught_msg)
        self._warn(warn_msg)
-
 

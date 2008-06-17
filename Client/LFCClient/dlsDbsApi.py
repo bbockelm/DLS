@@ -1,5 +1,5 @@
 #
-# $Id: dlsDbsApi.py,v 1.6 2008/05/09 15:29:17 delgadop Exp $
+# $Id: dlsDbsApi.py,v 1.7 2008/06/04 10:03:51 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -52,12 +52,6 @@ from DBSAPI.dbsFileBlock import *
 #########################################
 # Module globals
 #########################################
-#S_IFDIR = 0x4000
-
-#########################################
-# DlsDbsApiError class
-#########################################
-# We no longer define our own exceptions, but use those of dlsApi.
 
 
 #########################################
