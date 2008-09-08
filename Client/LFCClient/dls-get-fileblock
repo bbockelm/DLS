@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #
-# $Id: dls-get-fileblock,v 1.14 2008/05/09 15:29:16 delgadop Exp $
+# $Id: dls-get-fileblock,v 1.15 2008/05/20 14:27:54 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -32,8 +32,8 @@ def usage():
    """
     Provides usage information
    """
-   print "Usage: dls-get-fileblock [-v, -e, -i, --dbs-conf, --show-prod] <location>"
-   print "       dls-get-fileblock [-v, -e, -i, --dbs-conf, --show-prod] -f <listing_file>"
+   print "Usage: dls-get-fileblock [-v, -e, -i, --dbs-conf, --show-prod, --show-caf] <location>"
+   print "       dls-get-fileblock [-v, -e, -i, --dbs-conf, --show-prod, --show-caf] -f <listing_file>"
    print "       dls-get-fileblock -u"
    print "       dls-get-fileblock -h"
 
@@ -51,6 +51,7 @@ def options():
    -f, --from-file <filename>
        --dbs-conf <conf_file>
        --show-prod
+       --show-caf
    """
 def example():
   """
@@ -78,11 +79,13 @@ Specific notes for DBS and PhEDEx back-end (DLS_TYPE_DBS, DLS_TYPE_PHEDEX):
      - (DBS only) specified URL in the configuration file (see --dbs-conf)
      - (PhEDEx only) DLS_PHEDEX_ENDPOINT environmental variable
 
+  The --show-prod option can be used to turn off the filtering of
+  prod-only FileBlock replicas. Use it only if you know what you are doing.
+
 
 Additional DLS_TYPE_PHEDEX notes:
 
-  The --show-prod option can be used to turn off the filtering of
-  prod-only FileBlock replicas. Use it only if you know what you are doing.
+  The --show-caf option can be used to turn off the filtering of CAF replicas.
 
 
 Additional DLS_TYPE_DBS notes:
@@ -118,8 +121,9 @@ Options:
 The "-f" option can be used to retrieve locations from a file rather than from the
 given arguments. The file must contain one line per SE to be listed.
 
-The --show-prod option is only understood by the PhEDEx back-end (see notes) and
-ignored by the rest.
+The --show-prod option is only understood by the PhEDEx and DBS back-ends
+(see notes) and ignored by the rest. The --show-caf option is only understood
+by the PhEDEx back-end.
    """
    commonHelpText(ADMITTED_IFACE_TYPES)
    options()
@@ -127,7 +131,7 @@ ignored by the rest.
 
 
 
-def showFileBlocks(iface, lineList, showProd, verbose):
+def showFileBlocks(iface, lineList, showProd, showCAF, verbose):
    """
     Prints the FileBlocks that are stored in the specified location.
     lineList is a list of strings, each holding a location host. 
@@ -155,7 +159,7 @@ def showFileBlocks(iface, lineList, showProd, verbose):
       print ")"
 
    # Get the FileBlocks (and let the caller deal with the exception...)
-   entryList = iface.getFileBlocks(locList, session = True, showProd = showProd)
+   entryList = iface.getFileBlocks(locList, session=True, showProd=showProd, showCAF=showCAF)
 
 
 
@@ -190,7 +194,7 @@ def main(pArgs):
 
  # Options and args... 
  
-   longoptions=["help", "usage", "endpoint=", "interface-type=", "verbose=","from-file=", "dbs-conf=", "show-prod"]
+   longoptions=["help", "usage", "endpoint=", "interface-type=", "verbose=","from-file=", "dbs-conf=", "show-prod", "show-caf"]
    try:
       optlist, args = getopt.getopt(pArgs, 'hue:i:v:f:', longoptions)
    except getopt.GetoptError, inst:
@@ -204,6 +208,7 @@ def main(pArgs):
    endpoint = None
    iface_type = None
    showProd = False
+   showCAF = False
    fromFile = False
    fname=""
    for opt, val in optlist:
@@ -220,6 +225,9 @@ def main(pArgs):
 
        elif opt in ("", "--show-prod"):
            showProd = True
+
+       elif opt in ("", "--show-caf"):
+           showCAF = True
 
        elif opt in ("-e","--endpoint"):
            endpoint = val
@@ -278,7 +286,7 @@ def main(pArgs):
    
  # Do the query (under session)
    try:
-     showFileBlocks(iface, lineList, showProd, verbose)
+     showFileBlocks(iface, lineList, showProd, showCAF, verbose)
    except dlsApi.DlsApiError, inst:         
       if(inst.rc):  rc = inst.rc 
       else:           rc = GENERIC_ERROR

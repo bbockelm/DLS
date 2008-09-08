@@ -32,8 +32,8 @@ def usage():
    """
     Provides usage information
    """
-   print "Usage: dls-get-files-se [-v, -e, -i, --show-prod] <fileBlock> [<fileBlock> ..]"
-   print "       dls-get-files-se [-v, -e, -i, --show-prod] -f <listing_file>"
+   print "Usage: dls-get-files-se [-v, -e, -i, --show-prod, --show-caf] <fBlock> [<fBlock> ..]"
+   print "       dls-get-files-se [-v, -e, -i, --show-prod, --show-caf] -f <listing_file>"
    print "       dls-get-files-se -u"
    print "       dls-get-files-se -h"
 
@@ -50,6 +50,7 @@ def options():
    -i, --interface-type <iface_type>
    -f, --from-file <filename>
        --show-prod
+       --show-caf
    """
 def example():
   """
@@ -74,6 +75,8 @@ Specific notes for PhEDEx back-end (DLS_TYPE_PHEDEX):
   The --show-prod option can be used to turn off the filtering of
   prod-only file replicas. Use it only if you know what you are doing.
 
+  The --show-caf option can be used to turn off the filtering of CAF replicas.
+
   The server endpoint is got from a string in the URL form, usually:
     "http[s]://hname[:port]/path/to/DLS".
   This endpoint is retrieved from several sources (in order of precedence):   
@@ -89,8 +92,9 @@ The "-f" option can be used to retrieve FileBlock names from a file rather
 than from the given arguments. The file must contain one line per FileBlock
 to be listed.
 
-The --show-prod option is only understood by the PhEDEx back-end (see notes) and
-ignored by the rest.
+The --show-prod option is only understood by the PhEDEx and DBS back-ends
+(see notes) and ignored by the rest. The --show-caf option is only understood
+by the PhEDEx back-end.
    """
    commonHelpText(ADMITTED_IFACE_TYPES)
    options()
@@ -98,7 +102,7 @@ ignored by the rest.
 
 
 
-def showFileLocs(iface, lineList, showProd, verbose):
+def showFileLocs(iface, lineList, showProd, showCAF, verbose):
    """
     Prints the files composing the specified FileBlock and their associated locations.
     
@@ -126,7 +130,7 @@ def showFileLocs(iface, lineList, showProd, verbose):
       print ")"
 
    # Get the file-locs association (and let the caller deal with the exception...)
-   flList = iface.getFileLocs(fbList, showProd = showProd)
+   flList = iface.getFileLocs(fbList, showProd = showProd, showCAF=showCAF)
 
    # Print the list   
    for pair in flList:
@@ -157,7 +161,7 @@ def main(pArgs):
 
  # Options and args... 
  
-   longoptions=["help","usage","endpoint=","interface-type=","verbose=","show-prod","from-file="]
+   longoptions=["help","usage","endpoint=","interface-type=","verbose=","show-prod","show-caf", "from-file="]
    try:
       optlist, args = getopt.getopt(pArgs, 'hue:i:v:f:', longoptions)
    except getopt.GetoptError, inst:
@@ -170,6 +174,7 @@ def main(pArgs):
    endpoint = None
    iface_type = None
    showProd = False
+   showCAF = False
    fromFile = False
    fname=""
    for opt, val in optlist:
@@ -193,6 +198,9 @@ def main(pArgs):
 
        elif opt in ("", "--show-prod"):
            showProd = True
+
+       elif opt in ("", "--show-caf"):
+           showCAF = True
 
        elif opt in ("-f","--from-file"):
            fromFile = True
@@ -238,7 +246,7 @@ def main(pArgs):
    
  # Do the query 
    try:
-     showFileLocs(iface, lineList, showProd, verbose)
+     showFileLocs(iface, lineList, showProd, showCAF, verbose)
    except dlsApi.DlsApiError, inst:         
       if(inst.rc):  rc = inst.rc 
       else:           rc = GENERIC_ERROR

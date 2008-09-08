@@ -1,5 +1,5 @@
 #
-# $Id$
+# $Id: dlsDefaults.py,v 1.1 2008/06/17 14:44:24 delgadop Exp $
 #
 # DLS Client Defaults. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -15,5 +15,5 @@
 """
 
 DLS_PHEDEX_MAX_BLOCKS_PER_QUERY = 100
-DLS_PHEDEX_MAX_BLOCKS_PER_FILE_QUERY = 100
+DLS_PHEDEX_MAX_BLOCKS_PER_FILE_QUERY = 50
 DLS_PHEDEX_MAX_SES_PER_QUERY = 10

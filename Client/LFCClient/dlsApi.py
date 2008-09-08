@@ -342,10 +342,10 @@ class DlsApi(object):
     NOTE: Normally, it makes no sense to use this method within a transaction.
 
     For operational reasons, some implementations (indicated in their documentation)
-    may eliminate some FileBlocks locations from the result. If showProd(**kwd)
-    is set to True, this filter is turned off and all FileBlock are returned for
-    all locations. Otherwise, the flag is ignored. Please do not use it unless
-    you know what you are doing.
+    may hide some FileBlocks locations from the result. The showProd(**kwd) and
+    showCAF(**kwd) flags may be set to True to turn off prod-only and CAF filters.
+    Otherwise, the flag is ignored. Please do not use them unless you know what
+    you are doing.
 
     @exception XXXX: On error with the DLS catalog
 
@@ -355,6 +355,7 @@ class DlsApi(object):
      - session: boolean (default False) for using a session for the operations
      - errorTolerant: boolean (default False) for raising an exception after failure
      - showProd: boolean (default False) for turning off the filtering of prod-only replicas
+     - showCAF: boolean (default False) for turning off the filtering of CAF replicas
 
     @return: a list of DlsEntry objects containing the locations
     """
@@ -399,10 +400,10 @@ class DlsApi(object):
     please avoid it. 
 
     For operational reasons, some implementations (indicated in their documentation)
-    may eliminate FileBlocks from the result for some locations. If showProd(**kwd)
-    is set to True, this filter is turned off and all FileBlock are returned for
-    all locations. Otherwise, the flag is ignored. Please do not use it unless
-    you know what you are doing.
+    may hide some FileBlocks locations from the result. The showProd(**kwd) and
+    showCAF(**kwd) flags may be set to True to turn off prod-only and CAF filters.
+    Otherwise, the flag is ignored. Please do not use them unless you know what
+    you are doing.
 
     @exception XXXX: On error with the DLS catalog
 
@@ -410,6 +411,7 @@ class DlsApi(object):
     @param kwd: Flags:
      - session: boolean (default False) for using a session for the operations
      - showProd: boolean (default False) for turning off the filtering of prod-only replicas
+     - showCAF: boolean (default False) for turning off the filtering of CAF replicas
 
     @return: a list of DlsEntry objects containing the FileBlocks
     """
@@ -605,10 +607,10 @@ class DlsApi(object):
     please avoid it. 
 
     For operational reasons, some implementations (indicated in their documentation)
-    may eliminate some FileBlocks locations from the result. If showProd(**kwd)
-    is set to True, this filter is turned off and all FileBlock are returned for
-    all locations. Otherwise, the flag is ignored. Please do not use it unless
-    you know what you are doing.
+    may hide some FileBlocks locations from the result. The showProd(**kwd) and
+    showCAF(**kwd) flags may be set to True to turn off prod-only and CAF filters.
+    Otherwise, the flag is ignored. Please do not use them unless you know what
+    you are doing.
 
     @exception XXXX: On error with the DLS catalog
 
@@ -617,6 +619,7 @@ class DlsApi(object):
      - session: boolean (default False) for using a session for the operations
      - recursive: boolean (default False) for recursive listing of a directory 
      - showProd: boolean (default False) for turning off the filtering of prod-only replicas
+     - showCAF: boolean (default False) for turning off the filtering of CAF replicas
 
     @return: a list of DlsEntry objects representing the DLS data
     """
@@ -642,16 +645,17 @@ class DlsApi(object):
     objects as values for each DlsFile.
 
     For operational reasons, some implementations (indicated in their documentation)
-    may eliminate some file locations from the result. If showProd(**kwd)
-    is set to True, this filter is turned off and all FileBlock are returned for
-    all locations. Otherwise, the flag is ignored. Please do not use it unless
-    you know what you are doing.
+    may hide some file locations from the result. The showProd(**kwd) and
+    showCAF(**kwd) flags may be set to True to turn off prod-only and CAF filters.
+    Otherwise, the flag is ignored. Please do not use them unless you know what
+    you are doing.
 
     @exception XXXX: On error with the DLS catalog
 
     @param fileBlock: the FileBlock as string/DlsFileBlock
     @param kwd: Flags:
      - showProd: boolean (default False) for turning off the filtering of prod-only replicas
+     - showCAF: boolean (default False) for turning off the filtering of CAF replicas
 
     @return: list of pairs DlsFileBlock-dict, each dict with DlsFile objs as keys and lists of DlsLocation as values 
     """

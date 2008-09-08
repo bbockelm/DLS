@@ -1,5 +1,5 @@
 #
-# $Id: dlsPhedexApi.py,v 1.4 2008/06/04 10:03:51 delgadop Exp $
+# $Id: dlsPhedexApi.py,v 1.5 2008/06/17 14:45:22 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -173,8 +173,8 @@ class DlsPhedexApi(dlsApi.DlsApi):
     In the current implementation the cost of doing a long listing
     is the same as doing a normal one.
 
-    The showProd flag is taken into account and if not set to True some 
-    FileBlock replicas are filtered out.
+    The showProd and showCAF flags are taken into account and if not set 
+    to True some FileBlock replicas are filtered out.
 
     The following keyword flags are ignored: session.
     """
@@ -187,6 +187,8 @@ class DlsPhedexApi(dlsApi.DlsApi):
 
     showProd = False
     if(kwd.has_key("showProd")):   showProd = kwd.get("showProd")
+    showCAF= False
+    if(kwd.has_key("showCAF")):   showCAF = kwd.get("showCAF")
 
     # Make sure the argument is a list
     if (isinstance(fileBlockList, list)):
@@ -220,8 +222,12 @@ class DlsPhedexApi(dlsApi.DlsApi):
     arglist2 = []
     # flags that could be added: incomplete, updated_since, created_since
     arglist2.append(('complete', 'y'))
+    if not (showProd and showCAF):
+       arglist2 += [('op','node:and')]
     if not showProd:
-       arglist2 += [('op','node:and'), ('node','!T0*'), ('node','!T1*')]
+       arglist2 += [('node','!T0*'), ('node','!T1*')]
+    if not showCAF:
+       arglist2 += [('node','!T2_CH_CAF')]
     self._debug("Using PhEDex xml url: " + urlbase + ' ' + str(arglist2))
   
     eList = []
@@ -257,8 +263,8 @@ class DlsPhedexApi(dlsApi.DlsApi):
 
     Implementation specific remarks:
 
-    The showProd flag is taken into account and if not set to True some 
-    FileBlock replicas are filtered out.
+    The showProd and showCAF flags are taken into account and if not set 
+    to True some FileBlock replicas are filtered out.
 
     The following keyword flags are ignored: session.
     """
@@ -266,6 +272,8 @@ class DlsPhedexApi(dlsApi.DlsApi):
     # Keywords
     showProd = False
     if(kwd.has_key("showProd")):   showProd = kwd.get("showProd")
+    showCAF= False
+    if(kwd.has_key("showCAF")):   showCAF = kwd.get("showCAF")
 
     # Make sure the argument is a list
     if (isinstance(locationList, list)):
@@ -297,8 +305,12 @@ class DlsPhedexApi(dlsApi.DlsApi):
     arglist2 = []
     # flags that could be added: incomplete, updated_since, created_since
     arglist2.append(('complete', 'y'))
+    if not (showProd and showCAF):
+       arglist2 += [('op','node:and')]
     if not showProd:
-       arglist2 += [('op','node:and'), ('node','!T0*'), ('node','!T1*')]
+       arglist2 += [('node','!T0*'), ('node','!T1*')]
+    if not showCAF:
+       arglist2 += [('node','!T2_CH_CAF')]
     self._debug("Using PhEDex xml url: " + urlbase + ' ' + str(arglist2))
 
     eList = []
@@ -471,8 +483,8 @@ class DlsPhedexApi(dlsApi.DlsApi):
 
     No wildcards ('*' or '%') are accepted in the FileBlock names.
     
-    The showProd flag is taken into account and if not set to True some 
-    file replicas are filtered out.
+    The showProd and showCAF flags are taken into account and if not set
+    to True some file replicas are filtered out.
 
     The following keyword flags are ignored: session.
     """
@@ -483,6 +495,8 @@ class DlsPhedexApi(dlsApi.DlsApi):
     
     showProd = False
     if(kwd.has_key("showProd")):   showProd = kwd.get("showProd")
+    showCAF= False
+    if(kwd.has_key("showCAF")):   showCAF = kwd.get("showCAF")
 
     # Make sure the argument is a list
     if (isinstance(fileBlockList, list)):
@@ -520,8 +534,12 @@ class DlsPhedexApi(dlsApi.DlsApi):
     arglist2 = []
     # flags that could be added: incomplete, updated_since, created_since
     arglist2.append(('dist_complete', 'y'))
+    if not (showProd and showCAF):
+       arglist2 += [('op','node:and')]
     if not showProd:
-       arglist2 += [('op','node:and'), ('node','!T0*'), ('node','!T1*')]
+       arglist2 += [('node','!T0*'), ('node','!T1*')]
+    if not showCAF:
+       arglist2 += [('node','!T2_CH_CAF')]
     self._debug("Using PhEDex xml url: " + urlbase + ' ' + str(arglist2))
 
     flList = []
@@ -606,8 +624,8 @@ class DlsPhedexApi(dlsApi.DlsApi):
     '%' as wildcard), and the matching FileBlocks and associated locations
     are dumped.
 
-    The showProd flag is taken into account and if not set to True some 
-    FileBlock replicas are filtered out.
+    The showProd and showCAF flags are taken into account and if not set 
+    to True some FileBlock replicas are filtered out.
 
     The following keyword flags are ignored: session, recursive.
     """
@@ -615,9 +633,11 @@ class DlsPhedexApi(dlsApi.DlsApi):
     # Keywords
     showProd = False
     if(kwd.has_key("showProd")):   showProd = kwd.get("showProd")
+    showCAF= False
+    if(kwd.has_key("showCAF")):   showCAF = kwd.get("showCAF")
 
     # This can be achieved by listing the fBs and associated locations
-    result = self.getLocations(dir, longList = False, errorTolerant = True, showProd = showProd)
+    result = self.getLocations(dir, longList=False, errorTolerant=True, showProd=showProd, showCAF=showCAF)
 
     # Return what we got
     return result
@@ -756,6 +776,7 @@ class DlsPhedexApi(dlsApi.DlsApi):
       - updated_since: unix timestamp, for replicas updated since specified time
       - created_since: unix timestamp, for replicas cretated since specified time
       - showProd: boolean (default False) for turning off the filtering of prod-only replicas
+      - showCAF: boolean (default False) for turning off the filtering of CAF replicas
       - showEmpty: boolean (default False) for showing empty locations (DLS_PHEDEX_ALL_LOCS)
     """
 
@@ -793,11 +814,16 @@ class DlsPhedexApi(dlsApi.DlsApi):
        
        if(kwd.has_key("created_since")):
           urlargs.append(('created_since'+kwd.get("created_since")))
- 
-       if not (kwd.has_key("showProd") and kwd.get("showProd")):
+
+       showProd = (kwd.has_key("showProd") and kwd.get("showProd"))
+       showCAF = (kwd.has_key("showCAF") and kwd.get("showCAF"))
+       if not (showProd and showCAF):
           urlargs.append(('op','node:and'))
+       if not showProd:
           urlargs.append(('node','!T0*'))
           urlargs.append(('node','!T1*'))
+       if not showCAF:
+          urlargs.append(('node','!T2_CH_CAF'))
   
     # Query for individual files in a given block 
     if(type == DLS_PHEDEX_FILES):
@@ -824,11 +850,15 @@ class DlsPhedexApi(dlsApi.DlsApi):
        if(kwd.has_key("created_since")):
           urlargs.append(('created_since'+kwd.get("created_since")))
  
-       if not (kwd.has_key("showProd") and kwd.get("showProd")):
+       showProd = (kwd.has_key("showProd") and kwd.get("showProd"))
+       showCAF = (kwd.has_key("showCAF") and kwd.get("showCAF"))
+       if not (showProd and showCAF):
           urlargs.append(('op','node:and'))
+       if not showProd:
           urlargs.append(('node','!T0*'))
           urlargs.append(('node','!T1*'))
-
+       if not showCAF:
+          urlargs.append(('node','!T2_CH_CAF'))
 
     # Query for all locations
     if(type == DLS_PHEDEX_ALL_LOCS):

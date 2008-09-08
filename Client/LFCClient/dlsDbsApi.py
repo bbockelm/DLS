@@ -1,5 +1,5 @@
 #
-# $Id: dlsDbsApi.py,v 1.7 2008/06/04 10:03:51 delgadop Exp $
+# $Id: dlsDbsApi.py,v 1.8 2008/06/17 14:45:22 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -444,7 +444,7 @@ class DlsDbsApi(dlsApi.DlsApi):
     is the same as doing a normal one.
 
     The showProd flag is taken into account and if not set to True some 
-    FileBlock replicas are filtered out.
+    FileBlock replicas are filtered out. The showCAF flag is ignored.
 
     The following keyword flags are ignored: session.
     """
@@ -521,7 +521,7 @@ class DlsDbsApi(dlsApi.DlsApi):
     are also returned (with no DlsLocation object in their composing list).
 
     The showProd flag is taken into account and if not set to True some 
-    FileBlock replicas are filtered out.
+    FileBlock replicas are filtered out. The showCAF flag is ignored.
 
     The following keyword flags are ignored: session.
     """
@@ -659,7 +659,7 @@ class DlsDbsApi(dlsApi.DlsApi):
     the matching FileBlocks and associated locations are dumped.
 
     The showProd flag is taken into account and if not set to True some 
-    FileBlock replicas are filtered out.
+    FileBlock replicas are filtered out. The showCAF flag is ignored.
 
     The following keyword flags are ignored: session, recursive.
     """
