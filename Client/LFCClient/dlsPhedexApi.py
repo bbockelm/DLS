@@ -40,7 +40,7 @@ import getopt
 from os import environ
 from stat import S_IFDIR
 from dlsXmlParser import DlsXmlParser
-from xml.sax import SAXException
+from xml.sax import SAXException, SAXParseException
 from urllib2 import HTTPError, URLError, urlopen
 from urllib import urlencode
 from dlsDefaults import DLS_PHEDEX_MAX_BLOCKS_PER_QUERY, DLS_PHEDEX_MAX_SES_PER_QUERY, DLS_PHEDEX_MAX_BLOCKS_PER_FILE_QUERY
@@ -113,7 +113,7 @@ class DlsPhedexApi(dlsApi.DlsApi):
     # Let the parent set the server endpoint (if possible) and verbosity
     dlsApi.DlsApi.__init__(self, dls_endpoint, verbosity)
 
-    # If the server is not there yet, try from LFC_HOST
+    # If the server is not there yet, try from DLS_PHEDEX_ENDPOINT
     if(not self.server):
       self.server = environ.get("DLS_PHEDEX_ENDPOINT")
 
@@ -887,12 +887,19 @@ class DlsPhedexApi(dlsApi.DlsApi):
     @exception: raises the appropriate DlsApiError, if errorTolerant==False
     """
 
-    caught_msg = str(inst) 
+    caught_msg = "%s: %s" % (str(inst.__class__), str(inst))
 
     if(not errorTolerant):
+       
+       # If DlsErrorWithServer, do not repeat the exception name
+       if (isinstance(inst, DlsErrorWithServer)):
+         excp_msg = excp_msg + '. %s' % (inst.msg)
+         raise DlsErrorWithServer(excp_msg)
+       
+       # Otherwise, include all information
        excp_msg = excp_msg + '. Caught: %s' % (caught_msg)
       
-       if (isinstance(inst, SAXException)):
+       if (isinstance(inst, SAXException) or (isinstance(inst, SAXParseException))):
          excp_msg = "Error parsing server reply. " + excp_msg
          raise DlsErrorWithServer(excp_msg)
          
@@ -900,10 +907,9 @@ class DlsPhedexApi(dlsApi.DlsApi):
          excp_msg = excp_msg + ' Server endpoint: ' + self.server
          raise DlsConnectionError(excp_msg)
          
-       # Otherwise, we raise the default exception
+       # If unexpected exception, raise the default exception
        raise DlsErrorWithServer(excp_msg)
        
     else:
        warn_msg = warn_msg + '. Caught: %s' % (caught_msg)
        self._warn(warn_msg)
-

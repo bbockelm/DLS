@@ -1,7 +1,23 @@
-#!/usr/bin/env python
+#
+# $Id$
+#
+# DLS XML parser (for PhEDEx back-end). $Name:  $.
+# Antonio Delgado Peris. CIEMAT. CMS.
+#
 
+"""
+This module implements the XML parser for the reponses from
+a PhEDEx back-end for DLS API consumption. All methods and
+classes here included are for internal DLS use only (no
+public interface).
+"""
+
+############
+# Imports
+############
 from xml.sax import ContentHandler, make_parser
 from dlsDataObjects import DlsLocation, DlsFileBlock, DlsEntry, DlsDataObjectError, DlsFile
+from dlsApiExceptions import DlsErrorWithServer
 
 
 
@@ -13,13 +29,22 @@ from dlsDataObjects import DlsLocation, DlsFileBlock, DlsEntry, DlsDataObjectErr
 class EntryPageHandler(ContentHandler):
 
   def __init__(self):
+    self.phedexReply = False
+    self.inError = False
+    self.error = ""
     self.mapping = []
     self.fbAttrs = {}
     self.seAttrs = {}
  
  
   def startElement(self, name, attributes):
-    if name == "block":
+    if name == "error":
+      self.inError = True
+
+    elif name == "phedex":
+      self.phedexReply = True
+      
+    elif name == "block":
       self.locs = []
       self.ses = []
       self.fbAttrs = {}
@@ -37,43 +62,84 @@ class EntryPageHandler(ContentHandler):
       if self.seName and (self.seName not in self.ses):
          self.ses.append(self.seName)
          self.locs.append(DlsLocation(self.seName, self.seAttrs))
- 
+
+  def characters(self, contents):
+    if self.inError:
+      self.error += contents
  
   def endElement(self, name):
-    if name == "block":
+    if name == "error":
+      self.inError = False
+      raise DlsErrorWithServer(self.error.strip())
+
+    elif name == "block":
       self.mapping.append(DlsEntry(DlsFileBlock(self.fbName, self.fbAttrs), self.locs))
 
 
 
 class BlockPageHandler(ContentHandler):
   def __init__(self):
+    self.phedexReply = False
+    self.inError = False
+    self.error = ""
     self.mapping = []
     self.fbAttrs = {}
  
   def startElement(self, name, attributes):
-    if name == "block":
+    if name == "error":
+      self.inError = True
+      
+    elif name == "phedex":
+      self.phedexReply = True
+      
+    elif name == "block":
       for attr in attributes.keys():
         if (attr == "name"): self.fbName = attributes["name"]
         else:
            self.fbAttrs[attr] = attributes[attr]
  
+  def characters(self, contents):
+    if self.inError:
+      self.error += contents
+ 
   def endElement(self, name):
-    if name == "block":
+    if name == "error":
+      self.inError = False
+      raise DlsErrorWithServer(self.error.strip())
+
+    elif name == "block":
       self.mapping.append(DlsFileBlock(self.fbName, self.fbAttrs))
 
 
 
 class NodePageHandler(ContentHandler):
   def __init__(self):
+    self.phedexReply = False
+    self.inError = False
+    self.error = ""
     self.host = ""
     self.list = []
  
   def startElement(self, name, attributes):
-    if name == "node":
+    if name == "error":
+      self.inError = True
+      
+    elif name == "phedex":
+      self.phedexReply = True
+      
+    elif name == "node":
       self.host = attributes["se"]
  
+  def characters(self, contents):
+    if self.inError:
+      self.error += contents
+ 
   def endElement(self, name):
-    if name == "node":
+    if name == "error":
+      self.inError = False
+      raise DlsErrorWithServer(self.error.strip())
+
+    elif name == "node":
       if self.host and (self.host not in self.list):
             self.list.append(self.host)
 
@@ -81,19 +147,28 @@ class NodePageHandler(ContentHandler):
 class FilePageHandler(ContentHandler):
 
   def __init__(self):
+    self.phedexReply = False
+    self.inError = False
+    self.error = ""
     self.fbAttrs = {}
     self.result = []
     self.mapping = []
  
   def startElement(self, name, attributes):
-    if name == "block":
+    if name == "error":
+      self.inError = True
+      
+    elif name == "phedex":
+      self.phedexReply = True
+      
+    elif name == "block":
       self.fbAttrs = {}
       self.files = {}
       for attr in attributes.keys():
         if (attr == "name"): self.fbName = attributes["name"]
         else:                self.fbAttrs[attr] = attributes[attr]
 
-    if name == "file":
+    elif name == "file":
       self.ses = []
       self.locs = []
       self.fileName = attributes["name"]
@@ -106,12 +181,20 @@ class FilePageHandler(ContentHandler):
 #      self.ses.append(self.seName)
  
 
+  def characters(self, contents):
+    if self.inError:
+      self.error += contents
+ 
   def endElement(self, name):
-    if name == "file":
+    if name == "error":
+      self.inError = False
+      raise DlsErrorWithServer(self.error.strip())
+
+    elif name == "file":
        self.files[ DlsFile(self.fileName) ] = self.locs
 #       self.files[ self.fileName ] = self.ses
        
-    if name == "block":
+    elif name == "block":
        self.mapping.append([DlsFileBlock(self.fbName, self.fbAttrs), self.files])
 
 
@@ -150,13 +233,10 @@ class FilePageHandler(ContentHandler):
 
 
 ############################################
-# Public interface
-# class DlsXmlParser 
+# Class DlsXmlParser 
 ############################################
 
 class DlsXmlParser:
-  def __init__(self):
-    self.result = []
 
   def xmlToEntries(self, xmlSource):
     """
@@ -172,6 +252,8 @@ class DlsXmlParser:
     handler = EntryPageHandler()
     parser.setContentHandler(handler)
     parser.parse(xmlSource)
+    if not handler.phedexReply:
+      raise DlsErrorWithServer("No valid server response (no phedex entry). Check DLS endpoint")
     return handler.mapping
     
 
@@ -188,6 +270,8 @@ class DlsXmlParser:
     handler = BlockPageHandler()
     parser.setContentHandler(handler)
     parser.parse(xmlSource)
+    if not handler.phedexReply:
+      raise DlsErrorWithServer("No valid server response (no phedex entry). Check DLS endpoint")
     return handler.mapping
 
 
@@ -204,6 +288,8 @@ class DlsXmlParser:
     handler = NodePageHandler()
     parser.setContentHandler(handler)
     parser.parse(xmlSource)
+    if not handler.phedexReply:
+      raise DlsErrorWithServer("No valid server response (no phedex entry). Check DLS endpoint")
     hostList = handler.list
     hostList.sort()
     return map(DlsLocation, hostList)
@@ -223,4 +309,6 @@ class DlsXmlParser:
     handler = FilePageHandler()
     parser.setContentHandler(handler)
     parser.parse(xmlSource)
+    if not handler.phedexReply:
+      raise DlsErrorWithServer("No valid server response (no phedex entry). Check DLS endpoint")
     return handler.mapping
