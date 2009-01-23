@@ -1,5 +1,5 @@
 #
-# $Id: dlsPhedexApi.py,v 1.7 2008/10/02 11:41:57 delgadop Exp $
+# $Id: dlsPhedexApi.py,v 1.8 2009/01/23 09:19:39 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -227,8 +227,9 @@ class DlsPhedexApi(dlsApi.DlsApi):
        arglist2 += [('op','node:and')]
     if not showProd:
 #       arglist2 += [('node','!T0*'), ('node','!T1*')]
-       arglist2 += [('node','!XT*'), ('node','!T0*'), ('node','!T1_US*'), ('node','!T1_ES*'),\
-               ('node','!T1_IT*'),('node','!T1_UK*'),('node','!T1_DE*'),('node','!T1_TW*')]
+       arglist2 += [('node','!XT*'), ('node','!T0*'), \
+              ('node','!T1_CH*'),('node','!T1_US*'), ('node','!T1_ES*'),\
+              ('node','!T1_IT*'),('node','!T1_UK*'),('node','!T1_DE*'),('node','!T1_TW*')]
     if not showCAF:
        arglist2 += [('node','!T2_CH_CAF')]
     self._debug("Using PhEDex xml url: " + urlbase + ' ' + str(arglist2))
@@ -312,8 +313,9 @@ class DlsPhedexApi(dlsApi.DlsApi):
        arglist2 += [('op','node:and')]
     if not showProd:
 #       arglist2 += [('node','!T0*'), ('node','!T1*')]
-       arglist2 += [('node','!XT*'), ('node','!T0*'), ('node','!T1_US*'), ('node','!T1_ES*'),\
-               ('node','!T1_IT*'),('node','!T1_UK*'),('node','!T1_DE*'),('node','!T1_TW*')]
+       arglist2 += [('node','!XT*'), ('node','!T0*'), \
+              ('node','!T1_CH*'),('node','!T1_US*'), ('node','!T1_ES*'),\
+              ('node','!T1_IT*'),('node','!T1_UK*'),('node','!T1_DE*'),('node','!T1_TW*')]
     if not showCAF:
        arglist2 += [('node','!T2_CH_CAF')]
     self._debug("Using PhEDex xml url: " + urlbase + ' ' + str(arglist2))
@@ -543,8 +545,9 @@ class DlsPhedexApi(dlsApi.DlsApi):
        arglist2 += [('op','node:and')]
     if not showProd:
 #       arglist2 += [('node','!T0*'), ('node','!T1*')]
-       arglist2 += [('node','!XT*'), ('node','!T0*'), ('node','!T1_US*'), ('node','!T1_ES*'),\
-               ('node','!T1_IT*'),('node','!T1_UK*'),('node','!T1_DE*'),('node','!T1_TW*')]
+       arglist2 += [('node','!XT*'), ('node','!T0*'), \
+              ('node','!T1_CH*'),('node','!T1_US*'), ('node','!T1_ES*'),\
+              ('node','!T1_IT*'),('node','!T1_UK*'),('node','!T1_DE*'),('node','!T1_TW*')]
     if not showCAF:
        arglist2 += [('node','!T2_CH_CAF')]
     self._debug("Using PhEDex xml url: " + urlbase + ' ' + str(arglist2))
@@ -830,7 +833,7 @@ class DlsPhedexApi(dlsApi.DlsApi):
           urlargs.append(('node','!T0*'))
 #          urlargs.append(('node','!T1*'))
           urlargs.append(('node','!XT*'))
-          map(urlargs.append, (('node','!T1_US*'), ('node','!T1_ES*'),\
+          map(urlargs.append, (('node','!T1_CH*'),('node','!T1_US*'), ('node','!T1_ES*'),\
                ('node','!T1_IT*'),('node','!T1_UK*'),('node','!T1_DE*'),('node','!T1_TW*')))
        if not showCAF:
           urlargs.append(('node','!T2_CH_CAF'))
@@ -868,7 +871,7 @@ class DlsPhedexApi(dlsApi.DlsApi):
           urlargs.append(('node','!T0*'))
 #          urlargs.append(('node','!T1*'))
           urlargs.append(('node','!XT*'))
-          map(urlargs.append, (('node','!T1_US*'), ('node','!T1_ES*'),\
+          map(urlargs.append, (('node','!T1_CH*'),('node','!T1_US*'), ('node','!T1_ES*'),\
                ('node','!T1_IT*'),('node','!T1_UK*'),('node','!T1_DE*'),('node','!T1_TW*')))
        if not showCAF:
           urlargs.append(('node','!T2_CH_CAF'))
