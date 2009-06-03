@@ -1,5 +1,5 @@
 #
-# $Id: dlsApi.py,v 1.24 2008/05/09 15:29:17 delgadop Exp $
+# $Id: dlsApi.py,v 1.26 2008/09/08 15:38:06 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -307,8 +307,7 @@ class DlsApi(object):
     
     A single FileBlock or a list of those may be used as argument. Each FileBlock may
     be specified as simple strings (names) or as DlsFileBlock objects. The
-    returned list contains a DlsEntry object per specified FileBlock, in the same
-    order as in the argument.
+    returned list contains a DlsEntry object per specified FileBlock.
 
     The returned objects will have a composing DlsFileBlock object containing
     the specified FileBlock name, and a composing DlsLocation object list holding
@@ -430,9 +429,9 @@ class DlsApi(object):
     a list) may be used as argument. In the case of FileBlocks, they may be
     specified as simple strings (FileBlock names) or as DlsFileBlock objects,
     and the returned list will contain a DlsFileBlock object per specified
-    FileBlock, in the same order. In the case of directories, the argument
-    should be a string holding the directory name, and the returned list will
-    hold a DlsFileBlock object per FileBlock under that directory.
+    FileBlock. In the case of directories, the argument should be a string 
+    holding the directory name, and the returned list will hold a DlsFileBlock 
+    object per FileBlock under that directory.
 
     The returned DlsFileBlock objects will contain both the FileBlock name
     and, if longList (**kwd) is set to true, some FileBlock attributes.

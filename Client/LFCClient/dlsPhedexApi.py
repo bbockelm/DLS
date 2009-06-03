@@ -1,5 +1,5 @@
 #
-# $Id: dlsPhedexApi.py,v 1.8 2009/01/23 09:19:39 delgadop Exp $
+# $Id: dlsPhedexApi.py,v 1.9 2009/01/23 09:51:28 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -37,13 +37,15 @@ import sys
 import commands
 import time
 import getopt
-from os import environ
+from os import environ, uname
 from stat import S_IFDIR
 from dlsXmlParser import DlsXmlParser
 from xml.sax import SAXException, SAXParseException
-from urllib2 import HTTPError, URLError, urlopen
+from urllib2 import HTTPError, URLError, urlopen, Request
+from urllib2 import __version__ as urllibversion
 from urllib import urlencode
-from dlsDefaults import DLS_PHEDEX_MAX_BLOCKS_PER_QUERY, DLS_PHEDEX_MAX_SES_PER_QUERY, DLS_PHEDEX_MAX_BLOCKS_PER_FILE_QUERY
+from dlsDefaults import DLS_PHEDEX_MAX_BLOCKS_PER_QUERY, DLS_PHEDEX_MAX_SES_PER_QUERY, \
+                        DLS_PHEDEX_MAX_BLOCKS_PER_FILE_QUERY, getApiVersion
 
 #########################################
 # Module globals
@@ -52,6 +54,9 @@ DLS_PHEDEX_BLOCKS = "DLS_PHEDEX_BLOCKS"
 DLS_PHEDEX_FILES = "DLS_PHEDEX_FILES"
 DLS_PHEDEX_ALL_LOCS = "DLS_PHEDEX_ALL_LOCS"
 
+unamev = uname()
+USERAGENT = {'User-Agent': 'dls-client/%s (CMS) Python-urllib/%s %s/%s (%s)' %\
+             (getApiVersion(), urllibversion, unamev[0], unamev[2], unamev[4])}
 
 
 #########################################
@@ -136,7 +141,9 @@ class DlsPhedexApi(dlsApi.DlsApi):
       try:
 #         self._debug("Checking endpoint %s..." % self.server)
          urlv = self._buildXmlUrl(self.server, DLS_PHEDEX_BLOCKS, ["-"])
-         url = urlopen(urlv[0] + '?' + urlencode(urlv[1]))
+         req = Request(urlv[0] + '?' + urlencode(urlv[1]), None, USERAGENT)
+#         url = urlopen(urlv[0] + '?' + urlencode(urlv[1]))
+         url = urlopen(req)
          self.parser.xmlToEntries(url)
       except Exception, inst:
          msg = "Could not set the interface to the DLS server. "
@@ -226,10 +233,7 @@ class DlsPhedexApi(dlsApi.DlsApi):
     if not (showProd and showCAF):
        arglist2 += [('op','node:and')]
     if not showProd:
-#       arglist2 += [('node','!T0*'), ('node','!T1*')]
-       arglist2 += [('node','!XT*'), ('node','!T0*'), \
-              ('node','!T1_CH*'),('node','!T1_US*'), ('node','!T1_ES*'),\
-              ('node','!T1_IT*'),('node','!T1_UK*'),('node','!T1_DE*'),('node','!T1_TW*')]
+       arglist2 += [('node','!T0*'), ('node','!T1*')]
     if not showCAF:
        arglist2 += [('node','!T2_CH_CAF')]
     self._debug("Using PhEDex xml url: " + urlbase + ' ' + str(arglist2))
@@ -241,7 +245,9 @@ class DlsPhedexApi(dlsApi.DlsApi):
       # Get the locations
       try:  
          # Build the xml query to use
-         url = urlopen(urlbase, urlencode(arglist + arglist2))
+         req = Request(urlbase, urlencode(arglist + arglist2), USERAGENT)
+#         url = urlopen(urlbase, urlencode(arglist + arglist2))
+         url = urlopen(req)
          partList = self.parser.xmlToEntries(url)
       except Exception, inst:
          msg = "Error retrieving locations"
@@ -312,10 +318,7 @@ class DlsPhedexApi(dlsApi.DlsApi):
     if not (showProd and showCAF):
        arglist2 += [('op','node:and')]
     if not showProd:
-#       arglist2 += [('node','!T0*'), ('node','!T1*')]
-       arglist2 += [('node','!XT*'), ('node','!T0*'), \
-              ('node','!T1_CH*'),('node','!T1_US*'), ('node','!T1_ES*'),\
-              ('node','!T1_IT*'),('node','!T1_UK*'),('node','!T1_DE*'),('node','!T1_TW*')]
+       arglist2 += [('node','!T0*'), ('node','!T1*')]
     if not showCAF:
        arglist2 += [('node','!T2_CH_CAF')]
     self._debug("Using PhEDex xml url: " + urlbase + ' ' + str(arglist2))
@@ -327,7 +330,9 @@ class DlsPhedexApi(dlsApi.DlsApi):
       # Get the blocks
       try:  
          # Build the xml query to use
-         url = urlopen(urlbase, urlencode(arglist + arglist2))
+         req = Request(urlbase, urlencode(arglist + arglist2), USERAGENT)
+#         url = urlopen(urlbase, urlencode(arglist + arglist2))
+         url = urlopen(req)
          partList = self.parser.xmlToEntries(url)
       except Exception, inst:
          msg = "Error retrieving FileBlocks for %s" % (locList)
@@ -409,7 +414,9 @@ class DlsPhedexApi(dlsApi.DlsApi):
       if not arglist: continue
       # Get the blocks
       try:  
-         url = urlopen(urlbase, urlencode(arglist + arglist2))
+         req = Request(urlbase, urlencode(arglist + arglist2), USERAGENT)
+#         url = urlopen(urlbase, urlencode(arglist + arglist2))
+         url = urlopen(req)
          partList = self.parser.xmlToBlocks(url)
       except Exception, inst:
          msg = "Error retrieving fileblock information"
@@ -544,10 +551,7 @@ class DlsPhedexApi(dlsApi.DlsApi):
     if not (showProd and showCAF):
        arglist2 += [('op','node:and')]
     if not showProd:
-#       arglist2 += [('node','!T0*'), ('node','!T1*')]
-       arglist2 += [('node','!XT*'), ('node','!T0*'), \
-              ('node','!T1_CH*'),('node','!T1_US*'), ('node','!T1_ES*'),\
-              ('node','!T1_IT*'),('node','!T1_UK*'),('node','!T1_DE*'),('node','!T1_TW*')]
+       arglist2 += [('node','!T0*'), ('node','!T1*')]
     if not showCAF:
        arglist2 += [('node','!T2_CH_CAF')]
     self._debug("Using PhEDex xml url: " + urlbase + ' ' + str(arglist2))
@@ -559,7 +563,9 @@ class DlsPhedexApi(dlsApi.DlsApi):
       # Get the file replicas
       try:  
          # Build the xml query to use
-         url = urlopen(urlbase, urlencode(arglist + arglist2))
+         req = Request(urlbase, urlencode(arglist + arglist2), USERAGENT)
+#         url = urlopen(urlbase, urlencode(arglist + arglist2))
+         url = urlopen(req)
          partList = self.parser.xmlToFileLocs(url)
       except Exception, inst:
          msg = "Error getting files for FileBlock in DLS"
@@ -611,7 +617,10 @@ class DlsPhedexApi(dlsApi.DlsApi):
     # Get the locations
     try:  
        self._debug("Using PhEDex xml url: " + urlbase + str(urlargs))
-       url = urlopen(urlbase + '?' + urlencode(urlargs))
+       urlv = self._buildXmlUrl(self.server, DLS_PHEDEX_BLOCKS, ["-"])
+       req = Request(urlbase + '?' + urlencode(urlargs), None, USERAGENT)
+#       url = urlopen(urlbase + '?' + urlencode(urlargs))
+       url = urlopen(req)
        locList = self.parser.xmlToLocations(url)
     except Exception, inst:
        msg = "Error getting all locations in DLS"
@@ -831,10 +840,7 @@ class DlsPhedexApi(dlsApi.DlsApi):
           urlargs.append(('op','node:and'))
        if not showProd:
           urlargs.append(('node','!T0*'))
-#          urlargs.append(('node','!T1*'))
-          urlargs.append(('node','!XT*'))
-          map(urlargs.append, (('node','!T1_CH*'),('node','!T1_US*'), ('node','!T1_ES*'),\
-               ('node','!T1_IT*'),('node','!T1_UK*'),('node','!T1_DE*'),('node','!T1_TW*')))
+          urlargs.append(('node','!T1*'))
        if not showCAF:
           urlargs.append(('node','!T2_CH_CAF'))
   
@@ -869,10 +875,7 @@ class DlsPhedexApi(dlsApi.DlsApi):
           urlargs.append(('op','node:and'))
        if not showProd:
           urlargs.append(('node','!T0*'))
-#          urlargs.append(('node','!T1*'))
-          urlargs.append(('node','!XT*'))
-          map(urlargs.append, (('node','!T1_CH*'),('node','!T1_US*'), ('node','!T1_ES*'),\
-               ('node','!T1_IT*'),('node','!T1_UK*'),('node','!T1_DE*'),('node','!T1_TW*')))
+          urlargs.append(('node','!T1*'))
        if not showCAF:
           urlargs.append(('node','!T2_CH_CAF'))
 
