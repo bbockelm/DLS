@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #
-# $Id: dls-get-all-locations,v 1.7 2008/05/09 15:29:16 delgadop Exp $
+# $Id: dls-get-all-locations,v 1.8 2008/05/20 14:27:54 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -31,7 +31,7 @@ def usage():
    """
     Provides usage information
    """
-   print "Usage: dls-get-all-locations [-v, -e, -i, --dbs-conf]"
+   print "Usage: dls-get-all-locations [-v, -e, -i, -l, -s, --dbs-conf]"
    print "       dls-get-all-locations -u"
    print "       dls-get-all-locations -h"
 
@@ -41,6 +41,8 @@ def options():
     Provides some information regarding the available options
    """
    print """Options summary:
+   -l, --long
+   -s, --sitename
    -h, --help
    -u, --usage
    -v, --verbose <verb_level>
@@ -75,6 +77,8 @@ Specific notes for DBS and PhEDEx back-end (DLS_TYPE_DBS, DLS_TYPE_PHEDEX):
 
 Additional notes for DBS back-end (DLS_TYPE_DBS):
 
+  Option -s will be ignored.
+
   Apart from DBS endpoint, other configuration options may be specified
   for the underlying DBS interface (e.g. "level" for DBS logging level)
   in a configuration file. The name of this file can be indicated with,
@@ -84,6 +88,8 @@ Additional notes for DBS back-end (DLS_TYPE_DBS):
 
 
 Specific notes for LFC back-end (DLS_TYPE_LFC):
+
+  Option -s will be ignored.
 
    NOTE: With LFC back-end, this method is a very expensive operation and may
    affect DLS response, so use it only with care!!
@@ -96,6 +102,12 @@ Specific notes for LFC back-end (DLS_TYPE_LFC):
 
 
 Options:
+
+The "-l" option will cause some location attributes are printed after the SE name.
+Printed attributes depend on the DLS implementation.
+
+The "-s" option will cause (for those implementations supporting it) the printing
+of the CMS site name instead of the corresponding SE.
  """
    commonHelpText(ADMITTED_IFACE_TYPES)
    options()
@@ -103,7 +115,7 @@ Options:
 
 
 
-def showLocations(iface, verbose):
+def showLocations(iface, longList, showSite, verbose):
    """
     Prints all the locations which hold a copy of any FileBlock.
     
@@ -119,8 +131,26 @@ def showLocations(iface, verbose):
    locList = iface.getAllLocations(session = True)
 
    # Print the entries
-   for loc in locList:
-      print loc.host
+   def compFunc(a, b):
+       if a.host > b.host: return 1
+       if a.host < b.host: return -1
+       return 0
+   
+   locList.sort(compFunc)
+
+   if(longList):
+       for loc in locList:
+          print loc
+   else:
+       if showSite:
+           for loc in locList:
+               print loc.attribs['name']
+       else:
+           prev = ""
+           for loc in locList:
+              if loc.host != prev:
+                  print loc.host
+              prev = loc.host
  
 
             
@@ -135,9 +165,10 @@ def main(pArgs):
 
  # Options and args... 
  
-   longoptions=["help", "usage", "endpoint=", "interface-type=", "verbose=", "dbs-conf="]
+   longoptions=["help", "usage", "long", "sitename", "endpoint=", \
+                "interface-type=", "verbose=", "dbs-conf="]
    try:
-      optlist, args = getopt.getopt(pArgs, 'hue:i:v:', longoptions)
+      optlist, args = getopt.getopt(pArgs, 'hulse:i:v:', longoptions)
    except getopt.GetoptError, inst:
       err("Bad usage: "+str(inst))
       usage()
@@ -148,6 +179,8 @@ def main(pArgs):
    verbose = 1
    endpoint = None
    iface_type = None
+   longList = False
+   site = False
    for opt, val in optlist:
        if opt in ("-h", "--help"):
            help()
@@ -166,6 +199,12 @@ def main(pArgs):
        elif opt in ("-i", "--interface-type"):
            iface_type = val
 
+       elif opt in ("-l", "--long"):
+           longList = True
+           
+       elif opt in ("-s", "--sitename"):
+           site = True
+           
        elif opt in ("-v", "--verbose"):
            verbose = check_verbosity_value(val)
            if(verbose == OPT_ERROR): return OPT_ERROR
@@ -190,7 +229,7 @@ def main(pArgs):
    
  # Do the query
    try:
-     showLocations(iface, verbose)
+     showLocations(iface, longList, site, verbose)
    except dlsApi.DlsApiError, inst:         
       if(inst.rc):  rc = inst.rc 
       else:           rc = GENERIC_ERROR

@@ -78,6 +78,7 @@ if endpoint==None:
 ## Some predefined fileblocks and locations
 # #############################
 fbPattern='/CSA07AllEvents/CMSSW_1_6_7-CSA07-Stew-B1-PDAllEvents-Skims2-muonL1AODSIM/USER#ad*'
+#fbA="/GlobalNov07-A/Online/RAW#f84d8b19-d8ce-47ea-b8f0-9f138c9f374c"
 fbA="/CSA07AllEvents/CMSSW_1_6_7-CSA07-Stew-B1-PDAllEvents-Skims2-muonL1AODSIM/USER#ad0560bb-9bc1-4e84-aa81-6f32c16f9c65"
 fbB="/CSA07AllEvents/CMSSW_1_6_7-CSA07-Stew-B1-PDAllEvents-Skims2-muonL1AODSIM/USER#a83d4262-afbe-463e-aeac-d9c21724b4b6"
 fbC="/CSA07AllEvents/CMSSW_1_6_7-CSA07-Stew-B1-PDAllEvents-Skims2-muonL1AODSIM/USER#a06748f3-441b-4b32-ab85-c2fa4ec67e44"
@@ -92,7 +93,7 @@ print ""
 print " DLS Server type: %s endpoint: %s"%(type,endpoint)
 print ""
 try:
-     api = dlsClient.getDlsApi(dls_type=type,dls_endpoint=endpoint)
+     api = dlsClient.getDlsApi(dls_type=type, dls_endpoint=endpoint, check_endpoint = True)
 except dlsApi.DlsApiError, inst:
       msg = "Error when binding the DLS interface: " + str(inst)
       print msg

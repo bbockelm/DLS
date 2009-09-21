@@ -55,12 +55,12 @@ DLS_PHEDEX_FILES = "DLS_PHEDEX_FILES"
 DLS_PHEDEX_ALL_LOCS = "DLS_PHEDEX_ALL_LOCS"
 
 unamev = uname()
-USERAGENT = {'User-Agent': 'dls-client/%s (CMS) Python-urllib/%s %s/%s (%s)' %\
+USERAGENT = {'User-Agent': 'dls-client/%s (CMS) urllib2/%s %s/%s (%s)' %\
              (getApiVersion(), urllibversion, unamev[0], unamev[2], unamev[4])}
 
 
 #########################################
-# DlsDbsApi class
+# DlsPhedexApi class
 #########################################
 
 class DlsPhedexApi(dlsApi.DlsApi):
@@ -181,8 +181,9 @@ class DlsPhedexApi(dlsApi.DlsApi):
     In the current implementation the cost of doing a long listing
     is the same as doing a normal one.
 
-    The showProd and showCAF flags are taken into account and if not set 
-    to True some FileBlock replicas are filtered out.
+    The showProd and showCAF flags are taken into account and if not set
+    to True some FileBlock replicas are filtered out. Likewise, if the
+    subscribed or custodial flags are set to True, some replicas are not shown.
 
     The following keyword flags are ignored: session.
     """
@@ -192,6 +193,11 @@ class DlsPhedexApi(dlsApi.DlsApi):
 
     errorTolerant = False
     if(kwd.has_key("errorTolerant")):   errorTolerant = kwd.get("errorTolerant")
+
+    subscribed = False
+    if(kwd.has_key("subscribed")):   subscribed = kwd.get("subscribed")
+    custodial = False
+    if(kwd.has_key("custodial")):   custodial = kwd.get("custodial")
 
     showProd = False
     if(kwd.has_key("showProd")):   showProd = kwd.get("showProd")
@@ -230,13 +236,14 @@ class DlsPhedexApi(dlsApi.DlsApi):
     arglist2 = []
     # flags that could be added: incomplete, updated_since, created_since
     arglist2.append(('complete', 'y'))
+    if subscribed:
+       arglist2 += [('subscribed','y')]
+    if custodial:
+       arglist2 += [('custodial','y')]
     if not (showProd and showCAF):
        arglist2 += [('op','node:and')]
     if not showProd:
-#       arglist2 += [('node','!T0*'), ('node','!T1*')]
-       arglist2 += [('node','!XT*'), ('node','!T0*'), \
-              ('node','!T1_CH*'),('node','!T1_US*'), ('node','!T1_ES*'),\
-              ('node','!T1_IT*'),('node','!T1_UK*'),('node','!T1_DE*'),('node','!T1_TW*')]
+       arglist2 += [('node','!T0*'), ('node','!T1*')]
     if not showCAF:
        arglist2 += [('node','!T2_CH_CAF')]
     self._debug("Using PhEDex xml url: " + urlbase + ' ' + str(arglist2))
@@ -277,12 +284,26 @@ class DlsPhedexApi(dlsApi.DlsApi):
     Implementation specific remarks:
 
     The showProd and showCAF flags are taken into account and if not set 
-    to True some FileBlock replicas are filtered out.
+    to True some FileBlock replicas are filtered out. Likewise, if the
+    subscribed or custodial flags are set to True, some replicas are not shown.
+
+    The cmsSite flag is taken into account, and if included locations
+    are considered to be CMS site names rather than SE hostnames (in the
+    case of arguments being DlsLocation objects, the 'node' field in the
+    attribs dictionary is used as location).
 
     The following keyword flags are ignored: session.
     """
 
     # Keywords
+    cmsSite = False
+    if(kwd.has_key("cmsSite")):   cmsSite = kwd.get("cmsSite")
+
+    subscribed = False
+    if(kwd.has_key("subscribed")):   subscribed = kwd.get("subscribed")
+    custodial = False
+    if(kwd.has_key("custodial")):   custodial = kwd.get("custodial")
+
     showProd = False
     if(kwd.has_key("showProd")):   showProd = kwd.get("showProd")
     showCAF= False
@@ -301,11 +322,17 @@ class DlsPhedexApi(dlsApi.DlsApi):
        
        # Check what was passed (DlsLocation or string)
        if(isinstance(loc, DlsLocation)):
-         host = loc.host
+          if cmsSite:
+             host = loc.attribs['node']
+          else:
+             host = loc.host
        else:
-         host = loc
+          host = loc
 
-       locList.append(('se',host)) 
+       if cmsSite:
+          locList.append(('node',host)) 
+       else:
+          locList.append(('se',host)) 
 
 
     multiList = self._toMultiList(locList, DLS_PHEDEX_MAX_SES_PER_QUERY)
@@ -318,15 +345,17 @@ class DlsPhedexApi(dlsApi.DlsApi):
     arglist2 = []
     # flags that could be added: incomplete, updated_since, created_since
     arglist2.append(('complete', 'y'))
-    if not (showProd and showCAF):
-       arglist2 += [('op','node:and')]
-    if not showProd:
-#       arglist2 += [('node','!T0*'), ('node','!T1*')]
-       arglist2 += [('node','!XT*'), ('node','!T0*'), \
-              ('node','!T1_CH*'),('node','!T1_US*'), ('node','!T1_ES*'),\
-              ('node','!T1_IT*'),('node','!T1_UK*'),('node','!T1_DE*'),('node','!T1_TW*')]
-    if not showCAF:
-       arglist2 += [('node','!T2_CH_CAF')]
+    if subscribed:
+       arglist2 += [('subscribed','y')]
+    if custodial:
+       arglist2 += [('custodial','y')]
+    if not cmsSite:
+        if not (showProd and showCAF):
+           arglist2 += [('op','node:and')]
+        if not showProd:
+           arglist2 += [('node','!T0*'), ('node','!T1*')]
+        if not showCAF:
+           arglist2 += [('node','!T2_CH_CAF')]
     self._debug("Using PhEDex xml url: " + urlbase + ' ' + str(arglist2))
 
     eList = []
@@ -504,7 +533,8 @@ class DlsPhedexApi(dlsApi.DlsApi):
     No wildcards ('*' or '%') are accepted in the FileBlock names.
     
     The showProd and showCAF flags are taken into account and if not set
-    to True some file replicas are filtered out.
+    to True some FileBlock replicas are filtered out. Likewise, if the
+    subscribed or custodial flags are set to True, some replicas are not shown.
 
     The following keyword flags are ignored: session.
     """
@@ -513,6 +543,11 @@ class DlsPhedexApi(dlsApi.DlsApi):
     errorTolerant = False
     if(kwd.has_key("errorTolerant")):   errorTolerant = kwd.get("errorTolerant")
     
+    subscribed = False
+    if(kwd.has_key("subscribed")):   subscribed = kwd.get("subscribed")
+    custodial = False
+    if(kwd.has_key("custodial")):   custodial = kwd.get("custodial")
+
     showProd = False
     if(kwd.has_key("showProd")):   showProd = kwd.get("showProd")
     showCAF= False
@@ -554,13 +589,14 @@ class DlsPhedexApi(dlsApi.DlsApi):
     arglist2 = []
     # flags that could be added: incomplete, updated_since, created_since
     arglist2.append(('dist_complete', 'y'))
+    if subscribed:
+       arglist2 += [('subscribed','y')]
+    if custodial:
+       arglist2 += [('custodial','y')]
     if not (showProd and showCAF):
        arglist2 += [('op','node:and')]
     if not showProd:
-#       arglist2 += [('node','!T0*'), ('node','!T1*')]
-       arglist2 += [('node','!XT*'), ('node','!T0*'), \
-              ('node','!T1_CH*'),('node','!T1_US*'), ('node','!T1_ES*'),\
-              ('node','!T1_IT*'),('node','!T1_UK*'),('node','!T1_DE*'),('node','!T1_TW*')]
+       arglist2 += [('node','!T0*'), ('node','!T1*')]
     if not showCAF:
        arglist2 += [('node','!T2_CH_CAF')]
     self._debug("Using PhEDex xml url: " + urlbase + ' ' + str(arglist2))
@@ -653,19 +689,27 @@ class DlsPhedexApi(dlsApi.DlsApi):
     are dumped.
 
     The showProd and showCAF flags are taken into account and if not set 
-    to True some FileBlock replicas are filtered out.
+    to True some FileBlock replicas are filtered out. Likewise, if the
+    subscribed or custodial flags are set to True, some replicas are not shown.
 
     The following keyword flags are ignored: session, recursive.
     """
 
     # Keywords
+    subscribed = False
+    if(kwd.has_key("subscribed")):   subscribed = kwd.get("subscribed")
+    custodial = False
+    if(kwd.has_key("custodial")):   custodial = kwd.get("custodial")
+
     showProd = False
     if(kwd.has_key("showProd")):   showProd = kwd.get("showProd")
     showCAF= False
     if(kwd.has_key("showCAF")):   showCAF = kwd.get("showCAF")
 
     # This can be achieved by listing the fBs and associated locations
-    result = self.getLocations(dir, longList=False, errorTolerant=True, showProd=showProd, showCAF=showCAF)
+    result = self.getLocations(dir, longList=False, errorTolerant=True, \
+                               subscribed=subscribed, custodial=custodial, \
+                               showProd=showProd, showCAF=showCAF)
 
     # Return what we got
     return result
@@ -764,7 +808,7 @@ class DlsPhedexApi(dlsApi.DlsApi):
 
     @exception: raises ValueError, if nlocs is not a positive integer
     """
-    if (not type(nlocs) == int) and (nlocs > 0):
+    if not ((type(nlocs) == int) and (nlocs > 0)):
        raise DlsValueError("Argument of setBlocksPerQuery must be a positive integer")
     self.locsPerQuery = nlocs
 
@@ -849,10 +893,7 @@ class DlsPhedexApi(dlsApi.DlsApi):
           urlargs.append(('op','node:and'))
        if not showProd:
           urlargs.append(('node','!T0*'))
-#          urlargs.append(('node','!T1*'))
-          urlargs.append(('node','!XT*'))
-          map(urlargs.append, (('node','!T1_CH*'),('node','!T1_US*'), ('node','!T1_ES*'),\
-               ('node','!T1_IT*'),('node','!T1_UK*'),('node','!T1_DE*'),('node','!T1_TW*')))
+          urlargs.append(('node','!T1*'))
        if not showCAF:
           urlargs.append(('node','!T2_CH_CAF'))
   
@@ -887,10 +928,7 @@ class DlsPhedexApi(dlsApi.DlsApi):
           urlargs.append(('op','node:and'))
        if not showProd:
           urlargs.append(('node','!T0*'))
-#          urlargs.append(('node','!T1*'))
-          urlargs.append(('node','!XT*'))
-          map(urlargs.append, (('node','!T1_CH*'),('node','!T1_US*'), ('node','!T1_ES*'),\
-               ('node','!T1_IT*'),('node','!T1_UK*'),('node','!T1_DE*'),('node','!T1_TW*')))
+          urlargs.append(('node','!T1*'))
        if not showCAF:
           urlargs.append(('node','!T2_CH_CAF'))
 

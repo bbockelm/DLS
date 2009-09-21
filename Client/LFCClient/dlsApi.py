@@ -343,18 +343,21 @@ class DlsApi(object):
     For operational reasons, some implementations (indicated in their documentation)
     may hide some FileBlocks locations from the result. The showProd(**kwd) and
     showCAF(**kwd) flags may be set to True to turn off prod-only and CAF filters.
-    Otherwise, the flag is ignored. Please do not use them unless you know what
-    you are doing.
+    Likewise, if the subscribed or custodial flags are set to True, some replicas are 
+    not shown. If not supported, the flags are ignored. Please do not use them unless 
+    you know what you are doing.
 
     @exception XXXX: On error with the DLS catalog
 
     @param fileBlockList: the FileBlock as string/DlsFileBlock (or list of those)
     @param kwd: Flags:
-     - longList: boolean (default false) for the listing of location attributes
+     - longList: boolean (default False) for the listing of location attributes
      - session: boolean (default False) for using a session for the operations
      - errorTolerant: boolean (default False) for raising an exception after failure
      - showProd: boolean (default False) for turning off the filtering of prod-only replicas
      - showCAF: boolean (default False) for turning off the filtering of CAF replicas
+     - subscribed: boolean (default False) for showing only subscribed replicas
+     - custodial: boolean (default False) for showing only custodial replicas
 
     @return: a list of DlsEntry objects containing the locations
     """
@@ -401,8 +404,9 @@ class DlsApi(object):
     For operational reasons, some implementations (indicated in their documentation)
     may hide some FileBlocks locations from the result. The showProd(**kwd) and
     showCAF(**kwd) flags may be set to True to turn off prod-only and CAF filters.
-    Otherwise, the flag is ignored. Please do not use them unless you know what
-    you are doing.
+    Likewise, if the subscribed or custodial flags are set to True, some replicas are 
+    not shown. If not supported, the flags are ignored. Please do not use them unless 
+    you know what you are doing.
 
     @exception XXXX: On error with the DLS catalog
 
@@ -411,6 +415,8 @@ class DlsApi(object):
      - session: boolean (default False) for using a session for the operations
      - showProd: boolean (default False) for turning off the filtering of prod-only replicas
      - showCAF: boolean (default False) for turning off the filtering of CAF replicas
+     - subscribed: boolean (default False) for showing only subscribed replicas
+     - custodial: boolean (default False) for showing only custodial replicas
 
     @return: a list of DlsEntry objects containing the FileBlocks
     """
@@ -608,8 +614,9 @@ class DlsApi(object):
     For operational reasons, some implementations (indicated in their documentation)
     may hide some FileBlocks locations from the result. The showProd(**kwd) and
     showCAF(**kwd) flags may be set to True to turn off prod-only and CAF filters.
-    Otherwise, the flag is ignored. Please do not use them unless you know what
-    you are doing.
+    Likewise, if the subscribed or custodial flags are set to True, some replicas are 
+    not shown. If not supported, the flags are ignored. Please do not use them unless 
+    you know what you are doing.
 
     @exception XXXX: On error with the DLS catalog
 
@@ -619,6 +626,8 @@ class DlsApi(object):
      - recursive: boolean (default False) for recursive listing of a directory 
      - showProd: boolean (default False) for turning off the filtering of prod-only replicas
      - showCAF: boolean (default False) for turning off the filtering of CAF replicas
+     - subscribed: boolean (default False) for showing only subscribed replicas
+     - custodial: boolean (default False) for showing only custodial replicas
 
     @return: a list of DlsEntry objects representing the DLS data
     """
@@ -646,8 +655,9 @@ class DlsApi(object):
     For operational reasons, some implementations (indicated in their documentation)
     may hide some file locations from the result. The showProd(**kwd) and
     showCAF(**kwd) flags may be set to True to turn off prod-only and CAF filters.
-    Otherwise, the flag is ignored. Please do not use them unless you know what
-    you are doing.
+    Likewise, if the subscribed or custodial flags are set to True, some replicas are 
+    not shown. If not supported, the flags are ignored. Please do not use them unless 
+    you know what you are doing.
 
     @exception XXXX: On error with the DLS catalog
 
@@ -655,6 +665,8 @@ class DlsApi(object):
     @param kwd: Flags:
      - showProd: boolean (default False) for turning off the filtering of prod-only replicas
      - showCAF: boolean (default False) for turning off the filtering of CAF replicas
+     - subscribed: boolean (default False) for showing only subscribed replicas
+     - custodial: boolean (default False) for showing only custodial replicas
 
     @return: list of pairs DlsFileBlock-dict, each dict with DlsFile objs as keys and lists of DlsLocation as values 
     """

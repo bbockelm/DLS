@@ -128,7 +128,12 @@ class NodePageHandler(ContentHandler):
       self.phedexReply = True
       
     elif name == "node":
-      self.host = attributes["se"]
+#      self.host = attributes["se"]
+      self.seAttrs = {}
+      for attr in attributes.keys():
+        if (attr == "se"): self.host = attributes["se"]
+        else:
+           self.seAttrs[attr] = attributes[attr]
  
   def characters(self, contents):
     if self.inError:
@@ -140,8 +145,9 @@ class NodePageHandler(ContentHandler):
       raise DlsErrorWithServer(self.error.strip())
 
     elif name == "node":
-      if self.host and (self.host not in self.list):
-            self.list.append(self.host)
+#      if self.host and (self.host not in self.list):
+#            self.list.append(self.host)
+       self.list.append(DlsLocation(self.host, self.seAttrs))
 
 
 class FilePageHandler(ContentHandler):
@@ -290,9 +296,10 @@ class DlsXmlParser:
     parser.parse(xmlSource)
     if not handler.phedexReply:
       raise DlsErrorWithServer("No valid server response (no phedex entry). Check DLS endpoint")
-    hostList = handler.list
-    hostList.sort()
-    return map(DlsLocation, hostList)
+#    hostList = handler.list
+#    hostList.sort()
+#    return map(DlsLocation, hostList)
+    return handler.list
 
 
   def xmlToFileLocs(self, xmlSource):

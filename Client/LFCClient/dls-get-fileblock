@@ -32,8 +32,8 @@ def usage():
    """
     Provides usage information
    """
-   print "Usage: dls-get-fileblock [-v, -e, -i, --dbs-conf, --show-prod, --show-caf] <location>"
-   print "       dls-get-fileblock [-v, -e, -i, --dbs-conf, --show-prod, --show-caf] -f <listing_file>"
+   print "Usage: dls-get-fileblock [options] <location>"
+   print "       dls-get-fileblock [options] -f <listing_file>"
    print "       dls-get-fileblock -u"
    print "       dls-get-fileblock -h"
 
@@ -46,12 +46,15 @@ def options():
    -h, --help
    -u, --usage
    -v, --verbose <verb_level>
+   -s, --sitename
    -e, --endpoint <endpoint>
    -i, --interface-type <iface_type>
    -f, --from-file <filename>
        --dbs-conf <conf_file>
        --show-prod
        --show-caf
+       --only-subscribed
+       --only-custodial
    """
 def example():
   """
@@ -69,7 +72,8 @@ specified location (i.e., there is a copy of that FileBlock in that location (SE
 
 Specific notes for DBS and PhEDEx back-end (DLS_TYPE_DBS, DLS_TYPE_PHEDEX):
 
-  The argument of this command is the Storage Element host name.
+  The argument of this command is the Storage Element host name (unless -s 
+  option is used with the DLS_TYPE_PHEDEX implementation).
 
   The server endpoint is got from a string in the URL form, usually:
     "http[s]://hname[:port]/path/to/DLS".
@@ -87,12 +91,20 @@ Additional DLS_TYPE_PHEDEX notes:
 
   The --show-caf option can be used to turn off the filtering of CAF replicas.
 
+  The --only-subscribed option can be used to turn on filtering of
+unsubscribed replicas.
+
+  The --only-custodial option can be used to turn on the filtering of
+non-custodial replicas.
+
 
 Additional DLS_TYPE_DBS notes:
 
   The argument of this command will be taken as a Storage Element host name
   pattern (with '*' as wildcard). All the Fileblocks associated with the
   matching SEs will be returned.
+
+  Option -s will be ignored.
 
   Apart from DBS endpoint, other configuration options may be specified for
   the underlying DBS interface (e.g. "level" for DBS logging level) in a
@@ -106,6 +118,8 @@ Specific notes for LFC back-end (DLS_TYPE_LFC):
 
   The argument of this command is the Storage Element host name.
 
+  Option -s will be ignored.
+
    NOTE: Depending on the implementation, this method may be a very expensive
    operation and affect DLS response, so use it only with care!!
 
@@ -118,12 +132,17 @@ Specific notes for LFC back-end (DLS_TYPE_LFC):
 
 Options:
 
+The "-s" option will cause (for those implementations supporting it) the
+location arguments will be considered to be CMS site name instead of the
+corresponding SE host names.
+
 The "-f" option can be used to retrieve locations from a file rather than from the
 given arguments. The file must contain one line per SE to be listed.
 
 The --show-prod option is only understood by the PhEDEx and DBS back-ends
-(see notes) and ignored by the rest. The --show-caf option is only understood
-by the PhEDEx back-end.
+and ignored by the rest. The --show-caf, --only-subscribed and 
+--only-custodial options are only understood by the PhEDEx back-end.
+See relevant notes.
    """
    commonHelpText(ADMITTED_IFACE_TYPES)
    options()
@@ -131,7 +150,8 @@ by the PhEDEx back-end.
 
 
 
-def showFileBlocks(iface, lineList, showProd, showCAF, verbose):
+def showFileBlocks(iface, lineList, askForSite, showProd, showCAF, subscribed,\
+                   custodial, verbose):
    """
     Prints the FileBlocks that are stored in the specified location.
     lineList is a list of strings, each holding a location host. 
@@ -159,7 +179,9 @@ def showFileBlocks(iface, lineList, showProd, showCAF, verbose):
       print ")"
 
    # Get the FileBlocks (and let the caller deal with the exception...)
-   entryList = iface.getFileBlocks(locList, session=True, showProd=showProd, showCAF=showCAF)
+   entryList = iface.getFileBlocks(locList, session = True, showProd = showProd,\
+                    showCAF = showCAF, cmsSite = askForSite, subscribed = \
+                    subscribed, custodial = custodial)
 
 
 
@@ -167,10 +189,14 @@ def showFileBlocks(iface, lineList, showProd, showCAF, verbose):
    locsDict = {}
    for entry in entryList:
       for loc in entry.locations:
-         if(locsDict.has_key(loc.host)):
-            locsDict[loc.host].append(entry.fileBlock.name)
+         if askForSite:
+            mykey = loc.attribs['node']
          else:
-            locsDict[loc.host] = [entry.fileBlock.name]
+            mykey = loc.host
+         if(locsDict.has_key(mykey)):
+            locsDict[mykey].append(entry.fileBlock.name)
+         else:
+            locsDict[mykey] = [entry.fileBlock.name]
    
    # Do we print the header? Always, unless we asked for 1, and without patterns.
    with_heathers = (len(locList) > 1) or (len(locsDict.keys()) > 1) or (locsDict.keys() != locList)
@@ -194,9 +220,11 @@ def main(pArgs):
 
  # Options and args... 
  
-   longoptions=["help", "usage", "endpoint=", "interface-type=", "verbose=","from-file=", "dbs-conf=", "show-prod", "show-caf"]
+   longoptions=["help", "usage", "endpoint=", "interface-type=", "verbose=",\
+                "sitename", "from-file=", "dbs-conf=", "show-prod", "show-caf",\
+                "only-subscribed", "only-custodial"]
    try:
-      optlist, args = getopt.getopt(pArgs, 'hue:i:v:f:', longoptions)
+      optlist, args = getopt.getopt(pArgs, 'hue:i:v:sf:', longoptions)
    except getopt.GetoptError, inst:
       err("Bad usage: "+str(inst))
       usage()
@@ -209,7 +237,10 @@ def main(pArgs):
    iface_type = None
    showProd = False
    showCAF = False
+   subscribed = False
+   custodial = False
    fromFile = False
+   site = False
    fname=""
    for opt, val in optlist:
        if opt in ("-h", "--help"):
@@ -228,6 +259,15 @@ def main(pArgs):
 
        elif opt in ("", "--show-caf"):
            showCAF = True
+           
+       elif opt in ("", "--only-subscribed"):
+           subscribed = True
+
+       elif opt in ("", "--only-custodial"):
+           custodial = True
+
+       elif opt in ("-s", "--sitename"):
+           site = True
 
        elif opt in ("-e","--endpoint"):
            endpoint = val
@@ -286,7 +326,8 @@ def main(pArgs):
    
  # Do the query (under session)
    try:
-     showFileBlocks(iface, lineList, showProd, showCAF, verbose)
+     showFileBlocks(iface, lineList, site, showProd, showCAF, \
+                    subscribed, custodial, verbose)
    except dlsApi.DlsApiError, inst:         
       if(inst.rc):  rc = inst.rc 
       else:           rc = GENERIC_ERROR

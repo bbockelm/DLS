@@ -6,7 +6,7 @@
 #
 
 """
- This module simply defines as constants some DLS default values, so that
+ This module simply defines some DLS default values as constants, so that
  other modules can use them. Editing this file directly will have the same
  effect as modifying a configuration file. The runtime value for some of 
  the variables here may be modified by other means (such as API calls or 
@@ -18,7 +18,7 @@ DLS_PHEDEX_MAX_BLOCKS_PER_QUERY = 100
 DLS_PHEDEX_MAX_BLOCKS_PER_FILE_QUERY = 50
 DLS_PHEDEX_MAX_SES_PER_QUERY = 10
 
-DLS_API_VERSION = "DLS_1_1_1_IN2P3_XT"
+DLS_API_VERSION = "DLS_1_1_2"
 
 def getApiVersion():
 

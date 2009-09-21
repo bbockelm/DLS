@@ -32,7 +32,7 @@ def usage():
    """
     Provides usage information
    """
-   print "Usage: dls-dump [-v, -e, -i, -r, --dbs-conf, --show-prod, --show-caf] <what>"
+   print "Usage: dls-dump [options] <what>"
    print "       dls-dump -u"
    print "       dls-dump -h"
 
@@ -51,6 +51,8 @@ def options():
        --dbs-conf <conf_file>
        --show-prod
        --show-caf
+       --only-subscribed
+       --only-custodial
    """
 def example():
   """
@@ -93,6 +95,12 @@ Additional DLS_TYPE_PHEDEX notes:
 
   The --show-caf option can be used to turn off the filtering of CAF replicas.
 
+  The --only-subscribed option can be used to turn on filtering of
+unsubscribed replicas.
+
+  The --only-custodial option can be used to turn on the filtering of
+non-custodial replicas.
+
 
 Additional DLS_TYPE_DBS notes:
 
@@ -129,16 +137,18 @@ Options:
 The "-r" option makes the dumping recursive.
 
 The --show-prod option is only understood by the PhEDEx and DBS back-ends
-(see notes) and ignored by the rest. The --show-caf option is only understood
-by the PhEDEx back-end.
-   """
+and ignored by the rest. The --show-caf, --only-subscribed and 
+--only-custodial options are only understood by the PhEDEx back-end.
+See relevant notes.
+ """
    commonHelpText(ADMITTED_IFACE_TYPES)
    options()
    usage()
 
 
 
-def showEntries(iface, dir, recursive, showProd, showCAF, verbose):
+def showEntries(iface, dir, recursive, showProd, showCAF, subscribed, \
+                  custodial, verbose):
    """
     Prints the entries under the specified FileBlock directory.
     Argument dir is a string, holding the directory name. 
@@ -151,7 +161,9 @@ def showEntries(iface, dir, recursive, showProd, showCAF, verbose):
    # Get the Entries (and let the caller deal with the exception...)
    if(verbose >= 2):
       print "--DlsApi.dumpEntries(%s, recursive = %s)" % (dir, recursive)
-   entryList = iface.dumpEntries(dir, recursive=recursive, session=True, showProd=showProd, showCAF=showCAF)
+   entryList = iface.dumpEntries(dir, recursive = recursive, session = True, \
+                                 showProd = showProd, showCAF = showCAF, \
+                                 subscribed = subscribed, custodial = custodial)
    
 
    # Print the list
@@ -170,7 +182,10 @@ def main(pArgs):
 
  # Options and args... 
  
-   longoptions=["help", "usage", "endpoint=", "interface-type=","verbose=","recursive", "dbs-conf=", "show-prod", "show-caf"]
+   longoptions=["help", "usage", "endpoint=", "interface-type=", "verbose=", \
+                "recursive", "dbs-conf=", "show-prod", "show-caf", \
+                "only-subscribed", "only-custodial"]
+]
    try:
       optlist, args = getopt.getopt(pArgs, 'hue:i:v:r', longoptions)
    except getopt.GetoptError, inst:
@@ -186,6 +201,8 @@ def main(pArgs):
    recursive = False
    showProd = False
    showCAF = False
+   subscribed = False
+   custodial = False
    for opt, val in optlist:
        if opt in ("-h", "--help"):
            help()
@@ -203,6 +220,12 @@ def main(pArgs):
 
        elif opt in ("", "--show-caf"):
            showCAF = True
+
+       elif opt in ("", "--only-subscribed"):
+           subscribed = True
+
+       elif opt in ("", "--only-custodial"):
+           custodial = True
 
        elif opt in ("-e","--endpoint"):
            endpoint = val
@@ -244,7 +267,8 @@ def main(pArgs):
     
  # Do the query (under session)
    try:
-     showEntries(iface, dir, recursive, showProd, showCAF, verbose)
+     showEntries(iface, dir, recursive, showProd, showCAF, subscribed, \
+                 custodial, verbose)
    except dlsApi.DlsApiError, inst:         
       if(inst.rc):  rc = inst.rc 
       else:           rc = GENERIC_ERROR

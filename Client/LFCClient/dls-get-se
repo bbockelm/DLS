@@ -18,7 +18,8 @@ import time
 import sys
 import getopt
 
-ADMITTED_IFACE_TYPES = ["DLS_TYPE_LFC", "DLS_TYPE_MYSQL", "DLS_TYPE_DBS", "DLS_TYPE_PHEDEX", "DLS_TYPE_DLI"]
+ADMITTED_IFACE_TYPES = ["DLS_TYPE_LFC", "DLS_TYPE_MYSQL", "DLS_TYPE_DBS", \
+                        "DLS_TYPE_PHEDEX", "DLS_TYPE_DLI"]
 
 
 ################## GLOBAL CONSTANTS ########################
@@ -31,8 +32,8 @@ def usage():
    """
     Provides usage information
    """
-   print "Usage: dls-get-se [-v, -e, -i, -l, --dbs-conf, --show-prod, --show-caf] <fileblock>"
-   print "       dls-get-se [-v, -e, -i, -l, -p, --dbs-conf, --show-prod, --show-caf] -f <listing_file>"
+   print "Usage: dls-get-se [options] <fileblock>"
+   print "       dls-get-se [options] [-p] -f <listing_file>"
    print "       dls-get-se -u"
    print "       dls-get-se -h"
 
@@ -48,11 +49,14 @@ def options():
    -e, --endpoint <endpoint>
    -i, --interface-type <iface_type>
    -l, --long
+   -s, --sitename
    -p, --partial-list
    -f, --from-file <filename>
        --dbs-conf <conf_file>
        --show-prod
        --show-caf
+       --only-subscribed
+       --only-custodial
    """
 def example():
   """
@@ -89,12 +93,20 @@ Specific notes for DBS and PhEDEx back-end (DLS_TYPE_DBS, DLS_TYPE_PHEDEX):
 Additional DLS_TYPE_PHEDEX notes:
 
   The --show-caf option can be used to turn off the filtering of CAF replicas.
+  
+  The --only-subscribed option can be used to turn on filtering of
+unsubscribed replicas.
+
+  The --only-custodial option can be used to turn on the filtering of
+non-custodial replicas.
 
 
 Additional DLS_TYPE_DBS notes:
 
   Currently, the DBS back-end does not support replica attributes, so the
   "-l" option is ignored.
+
+  Option -s will be ignored.
   
   Apart from DBS endpoint, other configuration options may be specified for
   the underlying DBS interface (e.g. "level" for DBS logging level) in a
@@ -110,6 +122,8 @@ Specific notes for LFC back-end (DLS_TYPE_LFC):
 
   For long listing ("-l"), printed attributes are: accees time, pin time,
   file type ('P' for permanent or 'V' for volatile) and SURL.
+
+  Option -s will be ignored.
 
   The server endpoint should be of the form: "hname[:port][/path/to/DLS]",
   where a default port is used if not specified, and the path to DLS is
@@ -130,6 +144,9 @@ Options:
 The "-l" option will cause some location attributes are printed after the SE name.
 Printed attributes depend on the DLS implementation.
 
+The "-s" option will cause (for those implementations supporting it) the printing
+of the CMS site name instead of the corresponding SE.
+
 The "-f" option can be used to retrieve FileBlock names from a file rather
 than from the given arguments. The file must contain one line per FileBlock
 to be listed.
@@ -142,8 +159,9 @@ printed and the corresponding fileblock is skipped in the resulting locations
 list. The "-p" option makes no sense if "-f" is not used.
 
 The --show-prod option is only understood by the PhEDEx and DBS back-ends
-(see notes) and ignored by the rest. The --show-caf option is only understood
-by the PhEDEx back-end.
+and ignored by the rest. The --show-caf, --only-subscribed and 
+--only-custodial options are only understood by the PhEDEx back-end.
+See relevant notes.
  """
    commonHelpText(ADMITTED_IFACE_TYPES)
    options()
@@ -151,7 +169,9 @@ by the PhEDEx back-end.
 
 
 
-def showLocations(iface, lineList, longList, iface_type, errorTolerant, showProd, showCAF, verbose):
+def showLocations(iface, lineList, longList, showSite, iface_type,\
+                  errorTolerant, showProd, showCAF, subscribed, \
+                  custodial, verbose):
    """
     Prints the locations which hold a copy of the specified
     FileBlock. lineList is a list of strings, each holding 
@@ -183,45 +203,48 @@ def showLocations(iface, lineList, longList, iface_type, errorTolerant, showProd
       print ")"
 
    # Get the locations (and let the caller deal with the exception...)
-   entryList = iface.getLocations(fbList, longList = longList, session = True, errorTolerant = errorTolerant, showProd = showProd, showCAF = showCAF)
+   entryList = iface.getLocations(fbList, longList = longList, session = True, \
+                   errorTolerant = errorTolerant, showProd = showProd, showCAF \
+                   = showCAF, subscribed = subscribed, custodial = custodial)
 
    # Print the entries
    for entry in entryList:
       if (len(entryList) > 1):
          print "  FileBlock: " + entry.fileBlock.name
       for loc in entry.locations:
-#         # In any case, print the host
-#         print loc.host,
-         if (not longList) or (iface_type=="DLS_TYPE_LFC"):
-            print loc.host,
+
+         if iface_type=="DLS_TYPE_LFC":
+             print loc.host,
+             if longList:
+                values = []
+                for i in ["atime", "ptime", "f_type", "sfn"]:
+                   try:
+                       values.append(loc.attribs[i])
+                   except KeyError, inst:
+                       values.append("UNKNOWN")
+
+                if(not (values[0] == "UNKNOWN")):
+                   time_tuple = time.localtime(loc.attribs["atime"])
+                   if(time_tuple[0] != THIS_YEAR):
+                      fmt = "%b %d %Y"
+                   else:
+                      fmt = "%b %d %H:%M"
+                   print '\t', time.strftime(fmt, time_tuple), '\t',
+                else:
+                   print '\t', values[1], '\t',
+
+                print values[1], "\t",
+                print values[2], "\t",
+                print values[3],
          else:
-            print loc,
+             if longList:
+                print loc,
+             else:
+                if showSite:
+                    print loc.attribs['node'],
+                else:
+                    print loc.host,
 
-         if(iface_type=="DLS_TYPE_LFC" and longList):
-#         if(longList):
-            values = []
-            for i in ["atime", "ptime", "f_type", "sfn"]:
-               try:
-                   values.append(loc.attribs[i])
-               except KeyError, inst:
-                   values.append("UNKNOWN")
-
-            if(not (values[0] == "UNKNOWN")):
-               time_tuple = time.localtime(loc.attribs["atime"])
-               if(time_tuple[0] != THIS_YEAR):
-                  fmt = "%b %d %Y"
-               else:
-                  fmt = "%b %d %H:%M"
-               print '\t', time.strftime(fmt, time_tuple), '\t',
-            else:
-               print '\t', values[1], '\t',
-
-            print values[1], "\t",
-            print values[2], "\t",
-            print values[3],
-
-#         if(iface_type != "DLS_TYPE_LFC" and longList):
-#            print loc.attribs,
 
          print
          
@@ -239,9 +262,12 @@ def main(pArgs):
 
  # Options and args... 
  
-   longoptions=["help", "usage", "long", "endpoint=", "interface-type=", "verbose=", "from-file=", "partial-list", "dbs-conf=", "show-prod", "show-caf"]
+   longoptions=["help", "usage", "long", "sitename", "endpoint=", \
+                "interface-type=", "verbose=", "from-file=", "partial-list",\
+                "dbs-conf=", "show-prod", "show-caf", "only-subscribed",\
+                "only-custodial"]
    try:
-      optlist, args = getopt.getopt(pArgs, 'hule:i:v:f:p', longoptions)
+      optlist, args = getopt.getopt(pArgs, 'hulse:i:v:f:p', longoptions)
    except getopt.GetoptError, inst:
       err("Bad usage: "+str(inst))
       usage()
@@ -258,6 +284,9 @@ def main(pArgs):
    errorTolerant = False
    showProd = False
    showCAF = False
+   subscribed = False
+   custodial = False
+   site = False
    for opt, val in optlist:
        if opt in ("-h", "--help"):
            help()
@@ -270,8 +299,17 @@ def main(pArgs):
        elif opt in ("-l", "--long"):
            longList = True
            
+       elif opt in ("-s", "--sitename"):
+           site = True
+           
        elif opt in ("", "--dbs-conf"):
            dbsConf = val
+
+       elif opt in ("", "--only-subscribed"):
+           subscribed = True
+
+       elif opt in ("", "--only-custodial"):
+           custodial = True
 
        elif opt in ("", "--show-prod"):
            showProd = True
@@ -343,7 +381,8 @@ def main(pArgs):
    
  # Do the query (under session)
    try:
-     showLocations(iface, lineList, longList, iface_type, errorTolerant, showProd, showCAF, verbose)
+     showLocations(iface, lineList, longList, site, iface_type, errorTolerant,\
+                   showProd, showCAF, subscribed, custodial, verbose)
    except dlsApi.DlsApiError, inst:         
       if(inst.rc):  rc = inst.rc 
       else:           rc = GENERIC_ERROR
