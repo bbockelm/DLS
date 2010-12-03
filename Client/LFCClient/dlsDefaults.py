@@ -1,5 +1,5 @@
 #
-# $Id: dlsDefaults.py,v 1.2 2008/09/08 15:38:07 delgadop Exp $
+# $Id: dlsDefaults.py,v 1.5 2009/09/21 13:05:39 delgadop Exp $
 #
 # DLS Client Defaults. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -18,13 +18,13 @@ DLS_PHEDEX_MAX_BLOCKS_PER_QUERY = 100
 DLS_PHEDEX_MAX_BLOCKS_PER_FILE_QUERY = 50
 DLS_PHEDEX_MAX_SES_PER_QUERY = 10
 
-DLS_API_VERSION = "DLS_1_1_2"
+DLS_API_VERSION = "DLS_1_1_3"
 
 def getApiVersion():
 
     # DLS Client Api version, set from the CVS checkout tag
     # For HEAD version (len < 2), use above default
-    version = "$Name$"
+    version = "$Name:  $"
     version = version[7:-2]
     if len(version) < 2:
          version = DLS_API_VERSION

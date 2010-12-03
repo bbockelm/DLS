@@ -77,11 +77,10 @@ if endpoint==None:
 # #############################
 ## Some predefined fileblocks and locations
 # #############################
-fbPattern='/CSA07AllEvents/CMSSW_1_6_7-CSA07-Stew-B1-PDAllEvents-Skims2-muonL1AODSIM/USER#ad*'
-#fbA="/GlobalNov07-A/Online/RAW#f84d8b19-d8ce-47ea-b8f0-9f138c9f374c"
-fbA="/CSA07AllEvents/CMSSW_1_6_7-CSA07-Stew-B1-PDAllEvents-Skims2-muonL1AODSIM/USER#ad0560bb-9bc1-4e84-aa81-6f32c16f9c65"
-fbB="/CSA07AllEvents/CMSSW_1_6_7-CSA07-Stew-B1-PDAllEvents-Skims2-muonL1AODSIM/USER#a83d4262-afbe-463e-aeac-d9c21724b4b6"
-fbC="/CSA07AllEvents/CMSSW_1_6_7-CSA07-Stew-B1-PDAllEvents-Skims2-muonL1AODSIM/USER#a06748f3-441b-4b32-ab85-c2fa4ec67e44"
+fbPattern='/Zmumu/Summer09-MC_31X_V3-v1/GEN-SIM-RECO#8*'
+fbA="/Zmumu/Summer09-MC_31X_V3-v1/GEN-SIM-RECO#84bbc9b5-1185-4d6a-8607-ecdd93e29417"
+fbB="/Zmumu/Summer09-MC_31X_V3-v1/GEN-SIM-RECO#82801173-7a7b-4185-bd94-e1c71d762db5"
+fbC="/Zmumu/Summer09-MC_31X_V3-v1/GEN-SIM-RECO#85fa9514-b9d5-4b15-a366-9567999c31e3"
 seA = "srm.ciemat.es"
 seB = "storm.ifca.es"
 

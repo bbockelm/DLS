@@ -1,5 +1,5 @@
 #
-# $Id: dlsPhedexApi.py,v 1.9 2009/01/23 09:51:28 delgadop Exp $
+# $Id: dlsPhedexApi.py,v 1.12 2009/09/21 13:05:39 delgadop Exp $
 #
 # DLS Client. $Name:  $.
 # Antonio Delgado Peris. CIEMAT. CMS.
@@ -30,18 +30,15 @@
 import dlsApi
 from dlsApiExceptions import *
 from dlsDataObjects import DlsLocation, DlsFileBlock, DlsEntry, DlsDataObjectError
-# TODO: From what comes next, should not import whole modules, but what is needed...
 import warnings
 warnings.filterwarnings("ignore","Python C API version mismatch for module _lfc",RuntimeWarning)
 import sys
-import commands
-import time
-import getopt
 from os import environ, uname
 from stat import S_IFDIR
 from dlsXmlParser import DlsXmlParser
 from xml.sax import SAXException, SAXParseException
-from urllib2 import HTTPError, URLError, urlopen, Request
+from urllib2 import (HTTPError, URLError, urlopen, build_opener, 
+                     Request, HTTPRedirectHandler)
 from urllib2 import __version__ as urllibversion
 from urllib import urlencode
 from dlsDefaults import DLS_PHEDEX_MAX_BLOCKS_PER_QUERY, DLS_PHEDEX_MAX_SES_PER_QUERY, \
@@ -54,9 +51,56 @@ DLS_PHEDEX_BLOCKS = "DLS_PHEDEX_BLOCKS"
 DLS_PHEDEX_FILES = "DLS_PHEDEX_FILES"
 DLS_PHEDEX_ALL_LOCS = "DLS_PHEDEX_ALL_LOCS"
 
-unamev = uname()
-USERAGENT = {'User-Agent': 'dls-client/%s (CMS) urllib2/%s %s/%s (%s)' %\
-             (getApiVersion(), urllibversion, unamev[0], unamev[2], unamev[4])}
+#unamev = uname()
+#USERAGENT = {'User-Agent': 'dls-client/%s (CMS) urllib2/%s %s/%s (%s)' %\
+#             (getApiVersion(), urllibversion, unamev[0], unamev[2], unamev[4])}
+
+
+
+#########################################
+# Helper classes
+#########################################
+class DlsRedirectHandler(HTTPRedirectHandler):
+    """
+    Redirector that keeps POSTs as POSTs (including all data that
+    belonged originally to the request) unless we are changing
+    the last part of the URL (data service API call). Infinite loops 
+    are also avoided but that's done by our parent (implicit here).
+
+    Notice that GET redirections go the new URL indicated by the server
+    without adding any URL arguments ('?') originally present (they should
+    have been preserved by the server).
+    """
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        """
+        Method that will be called by urllib2 when a redirection occur, to 
+        see what to do.
+        """
+        m = req.get_method()
+        if ((code in (301, 302, 303, 307) and m in ("GET", "HEAD")) or
+            (code in (300, 302, 303) and m == "POST")):
+
+            newurl = newurl.replace(' ', '%20')            
+            oldurl = req.get_full_url()
+            newApiCall = newurl.split('/')[-1].split('?')[0]
+            oldApiCall = oldurl.split('/')[-1].split('?')[0]
+#            #
+#            print 'newurl:',newurl
+#            print 'req.data:',req.data
+#            print 'req.get_full_url():', req.get_full_url()
+#            print
+#            #
+            if oldApiCall != newApiCall:
+                msg = "Not allowed redirection: trying to change data service"
+                msg += " API call from '%s' to '%s'" % (oldApiCall, newApiCall)
+                raise HTTPError(req.get_full_url(), code, msg, headers, fp)
+
+            return Request(newurl, req.data, headers = req.headers,
+                           origin_req_host = req.get_origin_req_host(),
+                           unverifiable = True)
+        else:
+            raise HTTPError(req.get_full_url(), code, msg, headers, fp)
 
 
 #########################################
@@ -101,19 +145,35 @@ class DlsPhedexApi(dlsApi.DlsApi):
     checked. This makes sense where more than one query are to be made next.
     For simple queries, any error in the endpoint will be noticed in the query
     itself, so the check would be redundant and not efficient.
+
+    The uaClientsList and uaFlexString arguments (**kwd) may be respectively used 
+    to specify a list of client,version pairs of strings identifying clients of DLS 
+    (e.g: [['ProdAgent', '3.45']], and a string of free format (e.g. 'Operator John').
+    Both will be included in the UserAgent string used in identification with the 
+    PhEDEx data service, as described in the _userAgent method's docstring.
       
     @exception DlsConfigError: if no DLS server can be found.
 
     @param dls_endpoint: the DLS server to be used, as a string "hname[:port]/path/to/DLS"
     @param verbosity: value for the verbosity level
-    @param kwd: Flags 
+    @param kwd: 
        - checkEndpoint: Boolean (default False) for testing of the DLS endpoint
+       - uaClientsList: List of client,version pairs of strings for the UserAgent string
+       - uaFlexString: String, flexible (format-free) part of the UserAgent string
     """
 
     # Keywords
     checkEndpoint = False
     if(kwd.has_key("checkEndpoint")):
        checkEndpoint = kwd.get("checkEndpoint")
+
+    uaFlexString = ''
+    if(kwd.has_key("uaFlexString")):
+       uaFlexString = kwd.get("uaFlexString")
+
+    uaClientsList = []
+    if(kwd.has_key("uaClientsList")):
+       uaClientsList = kwd.get("uaClientsList")
 
     # Let the parent set the server endpoint (if possible) and verbosity
     dlsApi.DlsApi.__init__(self, dls_endpoint, verbosity)
@@ -136,14 +196,29 @@ class DlsPhedexApi(dlsApi.DlsApi):
     self.setBlocksPerFileQuery ( DLS_PHEDEX_MAX_BLOCKS_PER_FILE_QUERY )
     self.setLocsPerQuery ( DLS_PHEDEX_MAX_SES_PER_QUERY )
 
+    # Store the internal UserAgent variables
+#    import pdb; pdb.set_trace()
+
+    self.setUserAgentFlexString(uaFlexString)
+    self._uaVersions = []
+    self.addUserAgentClient('Python', sys.version.split()[0])
+    self.addUserAgentClient('urllib2', urllibversion)
+    self.addUserAgentClient('dls-client', getApiVersion())
+    for client, version in uaClientsList:
+        self.addUserAgentClient(client, version)
+    unamev = uname()
+    self._uaArch = ' (CMS) %s/%s (%s)' % (unamev[0], unamev[2], unamev[4])
+
     # Check that the provided URL is OK (by listing an inexisting fileblock)
     if(checkEndpoint):
       try:
 #         self._debug("Checking endpoint %s..." % self.server)
          urlv = self._buildXmlUrl(self.server, DLS_PHEDEX_BLOCKS, ["-"])
-         req = Request(urlv[0] + '?' + urlencode(urlv[1]), None, USERAGENT)
-#         url = urlopen(urlv[0] + '?' + urlencode(urlv[1]))
-         url = urlopen(req)
+#         req = Request(urlv[0] + '?' + urlencode(urlv[1]), None, USERAGENT)
+         req = Request(urlv[0] + '?' + urlencode(urlv[1]), None, self._userAgent())
+         opener = build_opener(DlsRedirectHandler())
+         url = opener.open(req)
+         #
          self.parser.xmlToEntries(url)
       except Exception, inst:
          msg = "Could not set the interface to the DLS server. "
@@ -255,9 +330,10 @@ class DlsPhedexApi(dlsApi.DlsApi):
       # Get the locations
       try:  
          # Build the xml query to use
-         req = Request(urlbase, urlencode(arglist + arglist2), USERAGENT)
-#         url = urlopen(urlbase, urlencode(arglist + arglist2))
-         url = urlopen(req)
+#         req = Request(urlbase, urlencode(arglist + arglist2), USERAGENT)
+         req = Request(urlbase, urlencode(arglist + arglist2), self._userAgent())
+         opener = build_opener(DlsRedirectHandler())
+         url = opener.open(req)
          partList = self.parser.xmlToEntries(url)
       except Exception, inst:
          msg = "Error retrieving locations"
@@ -365,9 +441,10 @@ class DlsPhedexApi(dlsApi.DlsApi):
       # Get the blocks
       try:  
          # Build the xml query to use
-         req = Request(urlbase, urlencode(arglist + arglist2), USERAGENT)
-#         url = urlopen(urlbase, urlencode(arglist + arglist2))
-         url = urlopen(req)
+#         req = Request(urlbase, urlencode(arglist + arglist2), USERAGENT)
+         req = Request(urlbase, urlencode(arglist + arglist2), self._userAgent())
+         opener = build_opener(DlsRedirectHandler())
+         url = opener.open(req)
          partList = self.parser.xmlToEntries(url)
       except Exception, inst:
          msg = "Error retrieving FileBlocks for %s" % (locList)
@@ -449,9 +526,10 @@ class DlsPhedexApi(dlsApi.DlsApi):
       if not arglist: continue
       # Get the blocks
       try:  
-         req = Request(urlbase, urlencode(arglist + arglist2), USERAGENT)
-#         url = urlopen(urlbase, urlencode(arglist + arglist2))
-         url = urlopen(req)
+#         req = Request(urlbase, urlencode(arglist + arglist2), USERAGENT)
+         req = Request(urlbase, urlencode(arglist + arglist2), self._userAgent())
+         opener = build_opener(DlsRedirectHandler())
+         url = opener.open(req)
          partList = self.parser.xmlToBlocks(url)
       except Exception, inst:
          msg = "Error retrieving fileblock information"
@@ -464,63 +542,10 @@ class DlsPhedexApi(dlsApi.DlsApi):
     if(not bList):
        msg = "No existing fileblock matching %s" % (str(lfnList))
        msg_w = msg + ". Skipping"
-#       if(not errorTolerant):  raise DlsInvalidBlockName(msg)
-#       else:                   self._warn(msg_w)
        self._warn(msg_w)
 
     # Return what we got
     return bList
-
-
-# OLD: version for just one fileblock
-#  def getFileLocs(self, fileblock, **kwd):
-#    """
-#    Implementation of the dlsApi.DlsApi.getFileLocs method.
-#    Refer to that method's documentation.
-
-#    Implementation specific remarks:
-#    
-#    The showProd flag is taken into account and if not set to True some 
-#    file replicas are filtered out.
-
-#    The following keyword flags are ignored: session.
-#    """
-#    
-#    # Keywords
-#    showProd = False
-#    if(kwd.has_key("showProd")):   showProd = kwd.get("showProd")
-
-#    # Check that the passed FileBlock is not a pattern
-#    if (fileblock.find('*') != -1) or (fileblock.find('%') != -1):
-#      msg = "FileBlock patterns (with '*' or '%%' wildcards) are not acceptable: %s" % (fileblock)
-#      raise DlsInvalidBlockName(msg)
-
-#    arglist = []
-#    if fileblock: arglist.append(('block', fileblock)) 
-#    else:
-#       msg = "Error querying for file replicas. A FileBlock must be specified"
-#       raise DlsArgumentError(msg)
-
-#    urlbase = self.server + '/fileReplicas'
-
-#    arglist2 = []
-#    # flags that could be added: incomplete, updated_since, created_since
-#    arglist2.append(('dist_complete', 'y'))
-#    if not showProd:
-#       arglist2 += [('op','node:and'), ('node','!T0*'), ('node','!T1*')]
-#    self._debug("Using PhEDex xml url: " + urlbase + ' ' + str(arglist2))
-
-#    # Get the file-locs dict
-#    try:
-#       # Build the xml query to use
-#       url = urlopen(urlbase, urlencode(arglist+arglist2))
-#       flDict = self.parser.xmlToFileLocs(url)
-#    except Exception, inst:
-#       msg = "Error getting files for FileBlock in DLS"
-#       self._mapException(inst, msg, msg, errorTolerant = False)
-
-#    # Return what we got
-#    return flDict
 
 
   def getFileLocs(self, fileBlockList, **kwd):
@@ -608,9 +633,13 @@ class DlsPhedexApi(dlsApi.DlsApi):
       # Get the file replicas
       try:  
          # Build the xml query to use
-         req = Request(urlbase, urlencode(arglist + arglist2), USERAGENT)
+#         req = Request(urlbase, urlencode(arglist + arglist2), USERAGENT)
+         req = Request(urlbase, urlencode(arglist + arglist2), self._userAgent())
 #         url = urlopen(urlbase, urlencode(arglist + arglist2))
-         url = urlopen(req)
+#         url = urlopen(req)
+         opener = build_opener(DlsRedirectHandler())
+         url = opener.open(req)
+         #
          partList = self.parser.xmlToFileLocs(url)
       except Exception, inst:
          msg = "Error getting files for FileBlock in DLS"
@@ -621,26 +650,6 @@ class DlsPhedexApi(dlsApi.DlsApi):
     
     # Return what we got
     return flList
-
-# OLD: Version with all files in a single dict, no per-block classification
-#    flDict = {}
-#    for arglist in multiList:
-#      if not arglist: continue
-#      # Get the file replicas
-#      try:  
-#         # Build the xml query to use
-#         url = urlopen(urlbase, urlencode(arglist + arglist2))
-#         partDict = self.parser.xmlToFileLocs(url)
-#      except Exception, inst:
-#         msg = "Error getting files for FileBlock in DLS"
-#         msg_w = msg + ". Skipping"
-#         self._mapException(inst, msg, msg_w, errorTolerant)
-#      # Add to the total
-#      for k in partDict:
-#        flDict[k] = partDict[k]
-#    
-#    # Return what we got
-#    return flDict
 
 
   def getAllLocations(self, **kwd):
@@ -663,9 +672,10 @@ class DlsPhedexApi(dlsApi.DlsApi):
     try:  
        self._debug("Using PhEDex xml url: " + urlbase + str(urlargs))
        urlv = self._buildXmlUrl(self.server, DLS_PHEDEX_BLOCKS, ["-"])
-       req = Request(urlbase + '?' + urlencode(urlargs), None, USERAGENT)
-#       url = urlopen(urlbase + '?' + urlencode(urlargs))
-       url = urlopen(req)
+#       req = Request(urlbase + '?' + urlencode(urlargs), None, USERAGENT)
+       req = Request(urlbase + '?' + urlencode(urlargs), None, self._userAgent())
+       opener = build_opener(DlsRedirectHandler())
+       url = opener.open(req)
        locList = self.parser.xmlToLocations(url)
     except Exception, inst:
        msg = "Error getting all locations in DLS"
@@ -788,6 +798,7 @@ class DlsPhedexApi(dlsApi.DlsApi):
        raise DlsValueError("Argument of setBlocksPerQuery must be a positive integer")
     self.blocksPerQuery = nblocks
 
+
   def setBlocksPerFileQuery(self, nblocks):
     """
     Sets the number of blocks to query for in each bulk getFileLocs query
@@ -799,7 +810,8 @@ class DlsPhedexApi(dlsApi.DlsApi):
     if (not type(nblocks) == int) and (nblocks > 0):
        raise DlsValueError("Argument of setBlocksPerFileQuery must be a positive integer")
     self.blocksPerFileQuery = nblocks
-  
+
+
   def setLocsPerQuery(self, nlocs):
     """
     Sets the number of locations to query for in each bulk getFileBlocks query
@@ -812,10 +824,49 @@ class DlsPhedexApi(dlsApi.DlsApi):
        raise DlsValueError("Argument of setBlocksPerQuery must be a positive integer")
     self.locsPerQuery = nlocs
 
+ 
+  def addUserAgentClient(self, client, version):
+    """
+    Adds a client/version pair to the list that will be included in the 
+    UserAgent string to be used as identifier when contacting the PhEDEx
+    data service.
+
+    @param client: the client name (string)
+    @param version: a string (usually of the form 'x.y') with version of the client
+    """
+    self._uaVersions.insert(0, [client, version])
+
+
+  def setUserAgentFlexString(self, text):
+    """
+    Sets the client-provided flexible (format-free) part of the UserAgent 
+    string to be used as identifier when contacting the PhEDEx data service.
+    """
+    self._uaFlex = text
+
 
   ##################################
   # Private methods
   ##################################
+
+  def _userAgent(self):
+    """
+    Builds a UserAgent string to be used as identifier when contacting the PhEDEx
+    data service. It will be built by concatenating the following elements:
+     - Flexible client-provided string
+     - Series of client/version pairs (client-provided, DLS, urllib, python)
+     - Architecture string (preceded by the string '(CMS)')
+
+    The client-provided parts can be set at DlsPhedexApi instantiation time or
+    with the 'addUserAgentClient' and 'setUserAgentFlexString' methods.
+    """
+    result = ''
+    if self._uaFlex:
+        result += self._uaFlex + ', '
+    result += ' '.join('/'.join(x) for x in self._uaVersions) + self._uaArch
+
+    return  {'User-Agent': result}
+
 
   def _toMultiList(self, list, num):
     """

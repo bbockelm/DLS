@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<phedex request_version="1.6.3-cmp3" request_timestamp="1291125912.27118" request_call="blockReplicas" instance="prod" request_date="2010-11-30 14:05:12 UTC" request_url="http://cmsweb.cern.ch:7001/phedex/datasvc/xml/prod/blockReplicas">
+
+<block bytes="586391686" files="1" name="/Mu/Run2010A-PromptReco-v4/RECO#d36c7ef5-46f2-422a-90b5-37941d6c1f03" is_open="n" id="1284925">
+
+<replica bytes="586391686" files="1" node="T2_US_Florida" time_create="1276281881" time_update="1289738437.25806" group="AnalysisOps" se="srm.ihepa.ufl.edu" custodial="n" node_id="33" subscribed="y" complete="y"/>
+<replica bytes="586391686" files="1" node="T2_IT_Bari" time_create="1279282557" time_update="1289738437.25806" group="local" se="storm-se-01.ba.infn.it" custodial="n" node_id="21" subscribed="y" complete="y"/>
+<replica bytes="586391686" files="1" node="T2_FR_IPHC" time_create="1277365761" time_update="1289738437.25806" group="local" se="sbgse1.in2p3.fr" custodial="n" node_id="181" subscribed="y" complete="y"/>
+<replica bytes="586391686" files="1" node="T2_US_Purdue" time_create="1276282013" time_update="1289738437.25806" group="AnalysisOps" se="srm-dcache.rcac.purdue.edu" custodial="n" node_id="53" subscribed="y" complete="y"/>
+<replica bytes="586391686" files="1" node="T2_CN_Beijing" time_create="1277887457" time_update="1289738437.25806" group="" se="srm.ihep.ac.cn" custodial="n" node_id="22" subscribed="y" complete="y"/>
+<replica bytes="586391686" files="1" node="T2_RU_JINR" time_create="1276618625" time_update="1289738437.25806" group="local" se="lcgsedc01.jinr.ru" custodial="n" node_id="42" subscribed="y" complete="y"/>
+<replica bytes="586391686" files="1" node="T3_CH_PSI" time_create="1276622915" time_update="1289738437.25806" group="b-physics" se="t3se01.psi.ch" custodial="n" node_id="821" subscribed="y" complete="y"/>
+<replica bytes="586391686" files="1" node="T2_DE_DESY" time_create="1278666063" time_update="1289738437.25806" group="local" se="dcache-se-cms.desy.de" custodial="n" node_id="29" subscribed="y" complete="y"/>
+<replica bytes="586391686" files="1" node="T2_CH_CSCS" time_create="1276622915" time_update="1289738437.25806" group="b-physics" se="storage01.lcg.cscs.ch" custodial="n" node_id="27" subscribed="y" complete="y"/>
+<replica bytes="586391686" files="1" node="T2_US_Nebraska" time_create="1277994266" time_update="1289738437.25806" group="local" se="srm.unl.edu" custodial="n" node_id="51" subscribed="y" complete="y"/>
+<replica bytes="586391686" files="1" node="T2_TR_METU" time_create="1286882772" time_update="1289738437.25806" group="local" se="eymir.grid.metu.edu.tr" custodial="n" node_id="381" subscribed="y" complete="y"/>
+<replica bytes="586391686" files="1" node="T2_ES_CIEMAT" time_create="1276281200" time_update="1289738437.25806" group="AnalysisOps" se="srm.ciemat.es" custodial="n" node_id="59" subscribed="y" complete="y"/>
+<replica bytes="586391686" files="1" node="T2_FR_GRIF_LLR" time_create="1283432739" time_update="1289738437.25806" group="local" se="polgrid4.in2p3.fr" custodial="n" node_id="34" subscribed="y" complete="y"/>
+<replica bytes="586391686" files="1" node="T3_US_OSU" time_create="1286124183" time_update="1289738437.25806" group="" se="cms-0.mps.ohio-state.edu" custodial="n" node_id="1201" subscribed="y" complete="y"/>
+<replica bytes="586391686" files="1" node="T2_IT_Legnaro" time_create="1276285582" time_update="1289738437.25806" group="AnalysisOps" se="t2-srm-02.lnl.infn.it" custodial="n" node_id="45" subscribed="y" complete="y"/>
+<replica bytes="586391686" files="1" node="T2_US_UCSD" time_create="1276279986" time_update="1289738437.25806" group="AnalysisOps" se="bsrm-1.t2.ucsd.edu" custodial="n" node_id="62" subscribed="y" complete="y"/>
+<replica bytes="586391686" files="1" node="T2_DE_RWTH" time_create="1276282445" time_update="1289738437.25806" group="AnalysisOps" se="grid-srm.physik.rwth-aachen.de" custodial="n" node_id="54" subscribed="y" complete="y"/>
+
+</block>
+
+</phedex>
+

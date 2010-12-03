@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<phedex request_version="1.6.3-cmp3" request_timestamp="1291125912.27118" request_call="blockReplicas" instance="prod" request_date="2010-11-30 14:05:12 UTC" request_url="http://cmsweb.cern.ch:7001/phedex/datasvc/xml/prod/blockReplicas">
+
+
+<block bytes="400189659660" files="340" name="/Wmunu/Spring10-START3X_V26_S09-v1/GEN-SIM-RECO#d1fd2344-2590-42b0-a94c-ab837fd6b07b" is_open="n" id="1058606">
+
+<replica bytes="400189659660" files="340" node="T2_IN_TIFR" time_create="1272485844" time_update="1275047433" group="" se="se01.indiacms.res.in" custodial="n" node_id="281" subscribed="y" complete="y"/>
+<replica bytes="400189659660" files="340" node="T2_US_Florida" time_create="1271469058" time_update="1271483822" group="AnalysisOps" se="srm.ihepa.ufl.edu" custodial="n" node_id="33" subscribed="y" complete="y"/>
+<replica bytes="400189659660" files="340" node="T2_FR_IPHC" time_create="1277886253" time_update="1277952075" group="local" se="sbgse1.in2p3.fr" custodial="n" node_id="181" subscribed="y" complete="y"/>
+<replica bytes="400189659660" files="340" node="T2_US_Nebraska" time_create="1271529663" time_update="1271580276" group="AnalysisOps" se="srm.unl.edu" custodial="n" node_id="51" subscribed="y" complete="y"/>
+
+</block>
+
+</phedex>
+
